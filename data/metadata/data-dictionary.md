@@ -25,13 +25,14 @@
 
 | Section | Granularity | Count | Key Fields |
 |---|---|---|---|
-| `district_2023` | `district_aggregate` | 21 rows (`219` fires) | `area_code`, `district_name`, `total_incidents`, `scale_besar`, `scale_kecil`, `scale_discrepancy`, `categories`, `location_accuracy` (`district_only`) |
-| `monthly_2024` | `monthly_aggregate` | 12 rows (`269` fires) | `period_year`, `month_number`, `month_name`, `total_incidents`, `categories`, `location_accuracy` (`unknown`) |
-| `monthly_2025` | `monthly_aggregate` | 12 rows (`251` fires) | `period_year`, `month_number`, `month_name`, `total_incidents`, `categories`, `location_accuracy` (`unknown`) |
-| `monthly_2023_impact` | `monthly_aggregate` | 12 rows (`219` fires) | `month_number`, `month_name`, `total_incidents`, `injured`, `fatalities`, `raw_material_loss` |
-| `annual_series` | `annual_aggregate` | 10 rows (2016-2025) | `year`, `total_incidents`, `granularity`, `source_file` |
+| `district_2023` | `district_aggregate` | 21 rows (`219` fires) | `area_code`, `district_name`, `total_incidents`, `scale_besar`, `scale_kecil`, `scale_discrepancy`, `raw_area_reported`, `area_anomaly_flag`, `categories`, `location_accuracy` (`district_only`), `geom` (`null`) |
+| `monthly_2024` | `monthly_aggregate` | 12 rows (`269` fires) | `period_year`, `month_number`, `month_name`, `total_incidents`, `categories`, `location_accuracy` (`unknown`), `geom` (`null`) |
+| `monthly_2025` | `monthly_aggregate` | 12 rows (`251` fires) | `period_year`, `month_number`, `month_name`, `total_incidents`, `categories`, `location_accuracy` (`unknown`), `geom` (`null`) |
+| `monthly_2023_impact` | `monthly_aggregate` | 12 rows (`219` fires) | `period_year`, `month_number`, `month_name`, `total_incidents`, `injured`, `fatalities`, `raw_material_loss`, `loss_anomaly_flag`, `loss_anomaly_note`, `scale_besar_monthly`, `scale_kecil_monthly`, `raw_area_reported_monthly`, `geom` (`null`) |
+| `annual_series` | `annual_aggregate` | 10 rows (2016-2025) | `year`, `total_incidents`, `granularity`, `location_accuracy`, `verification_status`, `comparison_total_with_outside_medan`, `comparison_rekap_total`, `consistency_flag`, `consistency_note`, `geom` (`null`) |
 | `verified_stations` | `station_point` | 1 verified station | `station_code`, `name`, `station_type`, `address`, `lat`, `lon`, `verification_status` |
-| `unlocated_register` | audit metadata | 3 batches (`739` total aggregate records) | `batch_id`, `period_label`, `record_count`, `granularity`, `location_accuracy`, `verification_status`, `reason` |
+| `unlocated_register` | audit metadata | 4 batches (`2,327` aggregate records 2016-2025) | `batch_id`, `period_label`, `record_count`, `granularity`, `location_accuracy`, `verification_status`, `geom` (`null`), `reason` |
+| `data_quality_anomalies` | QA register | 6 documented findings | `anomaly_id`, `period`, `severity`, `summary`, `resolution`, `source_files` |
 
 ## 3. `data/processed/medan_population_2022_2025.csv`
 
