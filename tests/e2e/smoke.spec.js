@@ -1,0 +1,170 @@
+import { expect, test } from "@playwright/test";
+
+test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
+  test("covers dashboard, keyboard/mouse nav, Coming Soon, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
+    page
+  }) => {
+    const consoleErrors = [];
+    const pageErrors = [];
+    const failedAssets = [];
+
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    page.on("pageerror", (err) => pageErrors.push(err.message));
+    page.on("response", (res) => {
+      const url = res.url();
+      if (url.startsWith("http://127.0.0.1:4173") && res.status() >= 400) {
+        failedAssets.push(`${res.status()} ${url}`);
+      }
+    });
+
+    // 1. Desktop Dashboard load + Supabase local status + 4 module nav items
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /Ringkasan Pemetaan Kebakaran Kota Medan/i })).toBeVisible();
+    await expect(page.locator("#supabase-status-badge")).toContainText("Mode Lokal");
+
+    for (const navLabel of ["Incident Explorer", "Hotspot Analyzer", "Station Coverage", "Priority Planner"]) {
+      await expect(page.locator("#module-nav-list").getByText(navLabel)).toBeVisible();
+    }
+
+    // Check desktop no horizontal overflow
+    const desktopOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(desktopOverflow).toBe(false);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+
+    // 2. Coming Soon modules display owner, status, no fake progress %, and clean up previous Leaflet map
+    await page.locator("#module-nav-list a[href='/hotspot-analyzer']").click();
+    await expect(page.getByRole("heading", { name: "Fire Hotspot Analyzer" })).toBeVisible();
+    await expect(page.getByText("Adeptri").first()).toBeVisible();
+    await expect(page.getByText("Coming Soon").first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
+
+    await page.locator("#module-nav-list a[href='/station-coverage']").click();
+    await expect(page.getByRole("heading", { name: "Fire Station Coverage" })).toBeVisible();
+    await expect(page.getByText("Adriel").first()).toBeVisible();
+
+    await page.locator("#module-nav-list a[href='/priority-planner']").click();
+    await expect(page.getByRole("heading", { name: "Fire Service Priority Planner" })).toBeVisible();
+    await expect(page.getByText("Olo").first()).toBeVisible();
+
+    // 3. About & Data Sources page
+    await page.locator("aside nav a[href='/about']").click();
+    await expect(page.getByRole("heading", { name: /Tentang Proyek/i })).toBeVisible();
+    await expect(page.getByText(/Register Sumber Data Terverifikasi/i)).toBeVisible();
+
+    // 4. Fire Incident Explorer interactions + filter checks + Three.js toggle + DEMO opt-in separation
+    await page.locator("#module-nav-list a[href='/incident-explorer']").click();
+    await expect(page.getByRole("heading", { name: "Fire Incident Explorer" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+
+    // Default 2023 district view has 21 rows and 219 total
+    await expect(page.locator("#explorer-table-count")).toHaveText("21 baris");
+
+    // Filter by district
+    await page.selectOption("#filter-district", "Medan Belawan");
+    await expect(page.locator("#explorer-table-count")).toHaveText("1 baris");
+    await expect(page.locator("#detail-kv")).toContainText("Medan Belawan");
+
+    // Reset filter and test keyboard row selection in table
+    await page.click("#filter-reset");
+    await expect(page.locator("#explorer-table-count")).toHaveText("21 baris");
+    const amplasRow = page.locator("tr[data-row-key='Medan Amplas']");
+    await amplasRow.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#detail-kv")).toContainText("Medan Amplas");
+    await expect(page.locator("[data-preview-title]")).toBeVisible();
+
+    // Switch to 2024 monthly aggregate -> district filter disables honestly
+    await page.selectOption("#filter-period", "2024-bulanan");
+    await expect(page.locator("#filter-district")).toBeDisabled();
+    await expect(page.locator("#explorer-table-count")).toHaveText("12 baris");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("2024");
+
+    // Switch category filter in 2025 monthly
+    await page.selectOption("#filter-period", "2025-bulanan");
+    await page.selectOption("#filter-category", "rumah");
+    await expect(page.locator("#explorer-metrics")).toContainText("113");
+
+    // Switch tab to Belum Terlokasi & Perlu Review
+    await page.click("#tab-unlocated");
+    await expect(page.getByText("UNLOC-2025-MONTHLY")).toBeVisible();
+    await expect(page.locator("#explorer-tab-unlocated").getByText("Medan Kota")).toBeVisible();
+
+    // Return to verified tab & toggle opt-in DEMO fixture
+    await page.click("#tab-verified");
+    await page.click("#toggle-demo-mode");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("DATA DEMO AKTIF");
+    await expect(page.locator("#explorer-table-count")).toHaveText("3 record DEMO");
+    await page.click("#toggle-demo-mode");
+    await expect(page.locator("#explorer-granularity-banner")).not.toContainText("DATA DEMO AKTIF");
+
+    // Verify Three.js schematic Play/Pause toggle works when WebGL is available (or fallback 2D is shown)
+    const previewToggle = page.locator("[data-preview-toggle]");
+    await expect(previewToggle).toBeVisible();
+    const renderMode = await page.locator("[data-preview-stage]").getAttribute("data-render-mode");
+    if (renderMode === "webgl") {
+      const beforeText = await previewToggle.textContent();
+      await previewToggle.click();
+      await expect(previewToggle).not.toHaveText(beforeText);
+    }
+
+    // 5. Keyboard navigation on sidebar link
+    await page.locator("aside nav a[href='/']").focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: /Ringkasan Pemetaan Kebakaran Kota Medan/i })).toBeVisible();
+
+    // 6. Tablet (768x1024) and Mobile (375x812) responsive checks
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto("/incident-explorer");
+    const tabletOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(tabletOverflow).toBe(false);
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+    const mobileOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(mobileOverflow).toBe(false);
+
+    const menuTrigger = page.locator("#mobile-menu-trigger");
+    const box = await menuTrigger.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.width).toBeGreaterThanOrEqual(44);
+
+    await menuTrigger.click();
+    await expect(page.locator("#app-sidebar")).toHaveClass(/is-open/);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#app-sidebar")).not.toHaveClass(/is-open/);
+
+    // 7. Three.js WebGL unavailable fallback verification
+    await page.addInitScript(() => {
+      const origGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+        if (type === "webgl" || type === "webgl2" || type === "experimental-webgl") {
+          return null;
+        }
+        return origGetContext.call(this, type, ...args);
+      };
+    });
+    await page.goto("/incident-explorer");
+    await expect(page.locator("[data-preview-stage]")).toHaveAttribute("data-render-mode", "fallback-2d");
+    await expect(page.locator("[data-preview-toggle]")).toHaveText("Mode Statis 2D");
+
+    // Verify clean console, page errors, and static asset responses before simulated network failure
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(failedAssets).toEqual([]);
+
+    // 8. Error state does not render a blank page when manifest fails
+    await page.route("**/data/manifest.json", (route) => route.abort("failed"));
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /Manifest data tidak dapat dimuat/i })).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+});
