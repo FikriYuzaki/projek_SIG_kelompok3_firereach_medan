@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-11-19",
+  "city": "Kota Medan",
+  "crs_web": "EPSG:4326",
+  "crs_metric": "EPSG:32647",
+  "datasets": [
+    {
+      "id": "medan-fire-2024",
+      "title": "Rekapitulasi Data Kejadian Kebakaran di Kota Medan Tahun 2024",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari - Desember 2024",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 269,
+      "status": "verified",
+      "sha256": "1d78995012a0515fcacd0934c559e975908034ff786ece813dc2998e7aee5e0b",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
+    },
+    {
+      "id": "medan-fire-2025",
+      "title": "Rekapitulasi Data Kejadian Kebakaran di Kota Medan Tahun 2025",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari - Desember 2025",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 251,
+      "status": "verified",
+      "sha256": "b3c2f7b8d66652fab003caaed500a2cb23d752c9aa8620a603cf13de84b481d5",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
+    },
+    {
+      "id": "medan-fire-2023-kecamatan",
+      "title": "Rekapitulasi Data Kebakaran Kota Medan Menurut Kecamatan Tahun 2023",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "2023",
+      "granularity": "district_aggregate",
+      "location_accuracy": "district_only",
+      "record_count": 219,
+      "status": "verified",
+      "sha256": "0fce8e98e4dbd6746be6ee18c8b6887b9e06a3904ecac99306cfc983794cc16a",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
+    },
+    {
+      "id": "medan-districts-osm",
+      "title": "Batas Administrasi 21 Kecamatan Kota Medan (Fallback OSM)",
+      "publisher": "OpenStreetMap Nominatim (Fallback Geoportal Medan)",
+      "period": "2026-11-19",
+      "granularity": "polygon",
+      "location_accuracy": "district_only",
+      "record_count": 21,
+      "status": "fallback_osm",
+      "license": "ODbL 1.0 (© OpenStreetMap contributors)",
+      "sha256": "e62fc643598d89917c5bdabb4010d9a5f37efdab31e67b319fdad30d8e49b12e",
+      "url": "https://nominatim.openstreetmap.org/"
+    },
+    {
+      "id": "medan-population-2025",
+      "title": "Jumlah, Kepadatan, dan Distribusi Penduduk Kota Medan Menurut Kecamatan 2025",
+      "publisher": "Badan Pusat Statistik via Satu Data Medan",
+      "period": "2025",
+      "granularity": "district_aggregate",
+      "location_accuracy": "district_only",
+      "record_count": 21,
+      "status": "verified",
+      "sha256": "1eb50e68aaa66210c9cefac0cb8c7b3c39e43846210d909c72e3193d3cf2b0fc",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01kgkffcg30jq9zbnzx0exbeh4"
+    },
+    {
+      "id": "medan-damkarmat-mako",
+      "title": "Koordinat Resmi Mako 0.0 Dinas Damkarmat Kota Medan",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "2025-2026",
+      "granularity": "station_point",
+      "location_accuracy": "exact_verified",
+      "record_count": 1,
+      "status": "verified",
+      "sha256": "aa52f8a140aa32df3c49fc52cbe04b2acc66687baf0f256d6834dc71e6add3e5",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe"
+    }
+  ],
+  "blockers": [
+    {
+      "source": "Pos Damkarmat UPT Infografis & Berita Harian",
+      "url": "https://p2k.medan.go.id/berita/Infografis-Letak-Pos-Damkarmat-Kota-Medan.html",
+      "reason": "HTTP 403 tantangan anti-bot Cloudflare (challenges.cloudflare.com); perlu pengunduhan manual di browser oleh tim."
+    },
+    {
+      "source": "Geoportal Kota Medan (Batas Kelurahan / Kecamatan Resmi)",
+      "url": "https://geoportal.medan.go.id/main/katalog",
+      "reason": "HTTP 403 tantangan anti-bot Cloudflare; digantikan sementara dengan batas 21 kecamatan OpenStreetMap (ODbL)."
+    },
+    {
+      "source": "BPS Kota Medan Portal Langsung",
+      "url": "https://medankota.bps.go.id/id/statistics-table/2/MzEjMg%3D%3D/undefined",
+      "reason": "Proteksi bot TSPD (HTTP 520) dan challenge Cloudflare; diatasi menggunakan tabel resmi BPS/Disdukcapil 2022-2025 di Satu Data Medan."
+    },
+    {
+      "source": "Jaringan Jalan Sumatra OSM (Geofabrik)",
+      "url": "https://download.geofabrik.de/asia/indonesia/sumatra-latest.osm.pbf",
+      "reason": "Arsip 270 MB (data per 2026-11-18T21:21:02Z) tidak diunduh ke Git; akan diekstrak dan dipotong lokal oleh Adriel di QGIS."
+    }
+  ]
+}
