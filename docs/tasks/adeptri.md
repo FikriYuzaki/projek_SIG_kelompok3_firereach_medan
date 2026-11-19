@@ -1,28 +1,28 @@
-# Task Brief: Adeptri (`hotspot-analyzer`)
+# Panduan Tugas: Adeptri (`hotspot-analyzer`)
 
-- **Module ID**: `hotspot-analyzer`
-- **Owner**: Adeptri
-- **Initial Registry Status**: `coming-soon`
-- **Owned Paths**: `src/features/hotspot-analyzer/`, `qgis/hotspot-analysis/`
-- **Suggested Branch**: `feature/adeptri-hotspot-analyzer`
+- **ID Modul**: `hotspot-analyzer`
+- **Pemilik**: Adeptri
+- **Status Registry Awal**: `coming-soon`
+- **Path yang Dimiliki**: `src/features/hotspot-analyzer/`, `qgis/hotspot-analysis/`
+- **Branch yang Disarankan**: `feature/adeptri-hotspot-analyzer` (dibuat dari `develop`)
 
-## 1. Scope & Responsibilities
+## 1. Ruang Lingkup & Tanggung Jawab
 
-Analyze historical spatial concentration of fire incidents across Kota Medan using Kernel Density Estimation (KDE) in QGIS Desktop (`EPSG:32647`) and visualize verified hotspot zones in `src/features/hotspot-analyzer/`.
+Menganalisis konsentrasi spasial historis kejadian kebakaran di Kota Medan menggunakan Kernel Density Estimation (KDE) di QGIS Desktop (`EPSG:32647`) serta memvisualisasikan zona hotspot terverifikasi pada `src/features/hotspot-analyzer/`.
 
-## 2. Data Rules & Guardrails
+## 2. Aturan Data & Batasan Metodologi
 
-1. Only consume individual point records whose `location_accuracy` is `exact_verified` or `address_geocoded_verified` (plus verified `approximate` only if documented). Never feed `district_only` aggregates into point KDE.
-2. Record full KDE metadata in `hotspot_analyses`: period, kernel function, bandwidth/radius (`m`), pixel size (`m`), CRS (`EPSG:32647`), extent, and classification method.
-3. Label outputs honestly as historical concentration, never as future fire prediction.
+1. Gunakan hanya data titik kejadian individual dengan nilai `location_accuracy` berupa `exact_verified` atau `address_geocoded_verified` (ditambah `approximate` yang terverifikasi hanya jika terdokumentasi). Jangan pernah memasukkan data agregat `district_only` ke dalam perhitungan KDE titik.
+2. Catat metadata KDE secara lengkap di `hotspot_analyses`: periode data, fungsi kernel, bandwidth/radius (`m`), ukuran piksel (`m`), CRS (`EPSG:32647`), extent, dan metode klasifikasi.
+3. Beri label hasil secara jujur sebagai konsentrasi historis kejadian kebakaran, bukan sebagai prediksi kejadian di masa depan.
 
-## 3. Parallel Start Using DEMO Fixture
+## 3. Mulai Paralel Menggunakan Fixture `DEMO`
 
-While waiting for geocoded individual incident points from Fikri, start building the `hotspot-analyzer` UI, density legend, and parameter display against `data/fixtures/demo/hotspot-analyzer.demo.json` (flagged `"isDemo": true`, `"dataLabel": "DEMO"`).
+Sambil menunggu data titik kejadian individual ter-geocode dari Fikri, mulai bangun UI `hotspot-analyzer`, legenda kepadatan, dan tampilan parameter menggunakan `data/fixtures/demo/hotspot-analyzer.demo.json` (bertanda `"isDemo": true`, `"dataLabel": "DEMO"`).
 
-## 4. Acceptance Criteria Before Promotion
+## 4. Kriteria Penerimaan Sebelum Promosi Status
 
-- QGIS project and parameter log committed under `qgis/hotspot-analysis/`.
-- Validated `EPSG:4326` hotspot polygon output and metadata match `docs/DATABASE_DESIGN.md`.
-- Clean `mount()` / `unmount()` lifecycle with zero leaked Leaflet layers or charts.
-- Passes `npm run lint`, `npm run test`, `npm run build`, and module-specific tests.
+- Proyek QGIS dan log parameter tersimpan di bawah folder `qgis/hotspot-analysis/`.
+- Output poligon hotspot tervalidasi dalam `EPSG:4326` beserta metadatanya sesuai dengan skema di `docs/DATABASE_DESIGN.md`.
+- Siklus hidup `mount()` dan `unmount()` bersih tanpa layer Leaflet atau objek grafik yang tertinggal.
+- Lulus `npm run lint`, `npm run test`, `npm run build`, serta pengujian khusus modul.
