@@ -1,0 +1,26 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build outputs
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Test and Playwright artifacts
+playwright-report/
+test-results/
+blob-report/
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
+.DS_Store
+Thumbs.db
+
+# Raw and interim data (archived locally, documented in data/metadata/source-register.csv)
+data/raw/
+data/interim/
