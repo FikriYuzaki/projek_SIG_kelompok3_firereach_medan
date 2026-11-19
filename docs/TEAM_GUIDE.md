@@ -20,17 +20,34 @@
 
 ## 3. Git Branching & Commit Rules
 
-- `main`: Stable branch ready for demonstration. Never push directly to `main`.
-- `develop`: Shared integration branch created from `main` once foundation is merged.
-- Foundation branch: `chore/firereach-foundation`
-- Feature branches:
+- `main`: Stable baseline ready to clone, test, and demonstrate. Never push directly to `main`.
+- `develop`: Active integration branch created from `main` for all feature Pull Requests.
+- Foundation branch: `chore/firereach-foundation` (preserved locally as foundation history; do not pre-create empty remote feature branches).
+- Feature branches (always created from the latest `develop`):
   - `feature/fikri-incident-explorer`
   - `feature/adeptri-hotspot-analyzer`
   - `feature/adriel-station-coverage`
   - `feature/olo-priority-planner`
 
+Clone and branch setup for team members:
+
+```bash
+git clone https://github.com/FikriYuzaki/projek_SIG_kelompok3_firereach_medan.git
+cd projek_SIG_kelompok3_firereach_medan
+git switch develop
+git pull --ff-only origin develop
+git switch -c feature/<member>-<module>
+# After making scoped commits:
+git push -u origin feature/<member>-<module>
+```
+
 Workflow:
-1. Create your feature branch from `develop` (or `main` before `develop` exists).
+1. Create your feature branch from the latest `develop` (`feature/<member>-<module>`).
 2. Keep commits scoped and use Conventional Commits (`feat(hotspot): ...`, `fix(coverage): ...`, `docs: ...`, `test: ...`).
 3. Run `npm run lint`, `npm run test`, and `npm run build` locally before opening a Pull Request into `develop`.
-4. After integration verification on `develop`, merge `develop` into `main` via reviewed PR.
+4. After integration verification and QA on `develop`, merge `develop` into `main` via reviewed PR.
+
+## 4. Access & Remote Environment Boundaries
+
+- **Collaborator access**: Fikri (repository owner and integrator) invites Adeptri, Adriel, and Olo via GitHub repository `Settings > Collaborators` once each member provides their GitHub username.
+- **Remote environments**: Do not provision or modify remote Supabase projects, run remote database migrations, alter remote RLS policies, or trigger Vercel deployments without explicit project owner approval.

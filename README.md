@@ -23,6 +23,8 @@ Web GIS application for **Fire Incident Mapping & Emergency Service Coverage Ana
 ## Quick Start (Local Mode)
 
 ```bash
+git clone https://github.com/FikriYuzaki/projek_SIG_kelompok3_firereach_medan.git
+cd projek_SIG_kelompok3_firereach_medan
 npm install
 npm run dev
 ```
@@ -32,6 +34,14 @@ No Supabase credentials are required for local development; the app reads verifi
 To configure Supabase optionally:
 1. Copy `.env.example` to `.env`.
 2. Fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (never use `service_role` in frontend code).
+
+## Branching & Team Collaboration
+
+- `main`: Stable baseline ready to clone, test, and demonstrate (no direct pushes).
+- `develop`: Active integration branch created from `main` for reviewed feature Pull Requests.
+- Feature branches (`feature/fikri-incident-explorer`, `feature/adeptri-hotspot-analyzer`, `feature/adriel-station-coverage`, `feature/olo-priority-planner`) are branched from the latest `develop` and merged back into `develop` via Pull Request. After integration checks and QA pass on `develop`, open a reviewed Pull Request from `develop` to `main`.
+- Collaborator access is managed by Fikri (repository owner and integrator) via GitHub `Settings > Collaborators` after each team member confirms their GitHub username.
+- Remote Supabase migrations and Vercel deployments are never executed without explicit owner approval.
 
 ## Verification Commands
 

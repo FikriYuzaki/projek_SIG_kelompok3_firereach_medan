@@ -40,3 +40,9 @@ Playwright is installed as a project dev dependency (`@playwright/test`) for aut
 npx playwright install chromium
 npm run test:e2e
 ```
+
+## 3. Repository & Remote Guardrails
+
+- Follow the branch flow: `main` (stable baseline) -> `develop` (integration) -> `feature/<member>-<module>` (created from `develop`). Target feature Pull Requests at `develop`, and open a reviewed Pull Request from `develop` to `main` after integration QA.
+- Only repository owner Fikri manages GitHub collaborator invitations (`Settings > Collaborators`).
+- Never apply remote Supabase migrations, modify remote Supabase RLS/settings, or deploy to Vercel without explicit owner approval.
