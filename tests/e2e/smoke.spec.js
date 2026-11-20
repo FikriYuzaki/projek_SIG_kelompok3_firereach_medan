@@ -162,13 +162,29 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth
     );
     expect(tabletOverflow).toBe(false);
+    const tabletDemoBox = await page.locator("#toggle-demo-mode").boundingBox();
+    expect(tabletDemoBox.height).toBeGreaterThanOrEqual(44);
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/incident-explorer");
-    const explorerMobileOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
-    );
-    expect(explorerMobileOverflow).toBe(false);
+    const explorerMobileCheck = await page.evaluate(() => {
+      const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      const metricOverflow = Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+        (el) => el.scrollWidth > el.clientWidth + 1
+      );
+      const brand = document.querySelector(".brand-link")?.getBoundingClientRect();
+      const badge = document.querySelector("#supabase-status-badge")?.getBoundingClientRect();
+      const headerOverlap =
+        brand && badge
+          ? !(brand.right <= badge.left || badge.right <= brand.left || brand.bottom <= badge.top || badge.bottom <= brand.top)
+          : false;
+      const headerZ = Number(getComputedStyle(document.querySelector(".app-header")).zIndex || 0);
+      return { docOverflow, metricOverflow, headerOverlap, headerZ };
+    });
+    expect(explorerMobileCheck.docOverflow).toBe(false);
+    expect(explorerMobileCheck.metricOverflow).toBe(false);
+    expect(explorerMobileCheck.headerOverlap).toBe(false);
+    expect(explorerMobileCheck.headerZ).toBeGreaterThan(1000);
 
     await page.goto("/");
     const mobileOverflow = await page.evaluate(

@@ -7,6 +7,7 @@ import {
   PointElement,
   CategoryScale,
   LinearScale,
+  Filler,
   Tooltip,
   Legend
 } from "chart.js";
@@ -19,6 +20,7 @@ Chart.register(
   PointElement,
   CategoryScale,
   LinearScale,
+  Filler,
   Tooltip,
   Legend
 );
@@ -34,7 +36,14 @@ function syncDebugCount() {
 
 export function createChart(canvas, config) {
   const ctx = canvas.getContext("2d");
-  const chart = new Chart(ctx, config);
+  const mergedConfig = {
+    ...config,
+    options: {
+      animation: false,
+      ...(config?.options || {})
+    }
+  };
+  const chart = new Chart(ctx, mergedConfig);
   activeCharts.add(chart);
   syncDebugCount();
 

@@ -30,6 +30,13 @@
   font-weight: 700;
   color: var(--color-ink);
   font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.metric-value--meta {
+  font-size: clamp(0.8rem, 0.72rem + 0.25vw, 0.95rem);
 }
 
 .explorer-filter-bar {
@@ -46,7 +53,20 @@
 
 @media (min-width: 1024px) {
   .explorer-filter-bar {
-    grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+@media (min-width: 1280px) {
+  .explorer-filter-bar {
+    grid-template-columns:
+      minmax(200px, 1.35fr)
+      minmax(155px, 1fr)
+      minmax(185px, 1.2fr)
+      minmax(145px, 0.95fr)
+      minmax(150px, 1fr)
+      auto;
     align-items: end;
   }
 }

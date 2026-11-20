@@ -1158,7 +1158,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         <div class="metric-box"><div class="metric-label">Kejadian Sesuai Filter</div><div class="metric-value">${services.format.number(totalFiltered)}</div></div>
         <div class="metric-box"><div class="metric-label">Total Periode Aktif</div><div class="metric-value">${services.format.number(totalAll)}</div></div>
         <div class="metric-box"><div class="metric-label">Baris ${unitLabel} Terfilter</div><div class="metric-value">${services.format.number(rows.length)}</div></div>
-        <div class="metric-box"><div class="metric-label">Granularitas Sumber</div><div class="metric-value" style="font-size: 0.95rem;">${granularityText}</div></div>
+        <div class="metric-box"><div class="metric-label">Granularitas Sumber</div><div class="metric-value metric-value--meta">${granularityText}</div></div>
       `;
     }
 
@@ -1318,6 +1318,8 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       "click",
       async () => {
         if (!state.demoMode) {
+          demoBtn.disabled = true;
+          demoBtn.setAttribute("aria-busy", "true");
           try {
             if (!state.demoFixture) {
               const loaded = await loadDemoContractFixture(services);
@@ -1332,6 +1334,11 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
             syncView();
           } catch (err) {
             if (isMounted) services.notify.show(err.message, "error");
+          } finally {
+            if (isMounted) {
+              demoBtn.disabled = false;
+              demoBtn.removeAttribute("aria-busy");
+            }
           }
         } else {
           state.demoMode = false;
