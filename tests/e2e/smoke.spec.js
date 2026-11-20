@@ -97,11 +97,21 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.locator("tr[data-row-key='Maret']").click();
     await expect(page.locator("#detail-qa-note")).toContainText("776");
 
-    // Check 2016-2025 annual series mode & sorting
+    // Check 2016-2025 annual series mode & verify sorting/search do not reset map zoom
     await page.selectOption("#filter-period", "2016-2025-tahunan");
     await expect(page.locator("#explorer-table-count")).toHaveText("10 tahun");
+    await page.locator("#explorer-map .leaflet-control-zoom-in").click();
+    const zoomAfterManualIn = await page.evaluate(
+      () => window.__firereachDebug?.fitBoundsCalls ?? 0
+    );
     await page.selectOption("#filter-sort", "desc");
     await expect(page.locator("#explorer-table-wrap tbody tr").first()).toContainText("2019");
+    await page.fill("#filter-search", "2020");
+    await expect(page.locator("#explorer-table-count")).toHaveText("1 tahun");
+    const zoomAfterSortAndSearch = await page.evaluate(
+      () => window.__firereachDebug?.fitBoundsCalls ?? 0
+    );
+    expect(zoomAfterSortAndSearch).toBe(zoomAfterManualIn);
 
     // Check empty filter state + Reset Filter recovery
     await page.fill("#filter-search", "tidak-ada-kecamatan-xyz");

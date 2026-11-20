@@ -84,6 +84,35 @@
   color: var(--color-ink-muted);
 }
 
+.explorer-source-note--warn {
+  color: var(--color-amber-text);
+  font-weight: 600;
+}
+
+.map-layer-toggle {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-paper);
+  font-size: var(--text-xs);
+}
+
+.layer-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.layer-toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-ink);
+  flex-shrink: 0;
+}
+
 .detail-kv {
   display: grid;
   grid-template-columns: minmax(110px, 42%) minmax(0, 1fr);

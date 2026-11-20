@@ -55,9 +55,13 @@ import {
   fetchSupabaseIncidents,
   filterDemoRecords,
   filterOfficialRows,
+  filterSupabasePoints,
+  isRecordKdeEligible,
+  matchObjectTypeToCategory,
   normalizeDistrictName,
   normalizeIncidentRecord,
-  partitionIncidentRecords
+  partitionIncidentRecords,
+  shouldResetMapExtent
 } from "../../src/features/incident-explorer/service.js";
 import { manifest, mount } from "../../src/features/incident-explorer/index.js";
 
@@ -65,6 +69,7 @@ function makeStubElement() {
   const listeners = new Map();
   const el = {
     value: "",
+    checked: true,
     textContent: "",
     innerHTML: "",
     disabled: false,
@@ -72,6 +77,7 @@ function makeStubElement() {
     className: "",
     classList: { toggle: vi.fn(), add: vi.fn(), remove: vi.fn() },
     setAttribute: vi.fn(),
+    removeAttribute: vi.fn(),
     getAttribute: vi.fn(() => "semua"),
     addEventListener: vi.fn((type, fn, opts) => {
       if (opts?.signal) {
@@ -106,6 +112,31 @@ function makeStubContainer() {
     querySelectorAll: () => []
   };
   return root;
+}
+
+function makePaginatedSupabaseClient(allRows, { failOnCall = null, rejectOnCall = null } = {}) {
+  let callCount = 0;
+  return {
+    getCalls: () => callCount,
+    from: () => ({
+      select: () => ({
+        order: () => ({
+          order: () => ({
+            range: async (from, to) => {
+              callCount += 1;
+              if (rejectOnCall && callCount === rejectOnCall) {
+                throw new Error(`Network drop at page ${callCount}`);
+              }
+              if (failOnCall && callCount === failOnCall) {
+                return { data: null, error: { message: `Query failed at page ${callCount}` } };
+              }
+              return { data: allRows.slice(from, to + 1), error: null };
+            }
+          })
+        })
+      })
+    })
+  };
 }
 
 describe("incident-explorer service helpers", () => {
@@ -151,6 +182,57 @@ describe("incident-explorer service helpers", () => {
     });
   });
 
+  it("excludes approximate points from kde_eligible unless explicitly approved and documented", () => {
+    const exactRec = normalizeIncidentRecord({
+      source_record_id: "KDE-EXACT",
+      location_accuracy: "exact_verified",
+      verification_status: "verified",
+      lat: 3.5895,
+      lon: 98.6714
+    });
+    const addrRec = normalizeIncidentRecord({
+      source_record_id: "KDE-ADDR",
+      location_accuracy: "address_geocoded_verified",
+      verification_status: "verified",
+      lat: 3.591,
+      lon: 98.672
+    });
+    const approxRecDefault = normalizeIncidentRecord({
+      source_record_id: "MAP-APPROX",
+      location_accuracy: "approximate",
+      verification_status: "verified",
+      lat: 3.595,
+      lon: 98.68
+    });
+
+    expect(exactRec.kde_eligible).toBe(true);
+    expect(addrRec.kde_eligible).toBe(true);
+    expect(approxRecDefault.map_point_eligible).toBe(true);
+    expect(approxRecDefault.kde_eligible).toBe(false);
+
+    // Explicitly passing includeApprovedApproximate without documented note stays false
+    expect(isRecordKdeEligible(approxRecDefault, { includeApprovedApproximate: true, approximateApprovalNote: "   " })).toBe(false);
+    // Documented approval allows approximate
+    expect(isRecordKdeEligible(approxRecDefault, { includeApprovedApproximate: true, approximateApprovalNote: "Disetujui Adeptri untuk analisis sensitivitas KDE" })).toBe(true);
+    // Never allows district_only, unknown, needs_review, or DEMO even with approval flag
+    expect(
+      isRecordKdeEligible(
+        { location_accuracy: "district_only", verification_status: "verified", geom: { type: "Point", coordinates: [98.67, 3.58] }, isDemo: false },
+        { includeApprovedApproximate: true, approximateApprovalNote: "Approved" }
+      )
+    ).toBe(false);
+    expect(
+      isRecordKdeEligible(
+        { ...exactRec, isDemo: true },
+        { includeApprovedApproximate: true, approximateApprovalNote: "Approved" }
+      )
+    ).toBe(false);
+
+    const partitioned = partitionIncidentRecords([exactRec, addrRec, approxRecDefault]);
+    expect(partitioned.verifiedLocated).toHaveLength(3);
+    expect(partitioned.kdeEligible.map((r) => r.source_record_id)).toEqual(["KDE-EXACT", "KDE-ADDR"]);
+  });
+
   it("downgrades invalid verified rows when geom is null and partitions DEMO strictly", () => {
     const aggRec = normalizeIncidentRecord({
       source_record_id: "ROW-AGG-1",
@@ -186,7 +268,7 @@ describe("incident-explorer service helpers", () => {
       {
         source_record_id: "DEMO-POINT-1",
         period_year: 2024,
-        location_accuracy: "approximate",
+        location_accuracy: "exact_verified",
         verification_status: "verified",
         lat: 3.55,
         lon: 98.68,
@@ -200,6 +282,145 @@ describe("incident-explorer service helpers", () => {
     expect(partitioned.unlocated).toHaveLength(1);
     expect(partitioned.demoRecords).toHaveLength(1);
     expect(partitioned.kdeEligible.every((r) => !r.isDemo)).toBe(true);
+  });
+
+  it("filters Supabase points strictly by period, district, category, and search", () => {
+    expect(matchObjectTypeToCategory("Rumah Tinggal")).toBe("rumah");
+    expect(matchObjectTypeToCategory("Travo Listrik")).toBe("travo_kabel");
+    expect(matchObjectTypeToCategory("Ruko 2 lantai")).toBe("ruko");
+
+    const pts = [
+      normalizeIncidentRecord({
+        source_record_id: "PT-2023-KOTA",
+        period_year: 2023,
+        district_name: "Medan  Kota",
+        address_text: "Jl. Sisingamangaraja",
+        object_type: "Rumah",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        lat: 3.58,
+        lon: 98.68
+      }),
+      normalizeIncidentRecord({
+        source_record_id: "PT-2024-BELAWAN",
+        occurred_at: "2024-08-12T10:00:00+07:00",
+        district_name: "Medan Belawan",
+        address_text: "Pelabuhan Belawan",
+        object_type: "Gudang / Pabrik",
+        location_accuracy: "address_geocoded_verified",
+        verification_status: "verified",
+        lat: 3.77,
+        lon: 98.68
+      }),
+      normalizeIncidentRecord({
+        source_record_id: "PT-2025-JOHOR",
+        period_year: 2025,
+        district_name: "Medan Johor",
+        address_text: "Jl. Karya Wisata",
+        object_type: "Ruko",
+        location_accuracy: "approximate",
+        verification_status: "verified",
+        lat: 3.53,
+        lon: 98.67
+      })
+    ];
+
+    expect(filterSupabasePoints(pts, { period: "2023-kecamatan" }).map((p) => p.source_record_id)).toEqual([
+      "PT-2023-KOTA"
+    ]);
+    expect(filterSupabasePoints(pts, { period: "2024-bulanan" }).map((p) => p.source_record_id)).toEqual([
+      "PT-2024-BELAWAN"
+    ]);
+    expect(filterSupabasePoints(pts, { period: "2025-bulanan" }).map((p) => p.source_record_id)).toEqual([
+      "PT-2025-JOHOR"
+    ]);
+    expect(filterSupabasePoints(pts, { period: "2016-2025-tahunan" })).toHaveLength(3);
+    expect(
+      filterSupabasePoints(pts, { period: "2016-2025-tahunan", district: "Medan Belawan", category: "gudang_pabrik" }).map((p) => p.source_record_id)
+    ).toEqual(["PT-2024-BELAWAN"]);
+    expect(
+      filterSupabasePoints(pts, { period: "2016-2025-tahunan", search: "Karya Wisata" }).map((p) => p.source_record_id)
+    ).toEqual(["PT-2025-JOHOR"]);
+  });
+
+  it("paginates all available Supabase records cleanly and handles empty/cap/error pages without infinite loops", async () => {
+    const localRes = await fetchSupabaseIncidents({ isConfigured: false, client: null, note: "Mode Lokal" });
+    expect(localRes.active).toBe(false);
+    expect(localRes.source).toBe("local");
+
+    const sampleRows = [1, 2, 3, 4, 5].map((i) => ({
+      id: `uuid-${i}`,
+      source_record_id: `SUPA-${i}`,
+      period_year: 2024,
+      district_name: "Medan Kota",
+      location_accuracy: i === 5 ? "approximate" : "exact_verified",
+      verification_status: "verified",
+      lat: 3.589 + i * 0.001,
+      lon: 98.671,
+      source_name: "Damkarmat"
+    }));
+
+    // Multi-page load (> 1 page: 5 records across pageSize=2 -> 3 pages)
+    const multiClient = makePaginatedSupabaseClient(sampleRows);
+    const multiRes = await fetchSupabaseIncidents(
+      { isConfigured: true, client: multiClient },
+      { pageSize: 2, maxRecords: 100, maxPages: 10 }
+    );
+    expect(multiRes.active).toBe(true);
+    expect(multiRes.source).toBe("supabase");
+    expect(multiRes.records).toHaveLength(5);
+    expect(multiRes.pagesLoaded).toBe(3);
+    expect(multiRes.truncated).toBe(false);
+    expect(multiRes.partitioned.verifiedLocated).toHaveLength(5);
+    expect(multiRes.partitioned.kdeEligible).toHaveLength(4); // PT-5 is approximate
+
+    // Exact multiple maxRecords cap (4 of 5 rows with pageSize=2) probes & marks truncated
+    const cappedClient = makePaginatedSupabaseClient(sampleRows);
+    const cappedRes = await fetchSupabaseIncidents(
+      { isConfigured: true, client: cappedClient },
+      { pageSize: 2, maxRecords: 4, maxPages: 10 }
+    );
+    expect(cappedRes.records).toHaveLength(4);
+    expect(cappedRes.truncated).toBe(true);
+    expect(cappedRes.note).toContain("batas maksimum");
+
+    // Empty dataset terminates in 1 call cleanly
+    const emptyClient = makePaginatedSupabaseClient([]);
+    const emptyRes = await fetchSupabaseIncidents({ isConfigured: true, client: emptyClient }, { pageSize: 2 });
+    expect(emptyRes.active).toBe(true);
+    expect(emptyRes.records).toHaveLength(0);
+    expect(emptyClient.getCalls()).toBe(1);
+
+    // Page-1 error falls back to local cleanly
+    const page1ErrClient = makePaginatedSupabaseClient(sampleRows, { failOnCall: 1 });
+    const page1ErrRes = await fetchSupabaseIncidents(
+      { isConfigured: true, client: page1ErrClient },
+      { pageSize: 2 }
+    );
+    expect(page1ErrRes.active).toBe(false);
+    expect(page1ErrRes.source).toBe("local_fallback");
+    expect(page1ErrRes.error).toContain("page 1");
+
+    // Page-2 error preserves page 1 safely without infinite loop
+    const page2ErrClient = makePaginatedSupabaseClient(sampleRows, { rejectOnCall: 2 });
+    const page2ErrRes = await fetchSupabaseIncidents(
+      { isConfigured: true, client: page2ErrClient },
+      { pageSize: 2 }
+    );
+    expect(page2ErrRes.active).toBe(true);
+    expect(page2ErrRes.source).toBe("supabase_partial");
+    expect(page2ErrRes.partialLoad).toBe(true);
+    expect(page2ErrRes.records).toHaveLength(2);
+    expect(page2ErrClient.getCalls()).toBe(2);
+  });
+
+  it("keeps map zoom/extent stable during sort, search, or category changes", () => {
+    const base = { demoMode: false, period: "2023-kecamatan", district: "semua" };
+    expect(shouldResetMapExtent(null, base)).toBe(true);
+    expect(shouldResetMapExtent(base, { ...base })).toBe(false);
+    expect(shouldResetMapExtent(base, { demoMode: true, period: "2023-kecamatan", district: "semua" })).toBe(true);
+    expect(shouldResetMapExtent(base, { demoMode: false, period: "2024-bulanan", district: "semua" })).toBe(true);
+    expect(shouldResetMapExtent(base, { demoMode: false, period: "2023-kecamatan", district: "Medan Kota" })).toBe(true);
   });
 
   it("filters and sorts official rows across all 5 periods accurately", () => {
@@ -260,69 +481,10 @@ describe("incident-explorer service helpers", () => {
     expect(filtered[0].source_record_id).toBe("DEMO-INC-003");
     expect(filtered[0].geom).toBeNull();
   });
-
-  it("handles Supabase local mode, mocked query success, and mocked query fallback gracefully", async () => {
-    const localRes = await fetchSupabaseIncidents({ isConfigured: false, client: null, note: "Mode Lokal" });
-    expect(localRes.active).toBe(false);
-    expect(localRes.source).toBe("local");
-
-    const mockClientOk = {
-      from: () => ({
-        select: () => ({
-          order: () => ({
-            limit: async () => ({
-              data: [
-                {
-                  id: "uuid-1",
-                  source_record_id: "SUPA-1",
-                  period_year: 2024,
-                  district_name: "Medan  Kota",
-                  location_accuracy: "exact_verified",
-                  verification_status: "verified",
-                  lat: 3.5895,
-                  lon: 98.6714,
-                  source_name: "Damkarmat"
-                },
-                {
-                  id: "uuid-2",
-                  source_record_id: "SUPA-2",
-                  period_year: 2024,
-                  district_name: "Medan Johor",
-                  location_accuracy: "district_only",
-                  verification_status: "needs_review",
-                  geom: null,
-                  source_name: "Damkarmat"
-                }
-              ],
-              error: null
-            })
-          })
-        })
-      })
-    };
-    const supaOk = await fetchSupabaseIncidents({ isConfigured: true, client: mockClientOk });
-    expect(supaOk.active).toBe(true);
-    expect(supaOk.partitioned.verifiedLocated).toHaveLength(1);
-    expect(supaOk.partitioned.needsReview).toHaveLength(1);
-
-    const mockClientErr = {
-      from: () => ({
-        select: () => ({
-          order: () => ({
-            limit: async () => ({ data: null, error: { message: "RLS denied" } })
-          })
-        })
-      })
-    };
-    const supaErr = await fetchSupabaseIncidents({ isConfigured: true, client: mockClientErr });
-    expect(supaErr.active).toBe(false);
-    expect(supaErr.source).toBe("local_fallback");
-    expect(supaErr.error).toContain("RLS denied");
-  });
 });
 
 describe("incident-explorer mount & unmount lifecycle", () => {
-  it("destroys map, chart, overlay, and preview cleanly including after error retry", async () => {
+  it("destroys map, chart, overlays, and preview cleanly including after error retry", async () => {
     expect(manifest.id).toBe("incident-explorer");
 
     const mapDestroy = vi.fn();
@@ -359,13 +521,13 @@ describe("incident-explorer mount & unmount lifecycle", () => {
     const unmount = await mount({ container, services, params: {} });
     expect(typeof lastErrorAction).toBe("function");
 
-    // Simulate clicking "Muat Ulang" after error
     failFirst = false;
     await lastErrorAction();
     expect(chartDestroy).toHaveBeenCalledTimes(0);
 
+    mockOverlayClear.mockClear();
     await unmount();
-    expect(mockOverlayClear).toHaveBeenCalled();
+    expect(mockOverlayClear).toHaveBeenCalledTimes(2);
     expect(chartDestroy).toHaveBeenCalledTimes(1);
     expect(mockPreviewDestroy).toHaveBeenCalledTimes(1);
     expect(mapDestroy).toHaveBeenCalledTimes(1);

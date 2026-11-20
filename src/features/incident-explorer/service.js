@@ -21,6 +21,15 @@ export const POINT_MAPPABLE_ACCURACIES = Object.freeze([
   "approximate"
 ]);
 
+export const STRICT_KDE_ACCURACIES = Object.freeze([
+  "exact_verified",
+  "address_geocoded_verified"
+]);
+
+export const SUPABASE_PAGE_SIZE = 500;
+export const SUPABASE_MAX_RECORDS = 5000;
+export const SUPABASE_MAX_PAGES = 20;
+
 export const SUPABASE_INCIDENT_COLUMNS =
   "id,source_record_id,occurred_at,period_year,period_month,address_text,district_name,subdistrict_name,object_type,cause_category,location_accuracy,verification_status,source_name,source_url,geom";
 
@@ -98,7 +107,29 @@ export function extractValidPointCoordinates(record = {}) {
   };
 }
 
-export function normalizeIncidentRecord(raw = {}) {
+/**
+ * Enforces docs/GIS_WORKFLOW.md & Adeptri KDE rules:
+ * Only exact_verified and address_geocoded_verified verified records qualify for KDE by default.
+ * Approximate points require explicit approval + documented reason to qualify for KDE.
+ */
+export function isRecordKdeEligible(
+  record = {},
+  { includeApprovedApproximate = false, approximateApprovalNote = "" } = {}
+) {
+  if (!record || record.isDemo || !record.geom || record.verification_status !== "verified") {
+    return false;
+  }
+  const accuracy = String(record.location_accuracy || "unknown");
+  if (STRICT_KDE_ACCURACIES.includes(accuracy)) {
+    return true;
+  }
+  if (accuracy === "approximate") {
+    return Boolean(includeApprovedApproximate && String(approximateApprovalNote || "").trim().length > 0);
+  }
+  return false;
+}
+
+export function normalizeIncidentRecord(raw = {}, kdeOptions = {}) {
   const accuracy = LOCATION_ACCURACY_VALUES.includes(raw.location_accuracy)
     ? raw.location_accuracy
     : "unknown";
@@ -120,6 +151,7 @@ export function normalizeIncidentRecord(raw = {}) {
   const isDemo = Boolean(raw.isDemo);
   const district = normalizeDistrictName(raw.district_name || "") || null;
   const subdistrict = normalizeDistrictName(raw.subdistrict_name || "") || null;
+  const geom = coords ? coords.geom : null;
 
   return {
     id: raw.id || raw.source_record_id || null,
@@ -136,15 +168,19 @@ export function normalizeIncidentRecord(raw = {}) {
     verification_status: status,
     source_name: String(raw.source_name || "Sumber Tidak Tercatat"),
     source_url: String(raw.source_url || ""),
-    geom: coords ? coords.geom : null,
+    geom,
     lat: coords ? coords.lat : null,
     lon: coords ? coords.lon : null,
     isDemo,
-    kde_eligible: Boolean(coords && POINT_MAPPABLE_ACCURACIES.includes(accuracy) && status === "verified" && !isDemo)
+    map_point_eligible: Boolean(geom && POINT_MAPPABLE_ACCURACIES.includes(accuracy)),
+    kde_eligible: isRecordKdeEligible(
+      { location_accuracy: accuracy, verification_status: status, geom, isDemo },
+      kdeOptions
+    )
   };
 }
 
-export function partitionIncidentRecords(records = []) {
+export function partitionIncidentRecords(records = [], kdeOptions = {}) {
   const verifiedLocated = [];
   const needsReview = [];
   const unlocated = [];
@@ -152,7 +188,7 @@ export function partitionIncidentRecords(records = []) {
   const kdeEligible = [];
 
   for (const item of records) {
-    const rec = normalizeIncidentRecord(item);
+    const rec = normalizeIncidentRecord(item, kdeOptions);
     if (rec.isDemo) {
       demoRecords.push(rec);
       continue;
@@ -170,6 +206,137 @@ export function partitionIncidentRecords(records = []) {
   }
 
   return { verifiedLocated, needsReview, unlocated, demoRecords, kdeEligible };
+}
+
+export function matchObjectTypeToCategory(objectType = "") {
+  const text = String(objectType || "").toLowerCase().trim();
+  if (!text) return null;
+  if (text.includes("ruko") || text.includes("komersial") || text.includes("toko") || text.includes("kios")) {
+    return "ruko";
+  }
+  if (text.includes("rumah") || text.includes("hunian")) {
+    return "rumah";
+  }
+  if (
+    text.includes("travo") ||
+    text.includes("trafo") ||
+    text.includes("kabel") ||
+    text.includes("listrik") ||
+    text.includes("gardu") ||
+    text.includes("tiang")
+  ) {
+    return "travo_kabel";
+  }
+  if (text.includes("gudang") || text.includes("pabrik") || text.includes("industri") || text.includes("workshop")) {
+    return "gudang_pabrik";
+  }
+  if (
+    text.includes("kendaraan") ||
+    text.includes("mobil") ||
+    text.includes("motor") ||
+    text.includes("truk") ||
+    text.includes("transportasi")
+  ) {
+    return "kendaraan";
+  }
+  if (text.includes("lahan") || text.includes("vegetasi") || text.includes("semak") || text.includes("hutan") || text.includes("kebun")) {
+    return "lahan";
+  }
+  if (
+    text.includes("fasilitas") ||
+    text.includes("umum") ||
+    text.includes("sekolah") ||
+    text.includes("masjid") ||
+    text.includes("pasar") ||
+    text.includes("kantor") ||
+    text.includes("rumah sakit")
+  ) {
+    return "fasilitas_umum";
+  }
+  if (
+    text.includes("lain") ||
+    text.includes("gas") ||
+    text.includes("elpiji") ||
+    text.includes("lpg") ||
+    text.includes("sampah") ||
+    text.includes("pohon")
+  ) {
+    return "lain_lain";
+  }
+  return null;
+}
+
+function getRecordPeriodYear(record = {}) {
+  if (Number.isInteger(record.period_year) && record.period_year >= 1900 && record.period_year <= 2100) {
+    return record.period_year;
+  }
+  if (record.occurred_at) {
+    const parsed = new Date(record.occurred_at);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getUTCFullYear();
+    }
+  }
+  return null;
+}
+
+export function filterSupabasePoints(
+  records = [],
+  { period = "2023-kecamatan", district = "semua", category = "semua", search = "" } = {}
+) {
+  const query = String(search || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const targetDistrict = district !== "semua" ? normalizeDistrictName(district) : "semua";
+
+  return (records || []).filter((rec) => {
+    if (!rec || rec.isDemo || !rec.geom) return false;
+
+    const year = getRecordPeriodYear(rec);
+    if (period === "2023-kecamatan" || period === "2023-dampak") {
+      if (year !== 2023) return false;
+    } else if (period === "2024-bulanan") {
+      if (year !== 2024) return false;
+    } else if (period === "2025-bulanan") {
+      if (year !== 2025) return false;
+    } else if (period === "2016-2025-tahunan") {
+      if (year === null || year < 2016 || year > 2025) return false;
+    }
+
+    if (targetDistrict !== "semua") {
+      const recDistrict = normalizeDistrictName(rec.district_name || "");
+      if (recDistrict !== targetDistrict) return false;
+    }
+
+    if (category && category !== "semua") {
+      if (matchObjectTypeToCategory(rec.object_type) !== category) return false;
+    }
+
+    if (query) {
+      const hay = [
+        rec.source_record_id,
+        rec.district_name || "",
+        rec.subdistrict_name || "",
+        rec.address_text || "",
+        rec.object_type || "",
+        rec.cause_category || "",
+        rec.source_name || "",
+        year !== null ? String(year) : ""
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+
+    return true;
+  });
+}
+
+export function shouldResetMapExtent(prevCtx, nextCtx) {
+  if (!prevCtx) return true;
+  if (Boolean(prevCtx.demoMode) !== Boolean(nextCtx.demoMode)) return true;
+  if (prevCtx.period !== nextCtx.period) return true;
+  if (normalizeDistrictName(prevCtx.district || "semua") !== normalizeDistrictName(nextCtx.district || "semua")) {
+    return true;
+  }
+  return false;
 }
 
 export function computeChoroplethBreaks(values = []) {
@@ -250,50 +417,151 @@ export function getDominantCategory(categoriesObj = {}) {
   return { key: topKey, count: Math.max(0, topVal) };
 }
 
-export async function fetchSupabaseIncidents(supabaseService) {
+export async function fetchSupabaseIncidents(
+  supabaseService,
+  {
+    pageSize = SUPABASE_PAGE_SIZE,
+    maxRecords = SUPABASE_MAX_RECORDS,
+    maxPages = SUPABASE_MAX_PAGES,
+    kdeOptions = {}
+  } = {}
+) {
   if (!supabaseService?.isConfigured || !supabaseService?.client) {
     return {
       active: false,
       source: "local",
       records: [],
-      partitioned: partitionIncidentRecords([]),
+      partitioned: partitionIncidentRecords([], kdeOptions),
+      pagesLoaded: 0,
+      truncated: false,
+      partialLoad: false,
+      maxRecords,
       error: null,
       note: supabaseService?.note || "Mode Lokal aktif tanpa konfigurasi Supabase."
     };
   }
 
-  try {
-    const { data, error } = await supabaseService.client
-      .from("fire_incidents")
-      .select(SUPABASE_INCIDENT_COLUMNS)
-      .order("occurred_at", { ascending: false })
-      .limit(500);
+  const safePageSize = Math.max(1, Number(pageSize) || SUPABASE_PAGE_SIZE);
+  const safeMaxRecords = Math.max(1, Number(maxRecords) || SUPABASE_MAX_RECORDS);
+  const safeMaxPages = Math.max(1, Number(maxPages) || SUPABASE_MAX_PAGES);
 
-    if (error) {
-      throw new Error(error.message || "Gagal membaca tabel public.fire_incidents.");
+  const allRaw = [];
+  let pagesLoaded = 0;
+  let offset = 0;
+  let truncated = false;
+  let partialError = null;
+  let lastBatchFull = false;
+
+  for (let pageIdx = 0; pageIdx < safeMaxPages && allRaw.length < safeMaxRecords; pageIdx++) {
+    const remaining = safeMaxRecords - allRaw.length;
+    const batchSize = Math.min(safePageSize, remaining);
+    const rangeEnd = offset + batchSize - 1;
+
+    try {
+      const { data, error } = await supabaseService.client
+        .from("fire_incidents")
+        .select(SUPABASE_INCIDENT_COLUMNS)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(offset, rangeEnd);
+
+      if (error) {
+        partialError = error.message || "Gagal membaca tabel public.fire_incidents.";
+        break;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        lastBatchFull = false;
+        break;
+      }
+
+      pagesLoaded = pageIdx + 1;
+      allRaw.push(...data.slice(0, remaining));
+      offset += data.length;
+      lastBatchFull = data.length >= batchSize;
+
+      if (data.length < batchSize) {
+        break;
+      }
+    } catch (err) {
+      partialError = err?.message || "Koneksi Supabase gagal; memakai arsip lokal terverifikasi.";
+      break;
     }
+  }
 
-    const normalized = Array.isArray(data) ? data.map((row) => normalizeIncidentRecord(row)) : [];
-    const partitioned = partitionIncidentRecords(normalized);
-    return {
-      active: true,
-      source: "supabase",
-      records: normalized,
-      partitioned,
-      error: null,
-      note: `Terhubung ke Supabase (${normalized.length} record individual pada public.fire_incidents).`
-    };
-  } catch (err) {
-    const message = err?.message || "Koneksi Supabase gagal; memakai arsip lokal terverifikasi.";
+  // Probe one row past maxRecords when capped on a full page so truncation is never silent
+  if (!partialError && allRaw.length >= safeMaxRecords && lastBatchFull) {
+    try {
+      const { data, error } = await supabaseService.client
+        .from("fire_incidents")
+        .select(SUPABASE_INCIDENT_COLUMNS)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(offset, offset);
+
+      if (error) {
+        partialError = error.message || "Gagal memeriksa sisa halaman Supabase.";
+      } else if (Array.isArray(data) && data.length > 0) {
+        truncated = true;
+      }
+    } catch (err) {
+      partialError = err?.message || "Gagal memeriksa sisa halaman Supabase.";
+    }
+  }
+
+  if (!partialError && !truncated && pagesLoaded >= safeMaxPages && allRaw.length < safeMaxRecords && lastBatchFull) {
+    truncated = true;
+  }
+
+  if (partialError && allRaw.length === 0) {
     return {
       active: false,
       source: "local_fallback",
       records: [],
-      partitioned: partitionIncidentRecords([]),
-      error: message,
-      note: `Fallback ke mode lokal: ${message}`
+      partitioned: partitionIncidentRecords([], kdeOptions),
+      pagesLoaded: 0,
+      truncated: false,
+      partialLoad: false,
+      maxRecords: safeMaxRecords,
+      error: partialError,
+      note: `Fallback ke mode lokal: ${partialError}`
     };
   }
+
+  const normalized = allRaw.map((row) => normalizeIncidentRecord(row, kdeOptions));
+  const partitioned = partitionIncidentRecords(normalized, kdeOptions);
+
+  if (partialError) {
+    return {
+      active: true,
+      source: "supabase_partial",
+      records: normalized,
+      partitioned,
+      pagesLoaded,
+      truncated: true,
+      partialLoad: true,
+      maxRecords: safeMaxRecords,
+      error: partialError,
+      note: `Sebagian data Supabase dimuat (${normalized.length} record dari ${pagesLoaded} halaman); halaman lanjutan gagal: ${partialError}`
+    };
+  }
+
+  const note = truncated
+    ? `Menampilkan batas maksimum ${normalized.length} dari batas ${safeMaxRecords} record Supabase (${pagesLoaded} halaman); record lanjutan di luar batas tidak ikut dimuat.`
+    : `Terhubung ke Supabase (${normalized.length} record individual pada ${pagesLoaded || 1} halaman public.fire_incidents).`;
+
+  return {
+    active: true,
+    source: "supabase",
+    records: normalized,
+    partitioned,
+    pagesLoaded,
+    truncated,
+    partialLoad: false,
+    maxRecords: safeMaxRecords,
+    error: null,
+    note
+  };
 }
 
 export async function loadExplorerDatasets(services) {

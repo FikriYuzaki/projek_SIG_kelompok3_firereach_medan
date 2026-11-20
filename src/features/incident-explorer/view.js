@@ -7,9 +7,12 @@ import {
   computeChoroplethBreaks,
   filterDemoRecords,
   filterOfficialRows,
+  filterSupabasePoints,
   getDominantCategory,
   loadDemoContractFixture,
-  loadExplorerDatasets
+  loadExplorerDatasets,
+  normalizeDistrictName,
+  shouldResetMapExtent
 } from "./service.js";
 
 const TIER_COLORS = Object.freeze({
@@ -339,14 +342,19 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       selectedKey: null,
       demoMode: false,
       demoFixture: null,
+      showSupabasePoints: true,
       unlocatedFilter: "semua"
     };
 
     const supabaseBadgeText = supabaseStatus.active
-      ? `[+] Supabase Aktif (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
+      ? supabaseStatus.partialLoad
+        ? `[!] Supabase Parsial (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
+        : `[+] Supabase Aktif (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
       : supabaseStatus.source === "local_fallback"
         ? "[!] Fallback Lokal (Supabase gagal)"
         : "[ ] Mode Lokal (Arsip Resmi)";
+    const hasSupabasePoints =
+      supabaseStatus.active && (supabaseStatus.partitioned.verifiedLocated || []).length > 0;
 
     container.innerHTML = `
       <section class="page-header">
@@ -421,7 +429,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
               <button type="button" class="btn btn-secondary" id="filter-reset">Reset Filter</button>
             </div>
           </div>
-          <p class="explorer-source-note" id="explorer-supabase-note">${escapeHtml(supabaseStatus.note)}</p>
+          <p class="explorer-source-note ${supabaseStatus.truncated || supabaseStatus.partialLoad || supabaseStatus.source === "local_fallback" ? "explorer-source-note--warn" : ""}" id="explorer-supabase-note">${escapeHtml(supabaseStatus.note)}</p>
         </section>
 
         <section class="explorer-metrics" id="explorer-metrics" aria-label="Ringkasan hasil filter" style="margin-top: var(--space-4);"></section>
@@ -431,6 +439,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2);">
               <h2 id="explorer-map-title">Peta Kejadian per Kecamatan (Tahun 2023)</h2>
               <span class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">EPSG:4326</span>
+            </div>
+            <div class="map-layer-toggle" id="explorer-supabase-layer-bar" ${!hasSupabasePoints ? "hidden" : ""}>
+              <label class="layer-toggle-label" for="toggle-supabase-points">
+                <input type="checkbox" id="toggle-supabase-points" checked />
+                <span>Tampilkan Layer Terpisah Titik Individual Supabase (<strong id="supabase-point-filter-count">0</strong> titik sesuai filter; terpisah dari statistik agregat)</span>
+              </label>
             </div>
             <div class="map-canvas" id="explorer-map" role="region" aria-label="Peta interaktif kejadian kebakaran Kota Medan"></div>
             <div class="map-legend" id="explorer-map-legend"></div>
@@ -492,6 +506,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     const searchInput = container.querySelector("#filter-search");
     const sortSel = container.querySelector("#filter-sort");
     const resetBtn = container.querySelector("#filter-reset");
+    const supabaseLayerBarEl = container.querySelector("#explorer-supabase-layer-bar");
+    const supabasePointsToggle = container.querySelector("#toggle-supabase-points");
+    const supabasePointCountEl = container.querySelector("#supabase-point-filter-count");
 
     const metricsEl = container.querySelector("#explorer-metrics");
     const mapTitleEl = container.querySelector("#explorer-map-title");
@@ -513,18 +530,20 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     );
     const mapHandle = services.maps.createMap(container.querySelector("#explorer-map"));
     const dynamicOverlay = L.layerGroup().addTo(mapHandle.map);
+    const supabaseOverlay = L.layerGroup().addTo(mapHandle.map);
 
     let districtGeoLayer = null;
     let activeBreaks = null;
     let activeRowMap = new Map();
-    let lastMapViewKey = "";
+    let lastMapLayerKey = "";
+    let lastExtentCtx = null;
     let activeRowsSnapshot = [];
     let chartHandle = null;
     let invalidateTimer = null;
     let isMounted = true;
 
-    function getMapViewKey() {
-      return `${state.demoMode}|${state.period}|${state.district}|${state.category}|${state.search}|${state.sortBy}`;
+    function getMapLayerKey() {
+      return `${state.demoMode}|${state.period}|${state.district}|${state.category}|${state.search}|${state.showSupabasePoints}`;
     }
 
     function computeDistrictFeatureStyle(feature) {
@@ -911,9 +930,14 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       });
     }
 
-    function renderMapAndLegend(rows) {
+    function renderMapAndLegend(rows, { fitExtent = true } = {}) {
       dynamicOverlay.clearLayers();
+      supabaseOverlay.clearLayers();
       districtGeoLayer = null;
+
+      if (supabaseLayerBarEl) {
+        supabaseLayerBarEl.hidden = state.demoMode || !hasSupabasePoints;
+      }
 
       if (state.demoMode && state.demoFixture) {
         mapTitleEl.textContent = "Peta Kontrak Titik Individual (DATA DEMO)";
@@ -943,7 +967,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
               .addTo(dynamicOverlay);
           }
         }
-        services.maps.fitBounds(mapHandle.map, boundary);
+        if (fitExtent) {
+          services.maps.fitBounds(mapHandle.map, boundary);
+        }
         return;
       }
 
@@ -992,9 +1018,28 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         `;
       }
 
-      const supabasePoints = supabaseStatus.partitioned.verifiedLocated || [];
-      if (supabasePoints.length > 0) {
-        legendEl.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background: #202A2D; border-radius: 50%;"></span> Titik Kejadian Terverifikasi (${supabasePoints.length})</span>`;
+      const filteredSupabasePoints = filterSupabasePoints(
+        supabaseStatus.partitioned.verifiedLocated || [],
+        {
+          period: state.period,
+          district: state.district,
+          category: state.category,
+          search: state.search
+        }
+      );
+      if (supabasePointCountEl) {
+        supabasePointCountEl.textContent = services.format.number(filteredSupabasePoints.length);
+      }
+
+      if (state.showSupabasePoints && filteredSupabasePoints.length > 0) {
+        const strictCount = filteredSupabasePoints.filter((p) => p.kde_eligible).length;
+        const approxCount = filteredSupabasePoints.length - strictCount;
+        if (strictCount > 0) {
+          legendEl.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background: #202A2D; border-radius: 50%;"></span> Layer Titik Supabase Terverifikasi (${strictCount})</span>`;
+        }
+        if (approxCount > 0) {
+          legendEl.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background: #8A5218; border-radius: 50%;"></span> Layer Titik Perkiraan / Approximate (${approxCount}; non-KDE default)</span>`;
+        }
       }
 
       provenanceEl.innerHTML = `
@@ -1002,10 +1047,17 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         <span>Data: Dinas Damkarmat Kota Medan via Satu Data Medan</span>
       `;
 
+      let selectedDistrictLayer = null;
+      const normalizedTargetDistrict =
+        isDist && state.district !== "semua" ? normalizeDistrictName(state.district) : null;
+
       districtGeoLayer = L.geoJSON(districtsGeoJson, {
         style: (feature) => computeDistrictFeatureStyle(feature),
         onEachFeature: (feature, layer) => {
           const name = feature.properties.district_name;
+          if (normalizedTargetDistrict && normalizeDistrictName(name) === normalizedTargetDistrict) {
+            selectedDistrictLayer = layer;
+          }
           const matched = activeRowMap.get(name);
           const countText =
             isDist && matched
@@ -1032,21 +1084,40 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           .addTo(dynamicOverlay);
       }
 
-      for (const pt of supabasePoints) {
-        L.circleMarker([pt.lat, pt.lon], {
-          radius: 6,
-          color: "#FFFFFF",
-          weight: 1.5,
-          fillColor: "#202A2D",
-          fillOpacity: 0.9
-        })
-          .bindPopup(
-            `<strong>${escapeHtml(pt.source_record_id)}</strong><br/>${escapeHtml(pt.address_text || pt.district_name || "-")}<br/>Akurasi: ${escapeHtml(pt.location_accuracy)}`
-          )
-          .addTo(dynamicOverlay);
+      if (state.showSupabasePoints) {
+        for (const pt of filteredSupabasePoints) {
+          const isApprox = pt.location_accuracy === "approximate";
+          const dateText = pt.occurred_at
+            ? services.format.date(pt.occurred_at)
+            : pt.period_year
+              ? `Tahun ${pt.period_year}`
+              : "-";
+          const accuracyText = isApprox
+            ? `${pt.location_accuracy} (perkiraan; tidak otomatis masuk KDE)`
+            : pt.location_accuracy;
+          L.circleMarker([pt.lat, pt.lon], {
+            radius: isApprox ? 6.5 : 6,
+            color: "#FFFFFF",
+            weight: 1.5,
+            fillColor: isApprox ? "#8A5218" : "#202A2D",
+            fillOpacity: 0.92
+          })
+            .bindPopup(
+              `<strong>${escapeHtml(pt.source_record_id)}</strong><br/>` +
+                `Tanggal/Periode: ${escapeHtml(dateText)}<br/>` +
+                `Alamat: ${escapeHtml(pt.address_text || pt.district_name || "-")}<br/>` +
+                `Kategori/Objek: ${escapeHtml(pt.object_type || "Tidak tercatat")}<br/>` +
+                `Akurasi: ${escapeHtml(accuracyText)}<br/>` +
+                `Sumber: ${escapeHtml(pt.source_name)}<br/>` +
+                `<em>Layer individual Supabase (terpisah dari agregat statis)</em>`
+            )
+            .addTo(supabaseOverlay);
+        }
       }
 
-      services.maps.fitBounds(mapHandle.map, districtGeoLayer);
+      if (fitExtent) {
+        services.maps.fitBounds(mapHandle.map, selectedDistrictLayer || districtGeoLayer);
+      }
     }
 
     function renderTable(rows) {
@@ -1199,10 +1270,17 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       const selectedRow = activeRows.find((r) => getRowKey(r, state.demoMode) === state.selectedKey);
 
       renderMetrics(activeRows);
-      const nextMapKey = getMapViewKey();
-      if (nextMapKey !== lastMapViewKey) {
-        lastMapViewKey = nextMapKey;
-        renderMapAndLegend(activeRows);
+      const nextLayerKey = getMapLayerKey();
+      const nextExtentCtx = {
+        demoMode: state.demoMode,
+        period: state.period,
+        district: state.district
+      };
+      if (nextLayerKey !== lastMapLayerKey) {
+        const shouldFit = shouldResetMapExtent(lastExtentCtx, nextExtentCtx);
+        lastMapLayerKey = nextLayerKey;
+        lastExtentCtx = nextExtentCtx;
+        renderMapAndLegend(activeRows, { fitExtent: shouldFit });
       } else if (!state.demoMode && districtGeoLayer) {
         districtGeoLayer.setStyle((feature) => computeDistrictFeatureStyle(feature));
       }
@@ -1300,6 +1378,16 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     );
 
     resetBtn.addEventListener("click", resetFilters, { signal: ac.signal });
+    if (supabasePointsToggle) {
+      supabasePointsToggle.addEventListener(
+        "change",
+        () => {
+          state.showSupabasePoints = supabasePointsToggle.checked;
+          syncView();
+        },
+        { signal: ac.signal }
+      );
+    }
     tabVerifiedBtn.addEventListener("click", () => switchTab("verified"), { signal: ac.signal });
     tabUnlocatedBtn.addEventListener("click", () => switchTab("unlocated"), { signal: ac.signal });
 
@@ -1362,6 +1450,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         invalidateTimer = null;
       }
       dynamicOverlay.clearLayers();
+      supabaseOverlay.clearLayers();
       if (chartHandle) {
         chartHandle.destroy();
         chartHandle = null;

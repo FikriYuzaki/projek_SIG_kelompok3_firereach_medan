@@ -75,4 +75,32 @@ describe("processed data & DEMO fixture integrity", () => {
     expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-001")?.geom?.type).toBe("Point");
     expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-003")?.geom).toBeNull();
   });
+
+  it("verifies every raw input workbook read by build_processed_data.py is registered in source-register.csv with SHA-256", () => {
+    const buildSrc = fs.readFileSync(path.join(ROOT, "scripts/build_processed_data.py"), "utf-8");
+    const rawRefs = [...new Set([...buildSrc.matchAll(/"([^\s"]+\.(?:xlsx|geojson))"/g)].map((m) => m[1]))].filter(
+      (name) => name !== "medan_districts_osm.geojson"
+    );
+    expect(rawRefs.length).toBe(20);
+
+    const csvLines = fs
+      .readFileSync(path.join(ROOT, "data/metadata/source-register.csv"), "utf-8")
+      .trim()
+      .split(/\r?\n/);
+    const headers = csvLines[0].split(",");
+    const rows = csvLines.slice(1).map((line) => {
+      const cols = line.split(",");
+      return Object.fromEntries(headers.map((h, i) => [h, cols[i] ?? ""]));
+    });
+
+    for (const refFile of rawRefs) {
+      const match = rows.find((r) => r.file_path.endsWith(`/${refFile}`));
+      expect(match, `Missing provenance entry in source-register.csv for ${refFile}`).toBeDefined();
+      expect(match.publisher.length).toBeGreaterThan(3);
+      expect(match.url).toMatch(/^https:\/\//);
+      expect(Number(match.file_size_bytes)).toBeGreaterThan(0);
+      expect(match.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(["acquired", "acquired_fallback"]).toContain(match.status);
+    }
+  });
 });
