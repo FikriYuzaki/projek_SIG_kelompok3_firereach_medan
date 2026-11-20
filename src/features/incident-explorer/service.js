@@ -56,9 +56,16 @@ export function normalizeDistrictName(name) {
 }
 
 function parseFiniteCoord(val) {
-  if (val === null || val === undefined || val === "") return null;
-  const num = Number(val);
-  return Number.isFinite(num) ? num : null;
+  if (typeof val === "number") {
+    return Number.isFinite(val) ? val : null;
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : null;
+  }
+  return null;
 }
 
 function isInsideMedanExtent(lat, lon) {
@@ -70,30 +77,32 @@ function isInsideMedanExtent(lat, lon) {
   );
 }
 
-/**
- * Extracts validated [lon, lat] GeoJSON point coordinates only when accuracy allows point display
- * and coordinates fall strictly inside Kota Medan bounds.
- */
-export function extractValidPointCoordinates(record = {}) {
-  const acc = String(record.location_accuracy || "unknown");
-  if (!POINT_MAPPABLE_ACCURACIES.includes(acc)) {
+function extractPointFromGeom(geom) {
+  if (!geom) return null;
+  let lat = null;
+  let lon = null;
+
+  if (typeof geom === "object" && !Array.isArray(geom)) {
+    if (geom.type !== "Point" || !Array.isArray(geom.coordinates)) {
+      return null;
+    }
+    if (geom.coordinates.length < 2 || geom.coordinates.length > 3) {
+      return null;
+    }
+    lon = parseFiniteCoord(geom.coordinates[0]);
+    lat = parseFiniteCoord(geom.coordinates[1]);
+    if (geom.coordinates.length === 3 && parseFiniteCoord(geom.coordinates[2]) === null) {
+      return null;
+    }
+  } else if (typeof geom === "string") {
+    const match = /^POINT\s*\(\s*([-+]?\d+(?:\.\d+)?)\s+([-+]?\d+(?:\.\d+)?)\s*\)$/i.exec(geom.trim());
+    if (!match) {
+      return null;
+    }
+    lon = parseFiniteCoord(match[1]);
+    lat = parseFiniteCoord(match[2]);
+  } else {
     return null;
-  }
-
-  let lat = parseFiniteCoord(record.lat);
-  let lon = parseFiniteCoord(record.lon);
-
-  if ((lat === null || lon === null) && record.geom && typeof record.geom === "object") {
-    if (record.geom.type === "Point" && Array.isArray(record.geom.coordinates) && record.geom.coordinates.length >= 2) {
-      lon = parseFiniteCoord(record.geom.coordinates[0]);
-      lat = parseFiniteCoord(record.geom.coordinates[1]);
-    }
-  } else if ((lat === null || lon === null) && typeof record.geom === "string") {
-    const match = /^POINT\s*\(\s*([-+]?\d+(?:\.\d+)?)\s+([-+]?\d+(?:\.\d+)?)\s*\)$/i.exec(record.geom.trim());
-    if (match) {
-      lon = parseFiniteCoord(match[1]);
-      lat = parseFiniteCoord(match[2]);
-    }
   }
 
   if (lat === null || lon === null || !isInsideMedanExtent(lat, lon)) {
@@ -108,15 +117,48 @@ export function extractValidPointCoordinates(record = {}) {
 }
 
 /**
- * Enforces docs/GIS_WORKFLOW.md & Adeptri KDE rules:
- * Only exact_verified and address_geocoded_verified verified records qualify for KDE by default.
- * Approximate points require explicit approval + documented reason to qualify for KDE.
+ * Extracts validated [lon, lat] GeoJSON point coordinates only when accuracy allows point display
+ * and coordinates fall strictly inside Kota Medan bounds.
  */
-export function isRecordKdeEligible(
-  record = {},
-  { includeApprovedApproximate = false, approximateApprovalNote = "" } = {}
-) {
-  if (!record || record.isDemo || !record.geom || record.verification_status !== "verified") {
+export function extractValidPointCoordinates(record = {}) {
+  const acc = String(record.location_accuracy || "unknown");
+  if (!POINT_MAPPABLE_ACCURACIES.includes(acc)) {
+    return null;
+  }
+
+  const lat = parseFiniteCoord(record.lat);
+  const lon = parseFiniteCoord(record.lon);
+
+  if (lat === null || lon === null) {
+    return extractPointFromGeom(record.geom);
+  }
+
+  if (!isInsideMedanExtent(lat, lon)) {
+    return null;
+  }
+
+  return {
+    lat,
+    lon,
+    geom: { type: "Point", coordinates: [lon, lat] }
+  };
+}
+
+/**
+ * Enforces docs/GIS_WORKFLOW.md & Adeptri KDE rules:
+ * Only exact_verified and address_geocoded_verified verified records with a valid Point geometry
+ * inside MEDAN_BOUNDS qualify for KDE by default.
+ * Approximate points require explicit boolean approval + non-empty string reason to qualify for KDE.
+ */
+export function isRecordKdeEligible(record = {}, options = {}) {
+  const { includeApprovedApproximate = false, approximateApprovalNote = "" } = options || {};
+  if (!record || typeof record !== "object" || record.isDemo || record.verification_status !== "verified") {
+    return false;
+  }
+  if (String(record.dataLabel || "").trim().toUpperCase() === "DEMO") {
+    return false;
+  }
+  if (!extractPointFromGeom(record.geom)) {
     return false;
   }
   const accuracy = String(record.location_accuracy || "unknown");
@@ -124,7 +166,11 @@ export function isRecordKdeEligible(
     return true;
   }
   if (accuracy === "approximate") {
-    return Boolean(includeApprovedApproximate && String(approximateApprovalNote || "").trim().length > 0);
+    return (
+      includeApprovedApproximate === true &&
+      typeof approximateApprovalNote === "string" &&
+      approximateApprovalNote.trim().length > 0
+    );
   }
   return false;
 }

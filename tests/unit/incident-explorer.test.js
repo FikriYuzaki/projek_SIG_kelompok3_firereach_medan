@@ -233,6 +233,95 @@ describe("incident-explorer service helpers", () => {
     expect(partitioned.kdeEligible.map((r) => r.source_record_id)).toEqual(["KDE-EXACT", "KDE-ADDR"]);
   });
 
+  it("rejects malformed geometries, out-of-Medan coordinates, DEMO/unverified states, and unapproved approximate records in isRecordKdeEligible", () => {
+    const validPoint = { type: "Point", coordinates: [98.6714, 3.5895] };
+    const baseVerified = {
+      location_accuracy: "exact_verified",
+      verification_status: "verified",
+      isDemo: false
+    };
+
+    // Malformed geometries (all must return false even when truthy)
+    expect(isRecordKdeEligible({ ...baseVerified, geom: {} })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: true })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: "invalid-wkt" })).toBe(false);
+    expect(
+      isRecordKdeEligible({
+        ...baseVerified,
+        geom: { type: "Polygon", coordinates: [[[98.66, 3.58], [98.68, 3.58], [98.68, 3.6], [98.66, 3.58]]] }
+      })
+    ).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [98.6714] } })).toBe(false);
+    expect(
+      isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [98.6714, 3.5895, "bad-alt"] } })
+    ).toBe(false);
+    expect(
+      isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [Number.NaN, 3.5895] } })
+    ).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [true, 3.5895] } })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: "POINT(98.6714)" })).toBe(false);
+
+    // Out-of-Medan coordinates
+    expect(isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [106.8456, -6.2088] } })).toBe(
+      false
+    );
+    expect(isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [3.5895, 98.6714] } })).toBe(
+      false
+    );
+    expect(isRecordKdeEligible({ ...baseVerified, geom: "POINT(106.8456 -6.2088)" })).toBe(false);
+
+    // Valid Point geometries inside MEDAN_BOUNDS
+    expect(isRecordKdeEligible({ ...baseVerified, geom: validPoint })).toBe(true);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: "POINT(98.6714 3.5895)" })).toBe(true);
+    expect(isRecordKdeEligible({ ...baseVerified, geom: { type: "Point", coordinates: [98.6714, 3.5895, 25] } })).toBe(
+      true
+    );
+
+    // Status & DEMO guards
+    expect(isRecordKdeEligible({ ...baseVerified, verification_status: "needs_review", geom: validPoint })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, verification_status: "unlocated", geom: validPoint })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, isDemo: true, geom: validPoint })).toBe(false);
+    expect(isRecordKdeEligible({ ...baseVerified, dataLabel: "DEMO", geom: validPoint })).toBe(false);
+
+    // Approximate approval hardening
+    const approxValid = { ...baseVerified, location_accuracy: "approximate", geom: validPoint };
+    expect(isRecordKdeEligible(approxValid)).toBe(false);
+    expect(
+      isRecordKdeEligible(approxValid, { includeApprovedApproximate: "yes", approximateApprovalNote: "Approved" })
+    ).toBe(false);
+    expect(isRecordKdeEligible(approxValid, { includeApprovedApproximate: true, approximateApprovalNote: {} })).toBe(
+      false
+    );
+    expect(isRecordKdeEligible(approxValid, { includeApprovedApproximate: true, approximateApprovalNote: "   " })).toBe(
+      false
+    );
+    expect(
+      isRecordKdeEligible(approxValid, {
+        includeApprovedApproximate: true,
+        approximateApprovalNote: "Disetujui untuk uji sensitivitas KDE"
+      })
+    ).toBe(true);
+    expect(
+      isRecordKdeEligible(
+        { ...baseVerified, location_accuracy: "approximate", geom: {} },
+        { includeApprovedApproximate: true, approximateApprovalNote: "Approved" }
+      )
+    ).toBe(false);
+    expect(
+      isRecordKdeEligible(
+        { ...baseVerified, location_accuracy: "approximate", geom: { type: "Point", coordinates: [106.8456, -6.2088] } },
+        { includeApprovedApproximate: true, approximateApprovalNote: "Approved" }
+      )
+    ).toBe(false);
+    expect(
+      isRecordKdeEligible(
+        { ...approxValid, isDemo: true },
+        { includeApprovedApproximate: true, approximateApprovalNote: "Approved" }
+      )
+    ).toBe(false);
+    expect(isRecordKdeEligible(null, null)).toBe(false);
+  });
+
   it("downgrades invalid verified rows when geom is null and partitions DEMO strictly", () => {
     const aggRec = normalizeIncidentRecord({
       source_record_id: "ROW-AGG-1",
