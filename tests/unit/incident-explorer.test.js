@@ -373,6 +373,112 @@ describe("incident-explorer service helpers", () => {
     expect(partitioned.kdeEligible.every((r) => !r.isDemo)).toBe(true);
   });
 
+  it("classifies dataLabel DEMO variants consistently through normalizeIncidentRecord and partitionIncidentRecords", () => {
+    const rawLabelOnly = {
+      source_record_id: "DEMO-LABEL-UPPER",
+      period_year: 2024,
+      district_name: "Medan Petisah",
+      location_accuracy: "exact_verified",
+      verification_status: "verified",
+      dataLabel: "DEMO",
+      lat: 3.5895,
+      lon: 98.6714
+    };
+    const rawLabelWhitespace = {
+      source_record_id: "DEMO-LABEL-SPACE",
+      period_year: 2024,
+      district_name: "Medan Barat",
+      location_accuracy: "address_geocoded_verified",
+      verification_status: "verified",
+      isDemo: false,
+      dataLabel: " demo ",
+      geom: { type: "Point", coordinates: [98.6714, 3.5895] }
+    };
+    const rawFlaggedDemo = {
+      source_record_id: "DEMO-FLAG-TRUE",
+      period_year: 2024,
+      district_name: "Medan Kota",
+      location_accuracy: "exact_verified",
+      verification_status: "verified",
+      isDemo: true,
+      lat: 3.5895,
+      lon: 98.6714
+    };
+    const rawOfficial = {
+      source_record_id: "OFFICIAL-VALID-1",
+      period_year: 2024,
+      district_name: "Medan Baru",
+      location_accuracy: "exact_verified",
+      verification_status: "verified",
+      lat: 3.5895,
+      lon: 98.6714
+    };
+    const rawOfficialLabeled = {
+      source_record_id: "OFFICIAL-VALID-2",
+      period_year: 2024,
+      district_name: "Medan Polonia",
+      location_accuracy: "address_geocoded_verified",
+      verification_status: "verified",
+      dataLabel: "OFFICIAL",
+      geom: { type: "Point", coordinates: [98.6714, 3.5895] }
+    };
+
+    const normLabelOnly = normalizeIncidentRecord(rawLabelOnly);
+    const normLabelWhitespace = normalizeIncidentRecord(rawLabelWhitespace);
+    const normLabelWithApproxOpt = normalizeIncidentRecord(rawLabelOnly, {
+      includeApprovedApproximate: true,
+      approximateApprovalNote: "Approved"
+    });
+    const normFlaggedDemo = normalizeIncidentRecord(rawFlaggedDemo);
+    const normOfficial = normalizeIncidentRecord(rawOfficial);
+    const normOfficialLabeled = normalizeIncidentRecord(rawOfficialLabeled);
+
+    expect(normLabelOnly.isDemo).toBe(true);
+    expect(normLabelOnly.map_point_eligible).toBe(true);
+    expect(normLabelOnly.kde_eligible).toBe(false);
+
+    expect(normLabelWhitespace.isDemo).toBe(true);
+    expect(normLabelWhitespace.map_point_eligible).toBe(true);
+    expect(normLabelWhitespace.kde_eligible).toBe(false);
+
+    expect(normLabelWithApproxOpt.isDemo).toBe(true);
+    expect(normLabelWithApproxOpt.kde_eligible).toBe(false);
+
+    expect(normFlaggedDemo.isDemo).toBe(true);
+    expect(normFlaggedDemo.kde_eligible).toBe(false);
+
+    expect(normOfficial.isDemo).toBe(false);
+    expect(normOfficial.kde_eligible).toBe(true);
+    expect(normOfficialLabeled.isDemo).toBe(false);
+    expect(normOfficialLabeled.kde_eligible).toBe(true);
+
+    const partitioned = partitionIncidentRecords([
+      rawLabelOnly,
+      rawLabelWhitespace,
+      rawFlaggedDemo,
+      rawOfficial,
+      rawOfficialLabeled
+    ]);
+
+    expect(partitioned.demoRecords.map((r) => r.source_record_id)).toEqual([
+      "DEMO-LABEL-UPPER",
+      "DEMO-LABEL-SPACE",
+      "DEMO-FLAG-TRUE"
+    ]);
+    expect(partitioned.verifiedLocated.map((r) => r.source_record_id)).toEqual([
+      "OFFICIAL-VALID-1",
+      "OFFICIAL-VALID-2"
+    ]);
+    expect(partitioned.kdeEligible.map((r) => r.source_record_id)).toEqual([
+      "OFFICIAL-VALID-1",
+      "OFFICIAL-VALID-2"
+    ]);
+    expect(partitioned.demoRecords.every((r) => r.isDemo && !r.kde_eligible)).toBe(true);
+    expect(
+      filterSupabasePoints([normLabelOnly, normOfficial], { period: "2024-bulanan" }).map((r) => r.source_record_id)
+    ).toEqual(["OFFICIAL-VALID-1"]);
+  });
+
   it("filters Supabase points strictly by period, district, category, and search", () => {
     expect(matchObjectTypeToCategory("Rumah Tinggal")).toBe("rumah");
     expect(matchObjectTypeToCategory("Travo Listrik")).toBe("travo_kabel");

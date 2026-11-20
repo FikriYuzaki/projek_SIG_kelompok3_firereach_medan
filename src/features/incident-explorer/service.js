@@ -144,6 +144,11 @@ export function extractValidPointCoordinates(record = {}) {
   };
 }
 
+function isDemoRecord(record) {
+  if (!record || typeof record !== "object") return false;
+  return Boolean(record.isDemo) || String(record.dataLabel || "").trim().toUpperCase() === "DEMO";
+}
+
 /**
  * Enforces docs/GIS_WORKFLOW.md & Adeptri KDE rules:
  * Only exact_verified and address_geocoded_verified verified records with a valid Point geometry
@@ -152,10 +157,7 @@ export function extractValidPointCoordinates(record = {}) {
  */
 export function isRecordKdeEligible(record = {}, options = {}) {
   const { includeApprovedApproximate = false, approximateApprovalNote = "" } = options || {};
-  if (!record || typeof record !== "object" || record.isDemo || record.verification_status !== "verified") {
-    return false;
-  }
-  if (String(record.dataLabel || "").trim().toUpperCase() === "DEMO") {
+  if (!record || typeof record !== "object" || isDemoRecord(record) || record.verification_status !== "verified") {
     return false;
   }
   if (!extractPointFromGeom(record.geom)) {
@@ -194,7 +196,7 @@ export function normalizeIncidentRecord(raw = {}, kdeOptions = {}) {
     }
   }
 
-  const isDemo = Boolean(raw.isDemo);
+  const isDemo = isDemoRecord(raw);
   const district = normalizeDistrictName(raw.district_name || "") || null;
   const subdistrict = normalizeDistrictName(raw.subdistrict_name || "") || null;
   const geom = coords ? coords.geom : null;
@@ -220,7 +222,13 @@ export function normalizeIncidentRecord(raw = {}, kdeOptions = {}) {
     isDemo,
     map_point_eligible: Boolean(geom && POINT_MAPPABLE_ACCURACIES.includes(accuracy)),
     kde_eligible: isRecordKdeEligible(
-      { location_accuracy: accuracy, verification_status: status, geom, isDemo },
+      {
+        location_accuracy: accuracy,
+        verification_status: status,
+        geom,
+        isDemo,
+        dataLabel: isDemo ? "DEMO" : raw.dataLabel
+      },
       kdeOptions
     )
   };
