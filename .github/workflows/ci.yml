@@ -33,7 +33,7 @@ jobs:
       - name: Run unit and contract tests
         run: npm run test
 
-      - name: Run Python KDE pipeline unit tests
+      - name: Run Python GIS pipeline unit tests (KDE, Station Coverage, Priority Planner)
         run: python -m unittest discover -s tests/python -v
 
       - name: Build production bundle

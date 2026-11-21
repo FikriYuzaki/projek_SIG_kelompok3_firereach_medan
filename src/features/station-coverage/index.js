@@ -1,5 +1,5 @@
 import "./styles.css";
-import { renderStationCoveragePlaceholder } from "./view.js";
+import { renderStationCoverage } from "./view.js";
 
 export const manifest = {
   id: "station-coverage",
@@ -10,5 +10,5 @@ export const manifest = {
 };
 
 export async function mount({ container, services, params }) {
-  return renderStationCoveragePlaceholder({ container, services, params, manifest });
+  return renderStationCoverage({ container, services, params, manifest });
 }

@@ -1,0 +1,68 @@
+{
+  "isDemo": true,
+  "dataLabel": "DEMO",
+  "module": "station-coverage",
+  "owner": "Adriel",
+  "notice": "DATA DEMO UNTUK PENGEMBANGAN UI: bukan hasil service area jaringan jalan aktual. Hanya Mako 0.0 (Jl. Candi Borobudur No. 2) yang sudah memiliki koordinat terverifikasi.",
+  "analysis": {
+    "title": "Demo Jangkauan Layanan Damkarmat (Fixture Kontrak)",
+    "method_type": "network_service_area",
+    "road_extract_date": "2026-11-18",
+    "assumed_speed_kmh": 35,
+    "threshold_label": "Skenario Estimasi 5 km / ~8.5 menit (asumsi 35 km/jam, bukan waktu respons aktual)",
+    "working_crs": "EPSG:32647",
+    "disclaimer": "Estimasi skenario jarak jaringan jalan menggunakan asumsi kecepatan teoretis dan batas topologi OSM, bukan waktu respons operasional Damkarmat."
+  },
+  "stations": [
+    {
+      "station_code": "MAKO-00",
+      "name": "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
+      "station_type": "mako",
+      "address": "Jl. Candi Borobudur No. 2, Kota Medan",
+      "lat": 3.589536437471534,
+      "lon": 98.67144703626451,
+      "verification_status": "verified",
+      "isDemo": false,
+      "source_name": "Satu Data Medan (Knowledge Damkarmat)"
+    },
+    {
+      "station_code": "DEMO-UPT-1",
+      "name": "Contoh Slot Pos UPT (DEMO)",
+      "station_type": "upt",
+      "address": "Lokasi placeholder kontrak pengembangan",
+      "lat": 3.541,
+      "lon": 98.705,
+      "verification_status": "needs_review",
+      "isDemo": true,
+      "source_name": "DEMO Fixture"
+    }
+  ],
+  "zones": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "isDemo": true,
+          "dataLabel": "DEMO",
+          "station_code": "MAKO-00",
+          "coverage_tier": "Jangkauan 3000 m (DEMO)",
+          "threshold_value": 3000,
+          "threshold_unit": "meters"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [98.652, 3.572],
+              [98.691, 3.572],
+              [98.691, 3.607],
+              [98.652, 3.607],
+              [98.652, 3.572]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

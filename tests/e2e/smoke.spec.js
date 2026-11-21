@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
-  test("covers dashboard, keyboard/mouse nav, Coming Soon, Hotspot Analyzer, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
+  test("covers dashboard, Hotspot Analyzer, Station Coverage, Priority Planner, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
     page
   }) => {
     const consoleErrors = [];
@@ -101,18 +101,90 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
 
-    // 3. Remaining Coming Soon modules display owner, status, and clean up previous Leaflet map/chart
+    // 3. Fire Station Coverage & Fire Service Priority Planner interactive modules + responsive checks
     await page.locator("#module-nav-list a[href='/station-coverage']").click();
     await expect(page.getByRole("heading", { name: "Fire Station Coverage" })).toBeVisible();
-    await expect(page.getByText("Adriel").first()).toBeVisible();
-    await expect(page.getByText("Coming Soon").first()).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
-    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? -1)).toBe(0);
+    await expect(page.locator("#coverage-status-badge")).toHaveAttribute("data-status-mode", "provisional");
+    await expect(page.locator("#coverage-status-badge")).toContainText("PROVISIONAL");
+    await expect(page.locator("#coverage-table-count")).toHaveText("21 dari 21 kecamatan");
+    await expect.poll(() => page.locator("#coverage-map .leaflet-interactive").count()).toBeGreaterThan(0);
+    await expect(page.locator("#coverage-chart-frame")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
+
+    await page.uncheck("#coverage-toggle-euclidean");
+    await page.selectOption("#coverage-band-select", "belum-terjangkau");
+    await page.fill("#coverage-search-input", "tidak-ada-kecamatan-xyz");
+    await expect(page.locator("#coverage-table-count")).toHaveText("0 dari 21 kecamatan");
+    await page.click("#coverage-reset-btn");
+    await expect(page.locator("#coverage-table-count")).toHaveText("21 dari 21 kecamatan");
+
+    for (const vp of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 375, height: 812 }
+    ]) {
+      await page.setViewportSize(vp);
+      const covOverflow = await page.evaluate(() => ({
+        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        metricOverflow: Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+          (el) => el.scrollWidth > el.clientWidth + 1
+        )
+      }));
+      expect(covOverflow.docOverflow).toBe(false);
+      expect(covOverflow.metricOverflow).toBe(false);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.locator("#module-nav-list a[href='/priority-planner']").click();
     await expect(page.getByRole("heading", { name: "Fire Service Priority Planner" })).toBeVisible();
-    await expect(page.getByText("Olo").first()).toBeVisible();
-    await expect(page.getByText("Coming Soon").first()).toBeVisible();
+    await expect(page.locator("#priority-status-badge")).toHaveAttribute("data-status-mode", "provisional");
+    await expect(page.locator("#priority-status-badge")).toContainText("PROVISIONAL");
+    await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+    await expect.poll(() => page.locator("#priority-map .leaflet-interactive").count()).toBeGreaterThanOrEqual(21);
+    await expect(page.locator("#priority-chart-frame")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
+
+    // Invalid What-If weight sum is rejected without changing baseline
+    await page.fill("#weight-hotspot-input", "60");
+    await page.click("#priority-apply-weights");
+    await expect(page.locator("#priority-weight-feedback")).toContainText("100%");
+    await expect(page.locator("#priority-sim-badge")).toBeHidden();
+
+    // Valid What-If weight recalculation + reset
+    await page.fill("#weight-hotspot-input", "50");
+    await page.fill("#weight-gap-input", "30");
+    await page.fill("#weight-pop-input", "20");
+    await page.click("#priority-apply-weights");
+    await expect(page.locator("#priority-sim-badge")).toBeVisible();
+    await expect(page.locator("#priority-active-weights-text")).toHaveText("50% / 30% / 20%");
+    await page.click("#priority-reset-weights");
+    await expect(page.locator("#priority-sim-badge")).toBeHidden();
+    await expect(page.locator("#priority-active-weights-text")).toHaveText("40% / 35% / 25%");
+
+    await page.fill("#priority-search-input", "tidak-ada-kecamatan-xyz");
+    await expect(page.locator("#priority-table-count")).toHaveText("0 dari 21 kecamatan");
+    await expect(page.locator("#priority-chart-empty")).toBeVisible();
+    await page.click("#priority-filter-reset");
+    await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+
+    for (const vp of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 375, height: 812 }
+    ]) {
+      await page.setViewportSize(vp);
+      const prioOverflow = await page.evaluate(() => ({
+        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        metricOverflow: Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+          (el) => el.scrollWidth > el.clientWidth + 1
+        )
+      }));
+      expect(prioOverflow.docOverflow).toBe(false);
+      expect(prioOverflow.metricOverflow).toBe(false);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     // 4. About & Data Sources page
     await page.locator("aside nav a[href='/about']").click();
@@ -400,5 +472,45 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "demo");
     await expect(page.locator("#hotspot-data-status-badge")).toContainText("DEMO");
     await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+  });
+
+  test("safely rejects malformed or DEMO provisional payloads on Station Coverage and Priority Planner back to DEMO", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 860 });
+
+    await page.route("**/data/station-coverage.provisional.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isDemo: true,
+          dataLabel: "DEMO",
+          stations: []
+        })
+      });
+    });
+
+    await page.goto("/station-coverage");
+    await expect(page.locator("#coverage-provisional-rejected")).toBeVisible();
+    await expect(page.locator("#coverage-status-badge")).toHaveAttribute("data-status-mode", "demo");
+    await expect(page.locator("#coverage-status-badge")).toContainText("DEMO");
+
+    await page.route("**/data/priority-planner.provisional.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isDemo: false,
+          dataLabel: "PROVISIONAL",
+          zones: []
+        })
+      });
+    });
+
+    await page.goto("/priority-planner");
+    await expect(page.locator("#priority-provisional-rejected")).toBeVisible();
+    await expect(page.locator("#priority-status-badge")).toHaveAttribute("data-status-mode", "demo");
+    await expect(page.locator("#priority-status-badge")).toContainText("DEMO");
   });
 });

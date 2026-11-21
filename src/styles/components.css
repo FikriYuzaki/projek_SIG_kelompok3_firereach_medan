@@ -44,6 +44,10 @@
   white-space: nowrap;
 }
 
+.status-badge[hidden] {
+  display: none;
+}
+
 .status-badge--active {
   background-color: var(--color-river-tint);
   color: var(--color-river-text);
