@@ -1,5 +1,5 @@
 import "./styles.css";
-import { renderHotspotPlaceholder } from "./view.js";
+import { renderHotspotAnalyzer } from "./view.js";
 
 export const manifest = {
   id: "hotspot-analyzer",
@@ -10,5 +10,5 @@ export const manifest = {
 };
 
 export async function mount({ container, services, params }) {
-  return renderHotspotPlaceholder({ container, services, params, manifest });
+  return renderHotspotAnalyzer({ container, services, params, manifest });
 }

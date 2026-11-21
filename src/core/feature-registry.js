@@ -39,7 +39,7 @@ export const FEATURE_REGISTRY = Object.freeze([
     shortTitle: "Hotspot Analyzer",
     owner: "Adeptri",
     route: "/hotspot-analyzer",
-    status: FEATURE_STATUSES.COMING_SOON,
+    status: FEATURE_STATUSES.IN_DEVELOPMENT,
     description:
       "Analisis konsentrasi spasial kejadian kebakaran historis berbasis Kernel Density Estimation (KDE) pada CRS EPSG:32647.",
     plannedInputs: [

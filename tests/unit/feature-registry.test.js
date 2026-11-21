@@ -28,7 +28,7 @@ describe("feature-registry contract", () => {
     expect(getFeatureById("incident-explorer")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
 
     expect(getFeatureById("hotspot-analyzer")?.owner).toBe("Adeptri");
-    expect(getFeatureById("hotspot-analyzer")?.status).toBe(FEATURE_STATUSES.COMING_SOON);
+    expect(getFeatureById("hotspot-analyzer")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
 
     expect(getFeatureById("station-coverage")?.owner).toBe("Adriel");
     expect(getFeatureById("station-coverage")?.status).toBe(FEATURE_STATUSES.COMING_SOON);

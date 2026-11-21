@@ -1,1 +1,22 @@
 /* Module-scoped styles owned by Adeptri (hotspot-analyzer) */
+
+.hotspot-header-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hotspot-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.hotspot-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
