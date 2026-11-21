@@ -18,29 +18,37 @@ vi.mock("leaflet", () => ({
 }));
 
 import {
+  MEDAN_BOUNDS,
   RUNTIME_DEMO_FIXTURE_URL,
   extractValidMedanPoint,
   filterHotspotZones,
   filterKdeEligiblePoints,
   getHotspotTierMeta,
+  isPointInGeoJson,
   loadHotspotZones
 } from "../../src/features/hotspot-analyzer/service.js";
 import { renderHotspotAnalyzer } from "../../src/features/hotspot-analyzer/view.js";
 
-describe("hotspot-analyzer P1: validasi ketat titik KDE", () => {
-  it("menerima exact_verified dan address_geocoded_verified dengan Point valid di dalam Medan", () => {
+describe("hotspot-analyzer P1: validasi ketat titik KDE & point-in-polygon Kota Medan", () => {
+  it("menerima exact_verified dan address_geocoded_verified dengan Point valid di dalam poligon Kota Medan", () => {
     const records = [
       {
-        id: "ok-1",
+        id: "ok-pusat",
         location_accuracy: "exact_verified",
         verification_status: "verified",
         geom: { type: "Point", coordinates: [98.67, 3.59] }
       },
       {
-        id: "ok-2",
+        id: "ok-belawan",
         location_accuracy: "address_geocoded_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.68, 3.58] }
+        geom: { type: "Point", coordinates: [98.68, 3.77] }
+      },
+      {
+        id: "ok-tuntungan",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.61, 3.52] }
       },
       {
         id: "ok-wkt",
@@ -51,7 +59,106 @@ describe("hotspot-analyzer P1: validasi ketat titik KDE", () => {
     ];
 
     const eligible = filterKdeEligiblePoints(records);
-    expect(eligible.map((r) => r.id)).toEqual(["ok-1", "ok-2", "ok-wkt"]);
+    expect(eligible.map((r) => r.id)).toEqual([
+      "ok-pusat",
+      "ok-belawan",
+      "ok-tuntungan",
+      "ok-wkt"
+    ]);
+  });
+
+  it("menolak titik yang masih di dalam bounding box tetapi berada di luar poligon batas administrasi Kota Medan", () => {
+    // Seluruh koordinat berikut berada di dalam kotak MEDAN_BOUNDS (lat 3.45..3.85, lon 98.55..98.78),
+    // namun berada di luar poligon administrasi Kota Medan (Deli Serdang / perairan Selat Malaka).
+    const insideBboxButOutsidePolygon = [
+      {
+        id: "outside-nw-hamparan-perak",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.57, 3.78] }
+      },
+      {
+        id: "outside-ne-selat-malaka",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.76, 3.78] }
+      },
+      {
+        id: "outside-sw-pancur-batu",
+        location_accuracy: "address_geocoded_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.56, 3.47] }
+      },
+      {
+        id: "outside-se-tanjung-morawa",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.76, 3.48] }
+      },
+      {
+        id: "outside-w-sunggal-deliserdang",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.57, 3.60] }
+      }
+    ];
+
+    // Pastikan koordinat uji memang berada di dalam bounding box
+    for (const rec of insideBboxButOutsidePolygon) {
+      const [lon, lat] = rec.geom.coordinates;
+      expect(lat >= MEDAN_BOUNDS.minLat && lat <= MEDAN_BOUNDS.maxLat).toBe(true);
+      expect(lon >= MEDAN_BOUNDS.minLon && lon <= MEDAN_BOUNDS.maxLon).toBe(true);
+    }
+
+    // Point-in-polygon harus menolak seluruh titik tersebut
+    expect(filterKdeEligiblePoints(insideBboxButOutsidePolygon)).toEqual([]);
+  });
+
+  it("mendukung boundaryGeoJson kustom (MultiPolygon / poligon kecamatan) pada point-in-polygon", () => {
+    const customDistrictBoundary = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { district_name: "Medan Petisah" },
+          geometry: {
+            type: "MultiPolygon",
+            coordinates: [
+              [
+                [
+                  [98.66, 3.58],
+                  [98.68, 3.58],
+                  [98.68, 3.60],
+                  [98.66, 3.60],
+                  [98.66, 3.58]
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    };
+
+    expect(isPointInGeoJson(98.67, 3.59, customDistrictBoundary)).toBe(true);
+    expect(isPointInGeoJson(98.71, 3.56, customDistrictBoundary)).toBe(false);
+
+    const records = [
+      {
+        id: "in-custom",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.67, 3.59] }
+      },
+      {
+        id: "out-custom",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: { type: "Point", coordinates: [98.71, 3.56] }
+      }
+    ];
+
+    const filtered = filterKdeEligiblePoints(records, { boundaryGeoJson: customDistrictBoundary });
+    expect(filtered.map((r) => r.id)).toEqual(["in-custom"]);
   });
 
   it("menolak district_only, unknown, approximate default, needs_review, unlocated, dan record DEMO", () => {
@@ -69,7 +176,6 @@ describe("hotspot-analyzer P1: validasi ketat titik KDE", () => {
 
     expect(filterKdeEligiblePoints(rejectedRecords)).toEqual([]);
 
-    // Opt-in eksplisit untuk approximate hanya berlaku jika disetujui dan memiliki alasan
     const explicitApproved = filterKdeEligiblePoints(
       [{ id: "r3", location_accuracy: "approximate", verification_status: "verified", geom: basePoint }],
       { allowApproximate: true, approximateApproved: true, approximateReason: "Verifikasi lapangan tim Damkarmat" }
@@ -77,7 +183,7 @@ describe("hotspot-analyzer P1: validasi ketat titik KDE", () => {
     expect(explicitApproved).toHaveLength(1);
   });
 
-  it("menolak geometri non-Point, malformed, koordinat NaN/Infinity, urutan terbalik, dan titik di luar batas Medan", () => {
+  it("menolak geometri non-Point, malformed, koordinat NaN/Infinity, urutan terbalik, dan titik jauh di luar Medan", () => {
     const invalidGeomRecords = [
       {
         id: "poly",
@@ -122,12 +228,11 @@ describe("hotspot-analyzer P1: validasi ketat titik KDE", () => {
 
     expect(filterKdeEligiblePoints(invalidGeomRecords)).toEqual([]);
 
-    // Fallback lat/lon tanpa properti geom tetap divalidasi dan dinormalisasi menjadi Point
     expect(extractValidMedanPoint({ lat: 3.59, lon: 98.67 })).toEqual({
       type: "Point",
       coordinates: [98.67, 3.59]
     });
-    expect(extractValidMedanPoint({ lat: 5.0, lon: 98.67 })).toBeNull();
+    expect(extractValidMedanPoint({ lat: 3.78, lon: 98.57 })).toBeNull();
   });
 });
 
@@ -138,7 +243,6 @@ describe("hotspot-analyzer P2: klasifikasi empat kelas kepadatan", () => {
     expect(getHotspotTierMeta(3, "Tinggi").tier).toBe("high");
     expect(getHotspotTierMeta(4, "Sangat Tinggi").tier).toBe("very-high");
 
-    // Pastikan label "Sangat Tinggi" tidak tertangkap sebagai "Tinggi"
     expect(getHotspotTierMeta(null, "Sangat Tinggi (DEMO)").tier).toBe("very-high");
     expect(getHotspotTierMeta(null, "Tinggi (DEMO)").tier).toBe("high");
   });

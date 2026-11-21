@@ -30,3 +30,9 @@ jobs:
 
       - name: Build production bundle
         run: npm run build
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end-to-end smoke tests
+        run: npm run test:e2e

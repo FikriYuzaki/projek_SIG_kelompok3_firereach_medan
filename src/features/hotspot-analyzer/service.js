@@ -7,12 +7,64 @@ export const STRICT_KDE_ACCURACIES = Object.freeze([
   "address_geocoded_verified"
 ]);
 
+// Amplop batas kasar (pre-check cepat sebelum pengecekan point-in-polygon)
 export const MEDAN_BOUNDS = Object.freeze({
   minLat: 3.45,
   maxLat: 3.85,
   minLon: 98.55,
   maxLon: 98.78
 });
+
+/**
+ * Poligon batas administrasi Kota Medan (EPSG:4326) sebagai batas default sinkron
+ * untuk validasi point-in-polygon (mencakup 21 kecamatan dari Medan Tuntungan di selatan
+ * hingga Medan Belawan di utara, serta mengecualikan wilayah Kab. Deli Serdang & Selat Malaka).
+ * Saat runtime memuat medan_districts_osm.geojson, batas ini otomatis diperbarui ke poligon OSM.
+ */
+export const MEDAN_ADMIN_BOUNDARY_GEOJSON = Object.freeze({
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        name: "Kota Medan",
+        source: "medan-admin-boundary-default"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [98.595, 3.495],
+            [98.65, 3.495],
+            [98.725, 3.515],
+            [98.732, 3.575],
+            [98.722, 3.635],
+            [98.712, 3.705],
+            [98.708, 3.792],
+            [98.665, 3.792],
+            [98.635, 3.735],
+            [98.62, 3.665],
+            [98.598, 3.615],
+            [98.595, 3.55],
+            [98.595, 3.495]
+          ]
+        ]
+      }
+    }
+  ]
+});
+
+let activeMedanBoundaryGeoJson = MEDAN_ADMIN_BOUNDARY_GEOJSON;
+
+export function setMedanBoundaryGeoJson(geoJson) {
+  if (geoJson && typeof geoJson === "object") {
+    activeMedanBoundaryGeoJson = geoJson;
+  }
+}
+
+export function resetMedanBoundaryGeoJson() {
+  activeMedanBoundaryGeoJson = MEDAN_ADMIN_BOUNDARY_GEOJSON;
+}
 
 export const RUNTIME_DEMO_FIXTURE_URL = "/data/demo/hotspot-analyzer.demo.json";
 
@@ -129,27 +181,95 @@ const FALLBACK_DEMO_FIXTURE = {
   }
 };
 
-function isFiniteCoordinatePair(lon, lat) {
-  if (typeof lon !== "number" || typeof lat !== "number") return false;
-  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
-  return (
-    lat >= MEDAN_BOUNDS.minLat &&
-    lat <= MEDAN_BOUNDS.maxLat &&
-    lon >= MEDAN_BOUNDS.minLon &&
-    lon <= MEDAN_BOUNDS.maxLon
-  );
+function isPointOnSegment(px, py, x1, y1, x2, y2, eps = 1e-12) {
+  const cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1);
+  if (Math.abs(cross) > eps) return false;
+  const dot = (px - x1) * (px - x2) + (py - y1) * (py - y2);
+  return dot <= eps;
+}
+
+function isPointInLinearRing(lon, lat, ring) {
+  if (!Array.isArray(ring) || ring.length < 4) return false;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const ptI = ring[i];
+    const ptJ = ring[j];
+    if (!Array.isArray(ptI) || !Array.isArray(ptJ)) return false;
+    const xi = Number(ptI[0]);
+    const yi = Number(ptI[1]);
+    const xj = Number(ptJ[0]);
+    const yj = Number(ptJ[1]);
+    if (!Number.isFinite(xi) || !Number.isFinite(yi) || !Number.isFinite(xj) || !Number.isFinite(yj)) {
+      return false;
+    }
+    if (isPointOnSegment(lon, lat, xi, yi, xj, yj)) {
+      return true;
+    }
+    const intersects =
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function isPointInPolygonCoords(lon, lat, polygonCoords) {
+  if (!Array.isArray(polygonCoords) || polygonCoords.length === 0) return false;
+  if (!isPointInLinearRing(lon, lat, polygonCoords[0])) return false;
+  for (let r = 1; r < polygonCoords.length; r++) {
+    if (isPointInLinearRing(lon, lat, polygonCoords[r])) return false;
+  }
+  return true;
 }
 
 /**
- * Mengekstrak dan memvalidasi geometri Point pada batas wilayah Kota Medan.
- * Mendukung:
- * 1. GeoJSON Point: { type: "Point", coordinates: [lon, lat] }
- * 2. WKT POINT: "POINT(lon lat)" atau "POINT (lon lat)"
- * 3. Fallback numerik lat/lon hanya jika properti geom/geometry tidak disertakan.
+ * Algoritma Point-in-Polygon (Ray-Casting) untuk GeoJSON Polygon, MultiPolygon,
+ * GeometryCollection, Feature, atau FeatureCollection.
  */
-export function extractValidMedanPoint(rec) {
+export function isPointInGeoJson(lon, lat, geoJson) {
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+  if (!geoJson || typeof geoJson !== "object") return false;
+
+  switch (geoJson.type) {
+    case "Polygon":
+      return isPointInPolygonCoords(lon, lat, geoJson.coordinates);
+    case "MultiPolygon":
+      return (
+        Array.isArray(geoJson.coordinates) &&
+        geoJson.coordinates.some((polyCoords) => isPointInPolygonCoords(lon, lat, polyCoords))
+      );
+    case "GeometryCollection":
+      return (
+        Array.isArray(geoJson.geometries) &&
+        geoJson.geometries.some((geom) => isPointInGeoJson(lon, lat, geom))
+      );
+    case "Feature":
+      return isPointInGeoJson(lon, lat, geoJson.geometry);
+    case "FeatureCollection":
+      return (
+        Array.isArray(geoJson.features) &&
+        geoJson.features.some((feature) => isPointInGeoJson(lon, lat, feature))
+      );
+    default:
+      return false;
+  }
+}
+
+function isFiniteMedanPolygonCoordinate(lon, lat, boundaryGeoJson = activeMedanBoundaryGeoJson) {
+  if (typeof lon !== "number" || typeof lat !== "number") return false;
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return false;
+  return isPointInGeoJson(lon, lat, boundaryGeoJson);
+}
+
+/**
+ * Mengekstrak dan memvalidasi geometri Point menggunakan point-in-polygon
+ * pada batas administrasi Kota Medan (bukan sekadar bounding box).
+ */
+export function extractValidMedanPoint(rec, options = {}) {
   if (!rec || typeof rec !== "object" || Array.isArray(rec)) return null;
 
+  const boundaryGeoJson = options.boundaryGeoJson || activeMedanBoundaryGeoJson;
   const hasGeomField = rec.geom !== undefined || rec.geometry !== undefined;
   const rawGeom = rec.geom !== undefined ? rec.geom : rec.geometry;
 
@@ -161,7 +281,7 @@ export function extractValidMedanPoint(rec) {
       if (!match) return null;
       const lon = Number(match[1]);
       const lat = Number(match[2]);
-      if (!isFiniteCoordinatePair(lon, lat)) return null;
+      if (!isFiniteMedanPolygonCoordinate(lon, lat, boundaryGeoJson)) return null;
       return { type: "Point", coordinates: [lon, lat] };
     }
 
@@ -169,14 +289,14 @@ export function extractValidMedanPoint(rec) {
       if (rawGeom.type !== "Point") return null;
       if (!Array.isArray(rawGeom.coordinates) || rawGeom.coordinates.length !== 2) return null;
       const [lon, lat] = rawGeom.coordinates;
-      if (!isFiniteCoordinatePair(lon, lat)) return null;
+      if (!isFiniteMedanPolygonCoordinate(lon, lat, boundaryGeoJson)) return null;
       return { type: "Point", coordinates: [lon, lat] };
     }
 
     return null;
   }
 
-  if (isFiniteCoordinatePair(rec.lon, rec.lat)) {
+  if (isFiniteMedanPolygonCoordinate(rec.lon, rec.lat, boundaryGeoJson)) {
     return { type: "Point", coordinates: [rec.lon, rec.lat] };
   }
 
@@ -186,7 +306,7 @@ export function extractValidMedanPoint(rec) {
 /**
  * Memeriksa apakah satu record kejadian memenuhi seluruh syarat ketat untuk input KDE.
  * Secara default hanya mengizinkan status "verified" dengan akurasi "exact_verified"
- * atau "address_geocoded_verified", bukan record DEMO, dan memiliki Point valid di Kota Medan.
+ * atau "address_geocoded_verified", bukan record DEMO, dan berada di dalam poligon Kota Medan.
  */
 export function isRecordKdeEligible(rec, options = {}) {
   if (!rec || typeof rec !== "object" || Array.isArray(rec)) return false;
@@ -205,7 +325,7 @@ export function isRecordKdeEligible(rec, options = {}) {
 
   if (!isStrictAccuracy && !isExplicitApproximate) return false;
 
-  return extractValidMedanPoint(rec) !== null;
+  return extractValidMedanPoint(rec, options) !== null;
 }
 
 export function filterKdeEligiblePoints(records = [], options = {}) {
@@ -238,7 +358,13 @@ function resolveTierFromLabel(densityClass) {
   if (!cleaned) return { tierKey: null, invalid: false };
 
   // Dahulukan "sangat tinggi" / "very high" sebelum "tinggi" agar tidak salah klasifikasi
-  if (cleaned === "sangat tinggi" || cleaned === "very high" || cleaned === "very-high" || cleaned.includes("sangat tinggi") || cleaned.includes("very high")) {
+  if (
+    cleaned === "sangat tinggi" ||
+    cleaned === "very high" ||
+    cleaned === "very-high" ||
+    cleaned.includes("sangat tinggi") ||
+    cleaned.includes("very high")
+  ) {
     return { tierKey: "very-high", invalid: false };
   }
   if (cleaned === "tinggi" || cleaned === "high" || cleaned.includes("tinggi")) {
@@ -257,8 +383,6 @@ function resolveTierFromLabel(densityClass) {
 /**
  * Memetakan density_rank (1..4) dan label density_class ke empat kelas standar KDE:
  * 1: Rendah (low), 2: Sedang (medium), 3: Tinggi (high), 4: Sangat Tinggi (very-high).
- * Jika rank dan label bertentangan, density_rank diprioritaskan dengan penanda hasConflict: true.
- * Jika tidak dikenali, dikembalikan sebagai tier "unknown" (tidak dipaksa menjadi Rendah).
  */
 export function getHotspotTierMeta(rank, densityClass = "") {
   const rankResult = resolveTierFromRank(rank);
@@ -319,6 +443,9 @@ export async function loadHotspotZones(services) {
 
     try {
       districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
+      if (districtsGeoJson && Array.isArray(districtsGeoJson.features) && districtsGeoJson.features.length > 0) {
+        setMedanBoundaryGeoJson(districtsGeoJson);
+      }
     } catch {
       districtsGeoJson = null;
     }
