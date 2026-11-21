@@ -20,3 +20,19 @@
   gap: var(--space-3);
   align-items: end;
 }
+
+.hotspot-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.hotspot-tier-pill::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  background: var(--tier-color, #64748b);
+  flex-shrink: 0;
+}

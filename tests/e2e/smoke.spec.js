@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
-  test("covers dashboard, keyboard/mouse nav, Coming Soon, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
+  test("covers dashboard, keyboard/mouse nav, Coming Soon, Hotspot Analyzer, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
     page
   }) => {
     const consoleErrors = [];
@@ -36,27 +36,62 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     expect(desktopOverflow).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
 
-    // 2. Coming Soon modules display owner, status, no fake progress %, and clean up previous Leaflet map
+    // 2. Fire Hotspot Analyzer module interactions, 4-tier filter, chart empty state, and lifecycle cleanup
     await page.locator("#module-nav-list a[href='/hotspot-analyzer']").click();
     await expect(page.getByRole("heading", { name: "Fire Hotspot Analyzer" })).toBeVisible();
-    await expect(page.getByText("Adeptri").first()).toBeVisible();
-    await expect(page.getByText("Coming Soon").first()).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
+    await expect(page.getByText(/STATUS DATA \(DEMO\)/i)).toBeVisible();
+    await expect(page.locator("#hotspot-map")).toBeVisible();
+    await expect.poll(() => page.locator("#hotspot-map .leaflet-interactive").count()).toBeGreaterThan(0);
+    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-chart-frame")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
 
+    // Test 4-tier filter options including Sangat Tinggi (very-high)
+    await page.selectOption("#hotspot-filter-tier", "high");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("1 zona");
+    await page.selectOption("#hotspot-filter-tier", "very-high");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("0 zona");
+    await expect(page.locator("#hotspot-chart-empty")).toBeVisible();
+    await page.click("#hotspot-filter-reset");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-chart-frame")).toBeVisible();
+
+    // Test search empty state + reset recovery
+    await page.fill("#hotspot-filter-search", "zona-tidak-ada-xyz");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("0 zona");
+    await expect(page.locator("#hotspot-chart-empty")).toBeVisible();
+    await page.click("#hotspot-filter-reset");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+
+    // Verify lifecycle cleanup when navigating away and re-mounting Hotspot Analyzer multiple times
+    await page.locator("aside nav a[href='/about']").click();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? -1)).toBe(0);
+
+    await page.locator("#module-nav-list a[href='/hotspot-analyzer']").click();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
+
+    // 3. Remaining Coming Soon modules display owner, status, and clean up previous Leaflet map/chart
     await page.locator("#module-nav-list a[href='/station-coverage']").click();
     await expect(page.getByRole("heading", { name: "Fire Station Coverage" })).toBeVisible();
     await expect(page.getByText("Adriel").first()).toBeVisible();
+    await expect(page.getByText("Coming Soon").first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? -1)).toBe(0);
 
     await page.locator("#module-nav-list a[href='/priority-planner']").click();
     await expect(page.getByRole("heading", { name: "Fire Service Priority Planner" })).toBeVisible();
     await expect(page.getByText("Olo").first()).toBeVisible();
+    await expect(page.getByText("Coming Soon").first()).toBeVisible();
 
-    // 3. About & Data Sources page
+    // 4. About & Data Sources page
     await page.locator("aside nav a[href='/about']").click();
     await expect(page.getByRole("heading", { name: /Tentang Proyek/i })).toBeVisible();
     await expect(page.getByText(/Register Sumber Data Terverifikasi/i)).toBeVisible();
 
-    // 4. Fire Incident Explorer interactions + filter checks + Three.js toggle + DEMO opt-in separation
+    // 5. Fire Incident Explorer interactions + filter checks + Three.js toggle + DEMO opt-in separation
     await page.locator("#module-nav-list a[href='/incident-explorer']").click();
     await expect(page.getByRole("heading", { name: "Fire Incident Explorer" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
@@ -150,7 +185,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       await expect(previewToggle).not.toHaveText(beforeText);
     }
 
-    // 5. Keyboard navigation on sidebar link & verify zero leaked maps AND charts
+    // 6. Keyboard navigation on sidebar link & verify zero leaked maps AND charts
     await page.locator("aside nav a[href='/']").focus();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: /Ringkasan Pemetaan Kebakaran Kota Medan/i })).toBeVisible();
@@ -158,7 +193,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? -1)).toBe(0);
 
-    // 6. Desktop (1440x900) on /incident-explorer, Tablet (768x1024), and Mobile (375x812) responsive checks
+    // 7. Desktop (1440x900) on /incident-explorer, Tablet (768x1024), and Mobile (375x812) responsive checks
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/incident-explorer");
     const explorerDesktopOverflow = await page.evaluate(
@@ -212,7 +247,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("#app-sidebar")).not.toHaveClass(/is-open/);
 
-    // 7. Three.js WebGL unavailable fallback verification
+    // 8. Three.js WebGL unavailable fallback verification
     await page.addInitScript(() => {
       const origGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (type, ...args) {
@@ -231,7 +266,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     expect(pageErrors).toEqual([]);
     expect(failedAssets).toEqual([]);
 
-    // 8. Error state does not render a blank page when manifest fails
+    // 9. Error state does not render a blank page when manifest fails
     await page.route("**/data/manifest.json", (route) => route.abort("failed"));
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Manifest data tidak dapat dimuat/i })).toBeVisible();

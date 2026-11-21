@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { renderStatePanel } from "../../components/state-panel.js";
 import {
+  HOTSPOT_TIER_CONFIG,
   filterHotspotZones,
   getHotspotTierMeta,
   loadHotspotZones
@@ -13,6 +14,14 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function getStatusBadgeClass(isDemo, dataLabel) {
+  const normalizedLabel = String(dataLabel ?? "").trim().toUpperCase();
+  if (isDemo || normalizedLabel === "DEMO") {
+    return "status-badge--demo";
+  }
+  return "status-badge--active";
 }
 
 export async function renderHotspotAnalyzer({ container, services, manifest }) {
@@ -52,6 +61,11 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
     };
 
     const totalAreaKm2 = dataset.zones.reduce((sum, z) => sum + Number(z.area_km2 || 0), 0);
+    const datasetBadgeClass = getStatusBadgeClass(dataset.isDemo, dataset.dataLabel);
+    const noticeBannerClass = dataset.isDemo
+      ? "notice-banner notice-banner--demo"
+      : "notice-banner";
+    const invalidCount = Array.isArray(dataset.invalidZones) ? dataset.invalidZones.length : 0;
 
     container.innerHTML = `
       <section class="page-header">
@@ -63,13 +77,21 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         </div>
         <div class="hotspot-header-badges">
           <span class="status-badge status-badge--dev">[~] Modul Aktif (UI Kontrak)</span>
-          <span class="status-badge status-badge--demo">[!] ${escapeHtml(dataset.dataLabel)}</span>
+          <span class="status-badge ${datasetBadgeClass}">[!] ${escapeHtml(dataset.dataLabel)}</span>
         </div>
       </section>
 
-      <div class="notice-banner notice-banner--demo" role="region" aria-label="Pemberitahuan status data KDE">
+      <div class="${noticeBannerClass}" role="region" aria-label="Pemberitahuan status data KDE">
         <strong>STATUS DATA (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
       </div>
+
+      ${
+        invalidCount > 0
+          ? `<div class="notice-banner notice-banner--demo" style="margin-top: var(--space-3);" role="status">
+              <strong>Validasi Kelas Kepadatan:</strong> ${invalidCount} fitur zona memiliki kelas kepadatan tidak dikenali dan dikeluarkan dari visualisasi.
+            </div>`
+          : ""
+      }
 
       <section class="hotspot-metrics" aria-label="Ringkasan parameter dan hasil analisis KDE">
         <div class="metric-box">
@@ -96,6 +118,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
             <label for="hotspot-filter-tier">Kelas Kepadatan Hotspot</label>
             <select id="hotspot-filter-tier">
               <option value="semua">Semua Kelas Kepadatan</option>
+              <option value="very-high">Kepadatan Sangat Tinggi</option>
               <option value="high">Kepadatan Tinggi</option>
               <option value="medium">Kepadatan Sedang</option>
               <option value="low">Kepadatan Rendah</option>
@@ -119,9 +142,10 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
           </div>
           <div class="map-canvas" id="hotspot-map" role="region" aria-label="Peta zona hotspot kebakaran Kota Medan"></div>
           <div class="map-legend">
-            <span class="legend-item"><span class="legend-swatch" style="background: #B84A35;"></span> Kepadatan Tinggi</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: #D58A43;"></span> Kepadatan Sedang</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: #E9C46A;"></span> Kepadatan Rendah</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG["very-high"].fillColor};"></span> Kepadatan Sangat Tinggi</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.high.fillColor};"></span> Kepadatan Tinggi</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.medium.fillColor};"></span> Kepadatan Sedang</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.low.fillColor};"></span> Kepadatan Rendah</span>
             <span class="legend-item"><span class="legend-swatch" style="background: transparent; border: 1.5px solid #6E7A7D;"></span> Batas Kecamatan Medan</span>
           </div>
           <div class="provenance-bar">
@@ -194,7 +218,6 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
     let chartHandle = null;
     let zonesGeoLayer = null;
     let activeZonesSnapshot = [];
-   
 
     if (dataset.districtsGeoJson) {
       L.geoJSON(dataset.districtsGeoJson, {
@@ -218,12 +241,13 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         detailEl.innerHTML = `<dt>Status</dt><dd>Tidak ada zona terpilih</dd>`;
         return;
       }
+      const badgeClass = getStatusBadgeClass(zone.isDemo, zone.dataLabel);
       detailEl.innerHTML = `
         <dt>ID Zona</dt><dd class="mono">${escapeHtml(zone.zone_id)}</dd>
-        <dt>Kelas Kepadatan</dt><dd><strong>${escapeHtml(zone.density_class)}</strong></dd>
-        <dt>Peringkat Kepadatan</dt><dd class="mono">${escapeHtml(zone.density_rank)}</dd>
+        <dt>Kelas Kepadatan</dt><dd><span class="hotspot-tier-pill" style="--tier-color: ${zone.tierMeta.fillColor};">${escapeHtml(zone.tierMeta.label)}</span> (${escapeHtml(zone.density_class)})</dd>
+        <dt>Peringkat Kepadatan</dt><dd class="mono">${escapeHtml(zone.density_rank)} / 4</dd>
         <dt>Luas Area Poligon</dt><dd class="mono tabular">${zone.area_km2.toFixed(2)} km²</dd>
-        <dt>Label Kontrak</dt><dd><span class="status-badge status-badge--demo">${escapeHtml(zone.dataLabel)}</span></dd>
+        <dt>Status Data</dt><dd><span class="status-badge ${badgeClass}">${escapeHtml(zone.dataLabel)}</span></dd>
         <dt>Interpretasi</dt><dd>Konsentrasi historis kejadian kebakaran (bukan prediksi)</dd>
       `;
     }
@@ -284,11 +308,12 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         onEachFeature: (feature, layer) => {
           const props = feature?.properties || {};
           const zId = String(props.zone_id || "");
+          const meta = getHotspotTierMeta(props.density_rank, props.density_class);
           layer.bindPopup(
             `<strong>${escapeHtml(zId)}</strong><br/>` +
-              `Kelas: ${escapeHtml(props.density_class || "-")}<br/>` +
+              `Kelas: ${escapeHtml(meta.label)} (${escapeHtml(props.density_class || "-")})<br/>` +
               `Luas: ${Number(props.area_km2 || 0).toFixed(2)} km²<br/>` +
-              `<em>Status: ${escapeHtml(props.dataLabel || "DEMO")}</em>`
+              `<em>Status: ${escapeHtml(props.dataLabel || dataset.dataLabel)}</em>`
           );
           layer.on("click", () => selectZone(zId));
         }
@@ -317,7 +342,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
       chartHandle = services.charts.createChart(chartCanvas, {
         type: "bar",
         data: {
-          labels: filteredZones.map((z) => `${z.zone_id} (${z.density_class})`),
+          labels: filteredZones.map((z) => `${z.zone_id} (${z.tierMeta.label})`),
           datasets: [
             {
               label: "Luas Zona Hotspot (km²)",
@@ -372,18 +397,19 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
             </thead>
             <tbody>
               ${filteredZones
-                .map(
-                  (z) => `
+                .map((z) => {
+                  const rowBadgeClass = getStatusBadgeClass(z.isDemo, z.dataLabel);
+                  return `
                 <tr data-interactive="true" data-zone-id="${escapeHtml(z.zone_id)}" tabindex="0" class="${state.selectedZoneId === z.zone_id ? "is-selected" : ""}">
                   <td class="mono"><strong>${escapeHtml(z.zone_id)}</strong></td>
-                  <td>${escapeHtml(z.density_class)}</td>
+                  <td><span class="hotspot-tier-pill" style="--tier-color: ${z.tierMeta.fillColor};">${escapeHtml(z.tierMeta.label)}</span></td>
                   <td class="mono tabular">${escapeHtml(z.density_rank)}</td>
                   <td class="mono tabular">${z.area_km2.toFixed(2)}</td>
                   <td class="mono">EPSG:4326</td>
-                  <td><span class="status-badge status-badge--demo">${escapeHtml(z.dataLabel)}</span></td>
+                  <td><span class="status-badge ${rowBadgeClass}">${escapeHtml(z.dataLabel)}</span></td>
                 </tr>
-              `
-                )
+              `;
+                })
                 .join("")}
             </tbody>
           </table>
