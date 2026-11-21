@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("leaflet", () => ({
   default: {
@@ -18,221 +20,352 @@ vi.mock("leaflet", () => ({
 }));
 
 import {
+  BOUNDARY_PROVENANCE,
   MEDAN_BOUNDS,
   RUNTIME_DEMO_FIXTURE_URL,
+  VERIFIED_HOTSPOT_OUTPUT_URL,
   extractValidMedanPoint,
   filterHotspotZones,
   filterKdeEligiblePoints,
   getHotspotTierMeta,
   isPointInGeoJson,
-  loadHotspotZones
+  isValidIncidentDate,
+  loadHotspotZones,
+  resetMedanBoundaryGeoJson,
+  setMedanBoundaryGeoJson,
+  validateBoundaryGeoJson,
+  validateKdeInputRecords,
+  validateVerifiedHotspotOutput
 } from "../../src/features/hotspot-analyzer/service.js";
 import { renderHotspotAnalyzer } from "../../src/features/hotspot-analyzer/view.js";
 
-describe("hotspot-analyzer P1: validasi ketat titik KDE & point-in-polygon Kota Medan", () => {
-  it("menerima exact_verified dan address_geocoded_verified dengan Point valid di dalam poligon Kota Medan", () => {
-    const records = [
-      {
-        id: "ok-pusat",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.67, 3.59] }
-      },
-      {
-        id: "ok-belawan",
-        location_accuracy: "address_geocoded_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.68, 3.77] }
-      },
-      {
-        id: "ok-tuntungan",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.61, 3.52] }
-      },
-      {
-        id: "ok-wkt",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: "POINT(98.675 3.585)"
-      }
-    ];
+const OSM_BOUNDARY = JSON.parse(
+  fs.readFileSync(path.resolve(process.cwd(), "public/data/medan_districts_osm.geojson"), "utf-8")
+);
 
-    const eligible = filterKdeEligiblePoints(records);
-    expect(eligible.map((r) => r.id)).toEqual([
-      "ok-pusat",
-      "ok-belawan",
-      "ok-tuntungan",
-      "ok-wkt"
-    ]);
+function makeValidVerifiedOutput(overrides = {}) {
+  return {
+    type: "FeatureCollection",
+    isDemo: false,
+    dataLabel: "TERVERIFIKASI",
+    module: "hotspot-analyzer",
+    owner: "Adeptri",
+    notice: "Hasil KDE historis terverifikasi Kota Medan. Bukan prediksi.",
+    analysis: {
+      title: "KDE Kebakaran Kota Medan 2024",
+      source: "Dinas Damkarmat Kota Medan",
+      period_label: "Januari - Desember 2024",
+      kernel_method: "Quartic",
+      bandwidth_meters: 1000,
+      pixel_size_meters: 100,
+      working_crs: "EPSG:32647",
+      classification_method: "Quantile (4 kelas)",
+      incident_count_used: 42,
+      ...(overrides.analysis || {})
+    },
+    features: overrides.features || [
+      {
+        type: "Feature",
+        properties: {
+          isDemo: false,
+          dataLabel: "TERVERIFIKASI",
+          zone_id: "hotspot-zone-1",
+          density_class: "Sangat Tinggi",
+          density_rank: 4,
+          area_km2: 1.85
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [98.665, 3.582],
+              [98.685, 3.582],
+              [98.685, 3.598],
+              [98.665, 3.598],
+              [98.665, 3.582]
+            ]
+          ]
+        }
+      }
+    ],
+    ...overrides
+  };
+}
+
+afterEach(() => {
+  resetMedanBoundaryGeoJson();
+});
+
+describe("hotspot-analyzer P1: validasi boundary & point-in-polygon Kota Medan", () => {
+  it("memvalidasi berkas batas OSM Kota Medan serta mendukung Polygon, MultiPolygon, interior holes, dan titik batas", () => {
+    const osmCheck = validateBoundaryGeoJson(OSM_BOUNDARY);
+    expect(osmCheck.valid).toBe(true);
+    expect(osmCheck.polygonCount).toBeGreaterThanOrEqual(21);
+
+    const polygonWithHole = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [98.6, 3.5],
+          [98.7, 3.5],
+          [98.7, 3.6],
+          [98.6, 3.6],
+          [98.6, 3.5]
+        ],
+        [
+          [98.63, 3.53],
+          [98.67, 3.53],
+          [98.67, 3.57],
+          [98.63, 3.57],
+          [98.63, 3.53]
+        ]
+      ]
+    };
+
+    expect(validateBoundaryGeoJson(polygonWithHole)).toEqual({
+      valid: true,
+      errors: [],
+      polygonCount: 1,
+      holeCount: 1
+    });
+
+    // Di dalam poligon utama & di luar lubang
+    expect(isPointInGeoJson(98.61, 3.51, polygonWithHole)).toBe(true);
+    // Tepat di tepi luar poligon
+    expect(isPointInGeoJson(98.65, 3.5, polygonWithHole)).toBe(true);
+    // Tepat di tepi lubang (interior ring)
+    expect(isPointInGeoJson(98.65, 3.53, polygonWithHole)).toBe(true);
+    // Tepat di dalam lubang (hole) wajib ditolak
+    expect(isPointInGeoJson(98.65, 3.55, polygonWithHole)).toBe(false);
+    // Di luar poligon utama
+    expect(isPointInGeoJson(98.75, 3.55, polygonWithHole)).toBe(false);
+
+    const multiPoly = {
+      type: "MultiPolygon",
+      coordinates: [
+        [[[98.6, 3.5], [98.62, 3.5], [98.62, 3.52], [98.6, 3.52], [98.6, 3.5]]],
+        [[[98.68, 3.58], [98.7, 3.58], [98.7, 3.6], [98.68, 3.6], [98.68, 3.58]]]
+      ]
+    };
+    expect(isPointInGeoJson(98.61, 3.51, multiPoly)).toBe(true);
+    expect(isPointInGeoJson(98.69, 3.59, multiPoly)).toBe(true);
+    expect(isPointInGeoJson(98.65, 3.55, multiPoly)).toBe(false);
   });
 
-  it("menolak titik yang masih di dalam bounding box tetapi berada di luar poligon batas administrasi Kota Medan", () => {
-    // Seluruh koordinat berikut berada di dalam kotak MEDAN_BOUNDS (lat 3.45..3.85, lon 98.55..98.78),
-    // namun berada di luar poligon administrasi Kota Medan (Deli Serdang / perairan Selat Malaka).
+  it("gagal dengan pesan jelas jika boundary tidak diset atau tidak valid", () => {
+    const validRecord = {
+      incident_id: "INC-1",
+      incident_date: "2024-05-01",
+      verification_status: "verified",
+      location_accuracy: "exact_verified",
+      geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+    };
+
+    expect(() => filterKdeEligiblePoints([validRecord])).toThrow(/Boundary/i);
+    expect(() => extractValidMedanPoint(validRecord)).toThrow(/Boundary/i);
+
+    const unclosedBoundary = {
+      type: "Polygon",
+      coordinates: [[[98.6, 3.5], [98.7, 3.5], [98.7, 3.6], [98.6, 3.6]]]
+    };
+    expect(() => setMedanBoundaryGeoJson(unclosedBoundary)).toThrow(/tidak valid/i);
+    expect(() => filterKdeEligiblePoints([validRecord], { boundaryGeoJson: unclosedBoundary })).toThrow(
+      /tidak valid/i
+    );
+  });
+
+  it("menolak titik yang masih di dalam bounding box tetapi berada di luar poligon OSM Kota Medan", () => {
     const insideBboxButOutsidePolygon = [
       {
-        id: "outside-nw-hamparan-perak",
+        incident_id: "outside-nw-hamparan-perak",
+        incident_date: "2024-05-01",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.57, 3.78] }
+        geometry: { type: "Point", coordinates: [98.57, 3.78] }
       },
       {
-        id: "outside-ne-selat-malaka",
+        incident_id: "outside-ne-selat-malaka",
+        incident_date: "2024-05-01",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.76, 3.78] }
+        geometry: { type: "Point", coordinates: [98.76, 3.78] }
       },
       {
-        id: "outside-sw-pancur-batu",
+        incident_id: "outside-sw-pancur-batu",
+        incident_date: "2024-05-01",
         location_accuracy: "address_geocoded_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.56, 3.47] }
+        geometry: { type: "Point", coordinates: [98.56, 3.47] }
       },
       {
-        id: "outside-se-tanjung-morawa",
+        incident_id: "outside-se-tanjung-morawa",
+        incident_date: "2024-05-01",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.76, 3.48] }
+        geometry: { type: "Point", coordinates: [98.76, 3.48] }
       },
       {
-        id: "outside-w-sunggal-deliserdang",
+        incident_id: "outside-w-sunggal-deliserdang",
+        incident_date: "2024-05-01",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.57, 3.60] }
+        geometry: { type: "Point", coordinates: [98.57, 3.6] }
       }
     ];
 
-    // Pastikan koordinat uji memang berada di dalam bounding box
     for (const rec of insideBboxButOutsidePolygon) {
-      const [lon, lat] = rec.geom.coordinates;
+      const [lon, lat] = rec.geometry.coordinates;
       expect(lat >= MEDAN_BOUNDS.minLat && lat <= MEDAN_BOUNDS.maxLat).toBe(true);
       expect(lon >= MEDAN_BOUNDS.minLon && lon <= MEDAN_BOUNDS.maxLon).toBe(true);
     }
 
-    // Point-in-polygon harus menolak seluruh titik tersebut
-    expect(filterKdeEligiblePoints(insideBboxButOutsidePolygon)).toEqual([]);
+    const res = validateKdeInputRecords(insideBboxButOutsidePolygon, { boundaryGeoJson: OSM_BOUNDARY });
+    expect(res.accepted).toEqual([]);
+    expect(res.summary.rejectedCount).toBe(5);
+    expect(res.summary.rejectionReasons.outside_medan_boundary).toBe(5);
   });
+});
 
-  it("mendukung boundaryGeoJson kustom (MultiPolygon / poligon kecamatan) pada point-in-polygon", () => {
-    const customDistrictBoundary = {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          properties: { district_name: "Medan Petisah" },
-          geometry: {
-            type: "MultiPolygon",
-            coordinates: [
-              [
-                [
-                  [98.66, 3.58],
-                  [98.68, 3.58],
-                  [98.68, 3.60],
-                  [98.66, 3.60],
-                  [98.66, 3.58]
-                ]
-              ]
-            ]
-          }
-        }
-      ]
-    };
-
-    expect(isPointInGeoJson(98.67, 3.59, customDistrictBoundary)).toBe(true);
-    expect(isPointInGeoJson(98.71, 3.56, customDistrictBoundary)).toBe(false);
+describe("hotspot-analyzer P1: validasi ketat input sebelum KDE", () => {
+  it("menerima exact_verified & address_geocoded_verified valid serta menolak ID duplikat/kosong, tanggal invalid, DEMO, approximate/district_only, dan geometri malformed", () => {
+    expect(isValidIncidentDate("2024-02-29")).toBe(true);
+    expect(isValidIncidentDate("2024-02-30")).toBe(false);
+    expect(isValidIncidentDate("2023-02-29")).toBe(false);
+    expect(isValidIncidentDate("")).toBe(false);
 
     const records = [
       {
-        id: "in-custom",
+        incident_id: "INC-001",
+        incident_date: "2024-06-01",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.67, 3.59] }
+        isDemo: false,
+        dataLabel: "RESMI",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
       },
       {
-        id: "out-custom",
+        incident_id: "INC-002",
+        incident_date: "2025-01-12",
+        location_accuracy: "address_geocoded_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.68, 3.77] }
+      },
+      // ID duplikat
+      {
+        incident_id: "INC-001",
+        incident_date: "2024-06-02",
         location_accuracy: "exact_verified",
         verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.71, 3.56] }
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      // ID kosong
+      {
+        incident_id: "  ",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      // Tanggal invalid
+      {
+        incident_id: "INC-BAD-DATE",
+        incident_date: "2024-02-30",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      // DEMO berbagai variasi spasi/kapitalisasi
+      {
+        incident_id: "INC-DEMO-1",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        isDemo: true,
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      {
+        incident_id: "INC-DEMO-2",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        dataLabel: "  DeMo  ",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      // Akurasi & status verifikasi ditolak (termasuk approximate)
+      {
+        incident_id: "INC-APPROX",
+        incident_date: "2024-06-02",
+        location_accuracy: "approximate",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      {
+        incident_id: "INC-DIST",
+        incident_date: "2024-06-02",
+        location_accuracy: "district_only",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      {
+        incident_id: "INC-UNKNOWN",
+        incident_date: "2024-06-02",
+        location_accuracy: "unknown",
+        verification_status: "unlocated",
+        geometry: { type: "Point", coordinates: [98.6714, 3.5895] }
+      },
+      // Geometri non-GeoJSON Point, WKT, NaN, Infinity, Polygon, swapped lat/lon
+      {
+        incident_id: "INC-WKT",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geom: "POINT(98.675 3.585)"
+      },
+      {
+        incident_id: "INC-POLY",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: {
+          type: "Polygon",
+          coordinates: [[[98.66, 3.58], [98.68, 3.58], [98.68, 3.59], [98.66, 3.58]]]
+        }
+      },
+      {
+        incident_id: "INC-NAN",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [Number.NaN, 3.59] }
+      },
+      {
+        incident_id: "INC-INF",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [98.67, Number.POSITIVE_INFINITY] }
+      },
+      {
+        incident_id: "INC-SWAPPED",
+        incident_date: "2024-06-02",
+        location_accuracy: "exact_verified",
+        verification_status: "verified",
+        geometry: { type: "Point", coordinates: [3.59, 98.67] }
       }
     ];
 
-    const filtered = filterKdeEligiblePoints(records, { boundaryGeoJson: customDistrictBoundary });
-    expect(filtered.map((r) => r.id)).toEqual(["in-custom"]);
-  });
-
-  it("menolak district_only, unknown, approximate default, needs_review, unlocated, dan record DEMO", () => {
-    const basePoint = { type: "Point", coordinates: [98.67, 3.59] };
-    const rejectedRecords = [
-      { id: "r1", location_accuracy: "district_only", verification_status: "verified", geom: basePoint },
-      { id: "r2", location_accuracy: "unknown", verification_status: "verified", geom: basePoint },
-      { id: "r3", location_accuracy: "approximate", verification_status: "verified", geom: basePoint },
-      { id: "r4", location_accuracy: "exact_verified", verification_status: "needs_review", geom: basePoint },
-      { id: "r5", location_accuracy: "exact_verified", verification_status: "unlocated", geom: basePoint },
-      { id: "r6", location_accuracy: "exact_verified", verification_status: "verified", isDemo: true, geom: basePoint },
-      { id: "r7", location_accuracy: "exact_verified", verification_status: "verified", dataLabel: "DEMO", geom: basePoint },
-      { id: "r8", location_accuracy: "exact_verified", verification_status: "verified", dataLabel: " demo ", geom: basePoint }
-    ];
-
-    expect(filterKdeEligiblePoints(rejectedRecords)).toEqual([]);
-
-    const explicitApproved = filterKdeEligiblePoints(
-      [{ id: "r3", location_accuracy: "approximate", verification_status: "verified", geom: basePoint }],
-      { allowApproximate: true, approximateApproved: true, approximateReason: "Verifikasi lapangan tim Damkarmat" }
-    );
-    expect(explicitApproved).toHaveLength(1);
-  });
-
-  it("menolak geometri non-Point, malformed, koordinat NaN/Infinity, urutan terbalik, dan titik jauh di luar Medan", () => {
-    const invalidGeomRecords = [
-      {
-        id: "poly",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Polygon", coordinates: [[[98.66, 3.58], [98.68, 3.58], [98.68, 3.59], [98.66, 3.58]]] }
-      },
-      {
-        id: "line",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "LineString", coordinates: [[98.66, 3.58], [98.68, 3.59]] }
-      },
-      { id: "empty", location_accuracy: "exact_verified", verification_status: "verified", geom: null },
-      { id: "malformed-obj", location_accuracy: "exact_verified", verification_status: "verified", geom: { type: "Point" } },
-      { id: "malformed-wkt", location_accuracy: "exact_verified", verification_status: "verified", geom: "POINT(abc def)" },
-      {
-        id: "nan-coord",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [Number.NaN, 3.59] }
-      },
-      {
-        id: "inf-coord",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.67, Number.POSITIVE_INFINITY] }
-      },
-      {
-        id: "swapped-lat-lon",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [3.59, 98.67] }
-      },
-      {
-        id: "outside-medan",
-        location_accuracy: "exact_verified",
-        verification_status: "verified",
-        geom: { type: "Point", coordinates: [98.95, 3.92] }
-      }
-    ];
-
-    expect(filterKdeEligiblePoints(invalidGeomRecords)).toEqual([]);
-
-    expect(extractValidMedanPoint({ lat: 3.59, lon: 98.67 })).toEqual({
-      type: "Point",
-      coordinates: [98.67, 3.59]
-    });
-    expect(extractValidMedanPoint({ lat: 3.78, lon: 98.57 })).toBeNull();
+    const result = validateKdeInputRecords(records, { boundaryGeoJson: OSM_BOUNDARY });
+    expect(result.accepted.map((r) => r.incident_id)).toEqual(["INC-001", "INC-002"]);
+    expect(result.summary.totalInput).toBe(15);
+    expect(result.summary.acceptedCount).toBe(2);
+    expect(result.summary.rejectedCount).toBe(13);
+    expect(result.summary.pointsUsedForKde).toBe(2);
+    expect(result.summary.rejectionReasons.duplicate_incident_id).toBe(1);
+    expect(result.summary.rejectionReasons.missing_incident_id).toBe(1);
+    expect(result.summary.rejectionReasons.invalid_incident_date).toBe(1);
+    expect(result.summary.rejectionReasons.demo_record_flagged).toBe(1);
+    expect(result.summary.rejectionReasons.demo_data_label).toBe(1);
+    expect(result.summary.rejectionReasons.disallowed_location_accuracy).toBe(3);
   });
 });
 
@@ -242,9 +375,7 @@ describe("hotspot-analyzer P2: klasifikasi empat kelas kepadatan", () => {
     expect(getHotspotTierMeta(2, "Sedang").tier).toBe("medium");
     expect(getHotspotTierMeta(3, "Tinggi").tier).toBe("high");
     expect(getHotspotTierMeta(4, "Sangat Tinggi").tier).toBe("very-high");
-
     expect(getHotspotTierMeta(null, "Sangat Tinggi (DEMO)").tier).toBe("very-high");
-    expect(getHotspotTierMeta(null, "Tinggi (DEMO)").tier).toBe("high");
   });
 
   it("menangani konflik metadata dan kelas yang tidak dikenal secara eksplisit", () => {
@@ -272,57 +403,169 @@ describe("hotspot-analyzer P2: klasifikasi empat kelas kepadatan", () => {
   });
 });
 
-describe("hotspot-analyzer P2: pemuatan fixture DEMO dan lifecycle UI", () => {
-  it("meminta path runtime yang benar dan memakai payload hasil fetch", async () => {
+describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/malformed, dan fallback DEMO", () => {
+  it("berhasil memuat output resmi valid dari /data/hotspot-analyzer.verified.geojson", async () => {
+    const verifiedPayload = makeValidVerifiedOutput();
     const requestedPaths = [];
-    const mockedPayload = {
+
+    const services = {
+      dataStatus: {
+        getManifest: vi.fn(async () => ({
+          ok: true,
+          manifest: {
+            verified_outputs: {
+              "hotspot-analyzer": { available: true }
+            }
+          }
+        })),
+        fetchJson: vi.fn(async (relPath) => {
+          requestedPaths.push(relPath);
+          if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (relPath === "hotspot-analyzer.verified.geojson") return verifiedPayload;
+          throw new Error("Should not fetch demo when verified is valid");
+        })
+      }
+    };
+
+    const result = await loadHotspotZones(services);
+    expect(requestedPaths).toEqual(["medan_districts_osm.geojson", "hotspot-analyzer.verified.geojson"]);
+    expect(result.isDemo).toBe(false);
+    expect(result.dataLabel).toBe("TERVERIFIKASI");
+    expect(result.sourceMode).toBe("verified");
+    expect(result.verifiedLoadStatus).toBe("loaded");
+    expect(result.fixturePath).toBe(VERIFIED_HOTSPOT_OUTPUT_URL);
+    expect(result.boundaryProvenance.isOfficial).toBe(false);
+    expect(result.boundaryProvenance.attribution).toBe(BOUNDARY_PROVENANCE.attribution);
+    expect(result.analysis.incident_count_used).toBe(42);
+    expect(result.zones).toHaveLength(1);
+    expect(result.zones[0].isDemo).toBe(false);
+    expect(result.zones[0].dataLabel).toBe("TERVERIFIKASI");
+  });
+
+  it("menolak output resmi yang berlabel DEMO atau isDemo=true dan jatuh aman ke fixture DEMO", async () => {
+    const disguisedDemo = makeValidVerifiedOutput({ isDemo: true, dataLabel: "  demo " });
+    const demoFixture = {
       isDemo: true,
       dataLabel: "DEMO",
-      notice: "Payload fixture dari fetch runtime",
+      notice: "Fixture DEMO resmi",
+      analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647", incident_count_used: 0 },
+      zones: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: { isDemo: true, dataLabel: "DEMO", zone_id: "demo-1", density_class: "Tinggi (DEMO)", density_rank: 3, area_km2: 2.1 },
+            geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
+          }
+        ]
+      }
+    };
+
+    const services = {
+      dataStatus: {
+        fetchJson: vi.fn(async (relPath) => {
+          if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (relPath === "hotspot-analyzer.verified.geojson") return disguisedDemo;
+          if (relPath === "demo/hotspot-analyzer.demo.json") return demoFixture;
+          return null;
+        })
+      }
+    };
+
+    const result = await loadHotspotZones(services, { forceVerifiedFetch: true });
+    expect(result.verifiedLoadStatus).toBe("rejected");
+    expect(result.verifiedValidationErrors.length).toBeGreaterThan(0);
+    expect(result.isDemo).toBe(true);
+    expect(result.dataLabel).toBe("DEMO");
+    expect(result.sourceMode).toBe("demo");
+    expect(result.zones[0].zone_id).toBe("demo-1");
+  });
+
+  it("menolak output resmi yang malformed (FeatureCollection kosong, metadata hilang, kelas konflik) serta menjaga label fixture tetap DEMO", async () => {
+    const malformed = {
+      type: "FeatureCollection",
+      isDemo: false,
+      dataLabel: "TERVERIFIKASI",
+      analysis: { source: "Damkarmat", bandwidth_meters: -10, incident_count_used: 0 },
+      features: []
+    };
+    expect(validateVerifiedHotspotOutput(malformed).valid).toBe(false);
+
+    // Bahkan jika file demo mencoba menyamar sebagai non-DEMO, loadHotspotZones tetap memaksa status DEMO
+    const tamperedDemoFixture = {
+      isDemo: false,
+      dataLabel: "TERVERIFIKASI",
       analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647" },
       zones: {
         type: "FeatureCollection",
         features: [
           {
             type: "Feature",
-            properties: {
-              isDemo: true,
-              dataLabel: "DEMO",
-              zone_id: "fetched-zone-4",
-              density_class: "Sangat Tinggi (DEMO)",
-              density_rank: 4,
-              area_km2: 1.75
-            },
-            geometry: {
-              type: "Polygon",
-              coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]]
-            }
+            properties: { isDemo: false, dataLabel: "TERVERIFIKASI", zone_id: "demo-tamper", density_class: "Tinggi", density_rank: 3, area_km2: 2.4 },
+            geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
           }
         ]
       }
     };
 
-    const mockServices = {
+    const services = {
       dataStatus: {
         fetchJson: vi.fn(async (relPath) => {
-          requestedPaths.push(relPath);
-          if (relPath === "demo/hotspot-analyzer.demo.json") return mockedPayload;
+          if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (relPath === "hotspot-analyzer.verified.geojson") return malformed;
+          if (relPath === "demo/hotspot-analyzer.demo.json") return tamperedDemoFixture;
           return null;
         })
       }
     };
 
-    const result = await loadHotspotZones(mockServices);
-    expect(requestedPaths[0]).toBe("demo/hotspot-analyzer.demo.json");
-    expect(result.usedFallback).toBe(false);
-    expect(result.fixturePath).toBe(RUNTIME_DEMO_FIXTURE_URL);
-    expect(result.zones).toHaveLength(1);
-    expect(result.zones[0].zone_id).toBe("fetched-zone-4");
-    expect(result.zones[0].tierMeta.tier).toBe("very-high");
+    const result = await loadHotspotZones(services, { forceVerifiedFetch: true });
+    expect(result.verifiedLoadStatus).toBe("rejected");
+    expect(result.isDemo).toBe(true);
+    expect(result.dataLabel).toBe("DEMO");
+    expect(result.zones[0].isDemo).toBe(true);
+    expect(result.zones[0].dataLabel).toBe("DEMO");
   });
 
-  it("menggunakan fallback berlabel DEMO hanya ketika fetch gagal", async () => {
-    const failingServices = {
+  it("fallback ke fixture DEMO saat output resmi tidak tersedia di manifest maupun saat fetch gagal", async () => {
+    const demoServices = {
+      dataStatus: {
+        getManifest: vi.fn(async () => ({
+          ok: true,
+          manifest: { verified_outputs: { "hotspot-analyzer": { available: false } } }
+        })),
+        fetchJson: vi.fn(async (relPath) => {
+          if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (relPath === "demo/hotspot-analyzer.demo.json") {
+            return {
+              isDemo: true,
+              dataLabel: "DEMO",
+              notice: "Demo runtime",
+              analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647", incident_count_used: 0 },
+              zones: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    type: "Feature",
+                    properties: { isDemo: true, dataLabel: "DEMO", zone_id: "demo-hotspot-1", density_class: "Tinggi (DEMO)", density_rank: 3, area_km2: 2.4 },
+                    geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
+                  }
+                ]
+              }
+            };
+          }
+          throw new Error("404 Not Found");
+        })
+      }
+    };
+
+    const demoResult = await loadHotspotZones(demoServices);
+    expect(demoResult.usedFallback).toBe(false);
+    expect(demoResult.fixturePath).toBe(RUNTIME_DEMO_FIXTURE_URL);
+    expect(demoResult.isDemo).toBe(true);
+    expect(demoResult.dataLabel).toBe("DEMO");
+
+    const offlineServices = {
       dataStatus: {
         fetchJson: vi.fn(async () => {
           throw new Error("404 Not Found");
@@ -330,11 +573,11 @@ describe("hotspot-analyzer P2: pemuatan fixture DEMO dan lifecycle UI", () => {
       }
     };
 
-    const result = await loadHotspotZones(failingServices);
-    expect(result.usedFallback).toBe(true);
-    expect(result.isDemo).toBe(true);
-    expect(result.dataLabel).toBe("DEMO");
-    expect(result.zones.length).toBeGreaterThan(0);
+    const offlineResult = await loadHotspotZones(offlineServices);
+    expect(offlineResult.usedFallback).toBe(true);
+    expect(offlineResult.isDemo).toBe(true);
+    expect(offlineResult.dataLabel).toBe("DEMO");
+    expect(offlineResult.zones.length).toBeGreaterThan(0);
   });
 
   it("membersihkan instance map dan chart saat modul di-unmount", async () => {

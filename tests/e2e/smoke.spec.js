@@ -36,16 +36,25 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     expect(desktopOverflow).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
 
-    // 2. Fire Hotspot Analyzer module interactions, 4-tier filter, chart empty state, and lifecycle cleanup
+    // 2. Fire Hotspot Analyzer module interactions, 4-tier filter, metadata, chart empty state, and lifecycle cleanup
     await page.locator("#module-nav-list a[href='/hotspot-analyzer']").click();
     await expect(page.getByRole("heading", { name: "Fire Hotspot Analyzer" })).toBeVisible();
+    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "demo");
     await expect(page.getByText(/STATUS DATA \(DEMO\)/i)).toBeVisible();
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("Quartic");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("1.000 meter");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("100 meter");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("OpenStreetMap");
     await expect(page.locator("#hotspot-map")).toBeVisible();
     await expect.poll(() => page.locator("#hotspot-map .leaflet-interactive").count()).toBeGreaterThan(0);
     await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
     await expect(page.locator("#hotspot-chart-frame")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
+
+    // Verify table selection updates detail panel and map interaction works
+    await page.locator("tr[data-zone-id='demo-hotspot-2']").click();
+    await expect(page.locator("#hotspot-zone-detail")).toContainText("demo-hotspot-2");
 
     // Test 4-tier filter options including Sangat Tinggi (very-high)
     await page.selectOption("#hotspot-filter-tier", "high");
@@ -63,6 +72,25 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#hotspot-chart-empty")).toBeVisible();
     await page.click("#hotspot-filter-reset");
     await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+
+    // Responsive checks on /hotspot-analyzer across desktop (1440), tablet (768), and mobile (375)
+    for (const vp of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 375, height: 812 }
+    ]) {
+      await page.setViewportSize(vp);
+      const hotspotOverflow = await page.evaluate(() => {
+        const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+        const metricOverflow = Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+          (el) => el.scrollWidth > el.clientWidth + 1
+        );
+        return { docOverflow, metricOverflow };
+      });
+      expect(hotspotOverflow.docOverflow).toBe(false);
+      expect(hotspotOverflow.metricOverflow).toBe(false);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     // Verify lifecycle cleanup when navigating away and re-mounting Hotspot Analyzer multiple times
     await page.locator("aside nav a[href='/about']").click();
@@ -271,5 +299,106 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Manifest data tidak dapat dimuat/i })).toBeVisible();
     expect(pageErrors).toEqual([]);
+  });
+
+  test("prioritizes valid verified KDE output and safely rejects invalid official payload back to DEMO", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 860 });
+
+    // A. Valid verified KDE output
+    await page.route("**/data/manifest.json", async (route) => {
+      const response = await route.fetch();
+      const manifestJson = await response.json();
+      manifestJson.verified_outputs = {
+        "hotspot-analyzer": {
+          available: true,
+          path: "/data/hotspot-analyzer.verified.geojson",
+          status: "verified"
+        }
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(manifestJson)
+      });
+    });
+
+    await page.route("**/data/hotspot-analyzer.verified.geojson", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          type: "FeatureCollection",
+          isDemo: false,
+          dataLabel: "TERVERIFIKASI",
+          notice: "Output KDE terverifikasi Kota Medan (uji integrasi).",
+          analysis: {
+            title: "KDE Kebakaran Kota Medan 2024",
+            source: "Dinas Damkarmat Kota Medan",
+            period_label: "Januari - Desember 2024",
+            kernel_method: "Quartic",
+            bandwidth_meters: 1000,
+            pixel_size_meters: 100,
+            working_crs: "EPSG:32647",
+            classification_method: "Quantile (4 kelas)",
+            incident_count_used: 38
+          },
+          features: [
+            {
+              type: "Feature",
+              properties: {
+                isDemo: false,
+                dataLabel: "TERVERIFIKASI",
+                zone_id: "verified-zone-1",
+                density_class: "Sangat Tinggi",
+                density_rank: 4,
+                area_km2: 2.15
+              },
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [98.665, 3.582],
+                    [98.685, 3.582],
+                    [98.685, 3.598],
+                    [98.665, 3.598],
+                    [98.665, 3.582]
+                  ]
+                ]
+              }
+            }
+          ]
+        })
+      });
+    });
+
+    await page.goto("/hotspot-analyzer");
+    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "verified");
+    await expect(page.locator("#hotspot-data-status-badge")).toContainText("TERVERIFIKASI");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("Dinas Damkarmat Kota Medan");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("38 titik");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("1 zona");
+
+    // B. Malformed / DEMO official output must be rejected and safely fall back to DEMO
+    await page.unroute("**/data/hotspot-analyzer.verified.geojson");
+    await page.route("**/data/hotspot-analyzer.verified.geojson", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          type: "FeatureCollection",
+          isDemo: true,
+          dataLabel: "DEMO",
+          features: []
+        })
+      });
+    });
+
+    await page.goto("/hotspot-analyzer");
+    await expect(page.locator("#hotspot-verified-rejected-banner")).toBeVisible();
+    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "demo");
+    await expect(page.locator("#hotspot-data-status-badge")).toContainText("DEMO");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
   });
 });

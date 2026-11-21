@@ -3,6 +3,14 @@
   "city": "Kota Medan",
   "crs_web": "EPSG:4326",
   "crs_metric": "EPSG:32647",
+  "verified_outputs": {
+    "hotspot-analyzer": {
+      "available": false,
+      "path": "/data/hotspot-analyzer.verified.geojson",
+      "status": "pending_verified_points",
+      "reason": "Dataset titik kebakaran individual terverifikasi (exact_verified / address_geocoded_verified) belum tersedia; UI menggunakan fixture DEMO."
+    }
+  },
   "datasets": [
     {
       "id": "medan-fire-2024",

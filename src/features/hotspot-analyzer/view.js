@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { renderStatePanel } from "../../components/state-panel.js";
 import {
+  BOUNDARY_PROVENANCE,
   HOTSPOT_TIER_CONFIG,
   filterHotspotZones,
   getHotspotTierMeta,
@@ -24,11 +25,27 @@ function getStatusBadgeClass(isDemo, dataLabel) {
   return "status-badge--active";
 }
 
+function formatQuantileSummary(classificationDetails) {
+  const breaks = classificationDetails?.breaks;
+  if (!breaks) return "";
+  return `P25=${Number(breaks.p25).toExponential(2)}, P50=${Number(breaks.p50).toExponential(2)}, P75=${Number(breaks.p75).toExponential(2)}`;
+}
+
 export async function renderHotspotAnalyzer({ container, services, manifest }) {
   let currentCleanup = null;
   let outerMounted = true;
 
   async function mountWorkspace() {
+    if (typeof document !== "undefined" && typeof container.replaceChildren === "function") {
+      container.replaceChildren(
+        renderStatePanel({
+          variant: "loading",
+          title: "Memuat analisis Fire Hotspot Analyzer",
+          message: "Memeriksa ketersediaan output KDE terverifikasi dan batas administrasi Kota Medan..."
+        })
+      );
+    }
+
     let dataset = null;
     try {
       dataset = await loadHotspotZones(services);
@@ -38,7 +55,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         renderStatePanel({
           variant: "error",
           title: "Data Fire Hotspot Analyzer gagal dimuat",
-          message: err.message || "Berkas fixture hotspot-analyzer tidak tersedia.",
+          message: err.message || "Berkas data hotspot-analyzer tidak tersedia.",
           actionLabel: "Muat Ulang",
           onAction: async () => {
             if (!outerMounted) return;
@@ -54,6 +71,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
 
     const ac = new AbortController();
     const analysis = dataset.analysis || {};
+    const boundaryProv = dataset.boundaryProvenance || BOUNDARY_PROVENANCE;
     const state = {
       densityTier: "semua",
       search: "",
@@ -62,143 +80,177 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
 
     const totalAreaKm2 = dataset.zones.reduce((sum, z) => sum + Number(z.area_km2 || 0), 0);
     const datasetBadgeClass = getStatusBadgeClass(dataset.isDemo, dataset.dataLabel);
+    const statusMode = dataset.isDemo ? "demo" : "verified";
+    const statusBadgeText = dataset.isDemo
+      ? `[!] DATA ${dataset.dataLabel}`
+      : `[+] ${dataset.dataLabel}`;
+    const moduleBadgeText = dataset.isDemo
+      ? "[~] Dalam Pengembangan (Fixture DEMO)"
+      : "[+] Output KDE Terverifikasi";
+    const moduleBadgeClass = dataset.isDemo ? "status-badge--dev" : "status-badge--active";
     const noticeBannerClass = dataset.isDemo
       ? "notice-banner notice-banner--demo"
       : "notice-banner";
     const invalidCount = Array.isArray(dataset.invalidZones) ? dataset.invalidZones.length : 0;
+    const rejectedOfficial = dataset.verifiedLoadStatus === "rejected";
+    const quantileSummary = formatQuantileSummary(analysis.classification_details);
 
     container.innerHTML = `
-      <section class="page-header">
-        <div>
-          <h1>${escapeHtml(manifest.title)}</h1>
-          <p class="page-lead">
-            Analisis konsentrasi spasial historis kejadian kebakaran Kota Medan menggunakan metode <strong>Kernel Density Estimation (KDE)</strong>. Hasil ini merepresentasikan pola historis kejadian masa lalu, <strong>bukan prediksi</strong> kejadian di masa depan.
-          </p>
-        </div>
-        <div class="hotspot-header-badges">
-          <span class="status-badge status-badge--dev">[~] Modul Aktif (UI Kontrak)</span>
-          <span class="status-badge ${datasetBadgeClass}">[!] ${escapeHtml(dataset.dataLabel)}</span>
-        </div>
-      </section>
-
-      <div class="${noticeBannerClass}" role="region" aria-label="Pemberitahuan status data KDE">
-        <strong>STATUS DATA (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
-      </div>
-
-      ${
-        invalidCount > 0
-          ? `<div class="notice-banner notice-banner--demo" style="margin-top: var(--space-3);" role="status">
-              <strong>Validasi Kelas Kepadatan:</strong> ${invalidCount} fitur zona memiliki kelas kepadatan tidak dikenali dan dikeluarkan dari visualisasi.
-            </div>`
-          : ""
-      }
-
-      <section class="hotspot-metrics" aria-label="Ringkasan parameter dan hasil analisis KDE">
-        <div class="metric-box">
-          <div class="metric-label">Total Zona Teridentifikasi</div>
-          <div class="metric-value">${services.format.number(dataset.zones.length)} Zona</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">Total Luas Zona Hotspot</div>
-          <div class="metric-value">${totalAreaKm2.toFixed(2)} km²</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">Kernel &amp; Radius KDE</div>
-          <div class="metric-value metric-value--meta">${escapeHtml(analysis.kernel_method || "Quartic")} (${services.format.number(analysis.bandwidth_meters || 1000)} m)</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">CRS Analisis → Web</div>
-          <div class="metric-value metric-value--meta">${escapeHtml(analysis.working_crs || "EPSG:32647")} → EPSG:4326</div>
-        </div>
-      </section>
-
-      <section class="panel" style="margin-top: var(--space-4);" aria-label="Filter zona hotspot">
-        <div class="hotspot-filter-bar">
-          <div class="field">
-            <label for="hotspot-filter-tier">Kelas Kepadatan Hotspot</label>
-            <select id="hotspot-filter-tier">
-              <option value="semua">Semua Kelas Kepadatan</option>
-              <option value="very-high">Kepadatan Sangat Tinggi</option>
-              <option value="high">Kepadatan Tinggi</option>
-              <option value="medium">Kepadatan Sedang</option>
-              <option value="low">Kepadatan Rendah</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="hotspot-filter-search">Cari ID atau Label Zona</label>
-            <input id="hotspot-filter-search" type="search" placeholder="Contoh: demo-hotspot-1 atau Tinggi" />
-          </div>
+      <div class="hotspot-workspace">
+        <section class="page-header">
           <div>
-            <button type="button" class="btn btn-secondary" id="hotspot-filter-reset">Reset Filter</button>
+            <h1>${escapeHtml(manifest.title)}</h1>
+            <p class="page-lead">
+              Analisis konsentrasi spasial historis kejadian kebakaran Kota Medan menggunakan metode <strong>Kernel Density Estimation (KDE)</strong>. Hasil ini merepresentasikan pola historis kejadian masa lalu, <strong>bukan prediksi</strong> kejadian di masa depan.
+            </p>
           </div>
-        </div>
-      </section>
-
-      <div class="split-layout split-layout--map-lead" style="margin-top: var(--space-4);">
-        <section class="panel map-card">
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2);">
-            <h2>Peta Poligon Konsentrasi Hotspot (${escapeHtml(dataset.dataLabel)})</h2>
-            <span class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">Output Web: EPSG:4326</span>
-          </div>
-          <div class="map-canvas" id="hotspot-map" role="region" aria-label="Peta zona hotspot kebakaran Kota Medan"></div>
-          <div class="map-legend">
-            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG["very-high"].fillColor};"></span> Kepadatan Sangat Tinggi</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.high.fillColor};"></span> Kepadatan Tinggi</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.medium.fillColor};"></span> Kepadatan Sedang</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.low.fillColor};"></span> Kepadatan Rendah</span>
-            <span class="legend-item"><span class="legend-swatch" style="background: transparent; border: 1.5px solid #6E7A7D;"></span> Batas Kecamatan Medan</span>
-          </div>
-          <div class="provenance-bar">
-            <span>Analisis Spasial: QGIS KDE (${escapeHtml(analysis.working_crs || "EPSG:32647")})</span>
-            <span>Konsentrasi historis (bukan prediksi masa depan)</span>
+          <div class="hotspot-header-badges">
+            <span class="status-badge ${moduleBadgeClass}">${escapeHtml(moduleBadgeText)}</span>
+            <span class="status-badge ${datasetBadgeClass}" id="hotspot-data-status-badge" data-status-mode="${statusMode}">${escapeHtml(statusBadgeText)}</span>
           </div>
         </section>
 
-        <aside style="display: flex; flex-direction: column; gap: var(--space-4);">
-          <section class="panel" aria-live="polite">
-            <h2>Detail Zona Terpilih</h2>
-            <p style="font-size: var(--text-sm); color: var(--color-ink-muted); margin-bottom: var(--space-2);">
-              Klik poligon zona di peta atau baris pada tabel untuk melihat atribut spasialnya.
-            </p>
-            <dl class="detail-kv" id="hotspot-zone-detail"></dl>
-          </section>
+        <div class="${noticeBannerClass}" id="hotspot-data-notice" role="region" aria-label="Pemberitahuan status data KDE">
+          <strong>STATUS DATA (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
+        </div>
 
-          <section class="panel">
-            <h3 style="margin-bottom: var(--space-2);">Metadata &amp; Parameter KDE</h3>
-            <dl class="detail-kv">
-              <dt>Judul Analisis</dt><dd>${escapeHtml(analysis.title || "-")}</dd>
-              <dt>Periode Data</dt><dd class="mono">${escapeHtml(analysis.period_label || "-")}</dd>
-              <dt>Fungsi Kernel</dt><dd class="mono">${escapeHtml(analysis.kernel_method || "Quartic")}</dd>
-              <dt>Radius / Bandwidth</dt><dd class="mono">${services.format.number(analysis.bandwidth_meters || 1000)} meter</dd>
-              <dt>Ukuran Piksel</dt><dd class="mono">${services.format.number(analysis.pixel_size_meters || 100)} meter</dd>
-              <dt>CRS Pengolahan</dt><dd class="mono">${escapeHtml(analysis.working_crs || "EPSG:32647")}</dd>
-              <dt>Metode Klasifikasi</dt><dd>${escapeHtml(analysis.classification_method || "-")}</dd>
-              <dt>Titik Terverifikasi</dt><dd class="mono">${services.format.number(analysis.incident_count_used || 0)} titik</dd>
-            </dl>
-            <div class="detail-qa-note" style="margin-top: var(--space-3);">
-              <strong>Aturan Kualitas Data:</strong> Perhitungan KDE hanya mengizinkan titik dengan akurasi <code>exact_verified</code> atau <code>address_geocoded_verified</code>. Data <code>district_only</code> dikecualikan.
+        ${
+          rejectedOfficial
+            ? `<div class="notice-banner notice-banner--warn" id="hotspot-verified-rejected-banner" data-verified-rejected="true" role="alert">
+                <strong>Output resmi ditolak:</strong> Berkas <code>/data/hotspot-analyzer.verified.geojson</code> gagal memenuhi validasi kontrak (${escapeHtml(
+                  (dataset.verifiedValidationErrors || []).slice(0, 3).join("; ")
+                )}). Menampilkan fixture DEMO sebagai pengganti yang aman.
+              </div>`
+            : ""
+        }
+
+        ${
+          dataset.boundaryError
+            ? `<div class="notice-banner notice-banner--warn" role="alert">
+                <strong>Validasi Batas Wilayah:</strong> ${escapeHtml(dataset.boundaryError)}
+              </div>`
+            : ""
+        }
+
+        ${
+          invalidCount > 0
+            ? `<div class="notice-banner notice-banner--warn" role="status">
+                <strong>Validasi Kelas Kepadatan:</strong> ${invalidCount} fitur zona memiliki kelas kepadatan tidak dikenali dan dikeluarkan dari visualisasi.
+              </div>`
+            : ""
+        }
+
+        <section class="hotspot-metrics" aria-label="Ringkasan parameter dan hasil analisis KDE">
+          <div class="metric-box">
+            <div class="metric-label">Total Zona Teridentifikasi</div>
+            <div class="metric-value">${services.format.number(dataset.zones.length)} Zona</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Total Luas Zona Hotspot</div>
+            <div class="metric-value">${totalAreaKm2.toFixed(2)} km²</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Kernel &amp; Bandwidth KDE</div>
+            <div class="metric-value metric-value--meta">${escapeHtml(analysis.kernel_method || "Quartic")} (${services.format.number(analysis.bandwidth_meters || 1000)} m, piksel ${services.format.number(analysis.pixel_size_meters || 100)} m)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Titik Digunakan &amp; CRS</div>
+            <div class="metric-value metric-value--meta">${services.format.number(analysis.incident_count_used || 0)} titik (${escapeHtml(analysis.working_crs || "EPSG:32647")} ke EPSG:4326)</div>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="Filter zona hotspot">
+          <div class="hotspot-filter-bar">
+            <div class="field">
+              <label for="hotspot-filter-tier">Kelas Kepadatan Hotspot</label>
+              <select id="hotspot-filter-tier">
+                <option value="semua">Semua Kelas Kepadatan</option>
+                <option value="very-high">Kepadatan Sangat Tinggi</option>
+                <option value="high">Kepadatan Tinggi</option>
+                <option value="medium">Kepadatan Sedang</option>
+                <option value="low">Kepadatan Rendah</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="hotspot-filter-search">Cari ID atau Label Zona</label>
+              <input id="hotspot-filter-search" type="search" placeholder="Contoh: hotspot-1 atau Tinggi" />
+            </div>
+            <div>
+              <button type="button" class="btn btn-secondary" id="hotspot-filter-reset">Reset Filter</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="split-layout split-layout--map-lead">
+          <section class="panel map-card">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2);">
+              <h2>Peta Poligon Konsentrasi Hotspot (${escapeHtml(dataset.dataLabel)})</h2>
+              <span class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">Output Web: EPSG:4326</span>
+            </div>
+            <div class="map-canvas" id="hotspot-map" role="region" aria-label="Peta zona hotspot kebakaran Kota Medan"></div>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG["very-high"].fillColor};"></span> Kepadatan Sangat Tinggi</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.high.fillColor};"></span> Kepadatan Tinggi</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.medium.fillColor};"></span> Kepadatan Sedang</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: ${HOTSPOT_TIER_CONFIG.low.fillColor};"></span> Kepadatan Rendah</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: transparent; border: 1.5px solid #6E7A7D;"></span> Batas Kecamatan Medan (OSM Fallback)</span>
+            </div>
+            <div class="provenance-bar">
+              <span>Analisis Spasial: QGIS KDE (${escapeHtml(analysis.working_crs || "EPSG:32647")})</span>
+              <span>Batas Wilayah: ${escapeHtml(boundaryProv.attribution)} (${escapeHtml(boundaryProv.license)}, fallback non-resmi)</span>
+              <span>Konsentrasi historis (bukan prediksi masa depan)</span>
             </div>
           </section>
-        </aside>
+
+          <aside style="display: flex; flex-direction: column; gap: var(--space-4);">
+            <section class="panel" aria-live="polite">
+              <h2>Detail Zona Terpilih</h2>
+              <p style="font-size: var(--text-sm); color: var(--color-ink-muted); margin-bottom: var(--space-2);">
+                Klik poligon zona di peta atau baris pada tabel untuk melihat atribut spasialnya.
+              </p>
+              <dl class="detail-kv" id="hotspot-zone-detail"></dl>
+            </section>
+
+            <section class="panel">
+              <h3 style="margin-bottom: var(--space-2);">Metadata &amp; Parameter KDE</h3>
+              <dl class="detail-kv" id="hotspot-metadata-kv">
+                <dt>Judul Analisis</dt><dd>${escapeHtml(analysis.title || "-")}</dd>
+                <dt>Sumber Data</dt><dd>${escapeHtml(analysis.source || (dataset.isDemo ? "Fixture Kontrak DEMO" : "-"))}</dd>
+                <dt>Periode Data</dt><dd class="mono">${escapeHtml(analysis.period_label || "-")}</dd>
+                <dt>Metode &amp; Kernel</dt><dd class="mono">KDE (${escapeHtml(analysis.kernel_method || "Quartic")})</dd>
+                <dt>Bandwidth</dt><dd class="mono">${services.format.number(analysis.bandwidth_meters || 1000)} meter</dd>
+                <dt>Resolusi Piksel</dt><dd class="mono">${services.format.number(analysis.pixel_size_meters || 100)} meter</dd>
+                <dt>CRS Pengolahan</dt><dd class="mono">${escapeHtml(analysis.working_crs || "EPSG:32647")} ke EPSG:4326</dd>
+                <dt>Metode Klasifikasi</dt><dd>${escapeHtml(analysis.classification_method || "Quantile (4 kelas)")}</dd>
+                ${quantileSummary ? `<dt>Ambang Quantile</dt><dd class="mono">${escapeHtml(quantileSummary)}</dd>` : ""}
+                <dt>Titik Digunakan</dt><dd class="mono">${services.format.number(analysis.incident_count_used || 0)} titik</dd>
+                <dt>Batas Wilayah</dt><dd>${escapeHtml(boundaryProv.source)} (bukan batas resmi Pemko Medan)</dd>
+              </dl>
+              <div class="detail-qa-note">
+                <strong>Aturan Kualitas Data:</strong> Perhitungan KDE hanya mengizinkan titik terverifikasi dengan akurasi <code>exact_verified</code> atau <code>address_geocoded_verified</code> di dalam poligon Kota Medan. Data <code>approximate</code>, <code>district_only</code>, <code>unknown</code>, dan <code>DEMO</code> ditolak.
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <section class="panel">
+          <h2>Perbandingan Luas Area Zona Hotspot (km²)</h2>
+          <p class="chart-empty-note" id="hotspot-chart-empty" hidden>
+            Tidak ada zona hotspot yang cocok dengan filter aktif.
+          </p>
+          <div class="chart-frame" id="hotspot-chart-frame">
+            <canvas id="hotspot-chart" aria-label="Grafik luas zona hotspot kebakaran"></canvas>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <h2>Daftar Zona Konsentrasi Hotspot (${escapeHtml(dataset.dataLabel)})</h2>
+            <span class="mono" id="hotspot-table-count" style="font-size: var(--text-xs); color: var(--color-ink-muted);"></span>
+          </div>
+          <div id="hotspot-table-wrap"></div>
+        </section>
       </div>
-
-      <section class="panel" style="margin-top: var(--space-4);">
-        <h2>Perbandingan Luas Area Zona Hotspot (km²)</h2>
-        <p class="chart-empty-note" id="hotspot-chart-empty" hidden>
-          Tidak ada zona hotspot yang cocok dengan filter aktif.
-        </p>
-        <div class="chart-frame" id="hotspot-chart-frame">
-          <canvas id="hotspot-chart" aria-label="Grafik luas zona hotspot kebakaran"></canvas>
-        </div>
-      </section>
-
-      <section class="panel" style="margin-top: var(--space-4);">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3);">
-          <h2>Daftar Zona Konsentrasi Hotspot (${escapeHtml(dataset.dataLabel)})</h2>
-          <span class="mono" id="hotspot-table-count" style="font-size: var(--text-xs); color: var(--color-ink-muted);"></span>
-        </div>
-        <div id="hotspot-table-wrap"></div>
-      </section>
     `;
 
     const tierSel = container.querySelector("#hotspot-filter-tier");

@@ -1,5 +1,12 @@
 /* Module-scoped styles owned by Adeptri (hotspot-analyzer) */
 
+.hotspot-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
 .hotspot-header-badges {
   display: flex;
   flex-wrap: wrap;
@@ -9,16 +16,106 @@
 
 .hotspot-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .hotspot-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hotspot-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hotspot-workspace .metric-box {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+
+.hotspot-workspace .metric-label {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-1);
+}
+
+.hotspot-workspace .metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.hotspot-workspace .metric-value--meta {
+  font-size: clamp(0.8rem, 0.72rem + 0.25vw, 0.95rem);
 }
 
 .hotspot-filter-bar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   align-items: end;
+}
+
+@media (min-width: 640px) {
+  .hotspot-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hotspot-filter-bar {
+    grid-template-columns: minmax(190px, 1fr) minmax(220px, 1.4fr) auto;
+  }
+}
+
+.hotspot-workspace .detail-kv {
+  display: grid;
+  grid-template-columns: minmax(110px, 44%) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.hotspot-workspace .detail-kv dt {
+  color: var(--color-ink-muted);
+}
+
+.hotspot-workspace .detail-kv dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.hotspot-workspace .detail-qa-note {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-amber-swatch);
+  background-color: var(--color-amber-tint);
+  color: var(--color-ink);
+  font-size: var(--text-xs);
+}
+
+.hotspot-workspace .chart-empty-note {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  margin: 0;
 }
 
 .hotspot-tier-pill {
@@ -33,6 +130,7 @@
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 2px;
+  border: 1px solid var(--color-ink);
   background: var(--tier-color, #64748b);
   flex-shrink: 0;
 }
