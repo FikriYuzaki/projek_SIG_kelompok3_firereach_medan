@@ -8,8 +8,12 @@ const activeMaps = new Set();
 
 function syncDebugCount() {
   if (typeof window !== "undefined") {
-    window.__firereachDebug = window.__firereachDebug || { activeMaps: 0, activeCharts: 0 };
-    window.__firereachDebug.activeMaps = activeMaps.size;
+    window.__firereachDebug = {
+      fitBoundsCalls: 0,
+      ...(window.__firereachDebug || {}),
+      activeMaps: activeMaps.size,
+      activeCharts: window.__firereachDebug?.activeCharts ?? 0
+    };
   }
 }
 
@@ -57,6 +61,10 @@ export function fitBounds(map, target, options = { padding: [20, 20], animate: f
   const bounds = typeof target.getBounds === "function" ? target.getBounds() : target;
   if (bounds && typeof bounds.isValid === "function" && bounds.isValid()) {
     map.fitBounds(bounds, { animate: false, ...options });
+    if (typeof window !== "undefined") {
+      window.__firereachDebug = window.__firereachDebug || { activeMaps: activeMaps.size, activeCharts: 0, fitBoundsCalls: 0 };
+      window.__firereachDebug.fitBoundsCalls = (window.__firereachDebug.fitBoundsCalls || 0) + 1;
+    }
   }
 }
 

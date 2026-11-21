@@ -27,7 +27,23 @@ describe("processed data & DEMO fixture integrity", () => {
 
     for (const d of summary.district_2023) {
       expect(d.location_accuracy).toBe("district_only");
+      expect(d.geom).toBeNull();
+      expect(d.district_name).not.toMatch(/\s{2,}/);
+      expect(d.district_name).toBe(d.district_name.trim());
     }
+
+    const discrepDistricts = summary.district_2023.filter((d) => d.scale_discrepancy !== 0);
+    expect(discrepDistricts).toHaveLength(8);
+
+    const maret = summary.monthly_2023_impact.find((m) => m.month_name === "Maret");
+    expect(maret?.loss_anomaly_flag).toBe(true);
+    expect(maret?.raw_material_loss).toBe("776");
+    expect(summary.annual_series).toHaveLength(10);
+    expect(
+      summary.annual_series.filter((a) => a.consistency_flag).map((a) => a.year)
+    ).toEqual([2019, 2020, 2021, 2023]);
+    expect(summary.unlocated_register.length).toBeGreaterThanOrEqual(4);
+    expect(summary.data_quality_anomalies.length).toBeGreaterThanOrEqual(6);
 
     const mako = summary.verified_stations[0];
     expect(mako.lat).toBeGreaterThanOrEqual(3.45);
@@ -53,6 +69,38 @@ describe("processed data & DEMO fixture integrity", () => {
       const payload = JSON.parse(fs.readFileSync(path.join(demoDir, file), "utf-8"));
       expect(payload.isDemo).toBe(true);
       expect(payload.dataLabel).toBe("DEMO");
+    }
+
+    const incDemo = readJson("public/data/demo/incident-explorer-sample.demo.json");
+    expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-001")?.geom?.type).toBe("Point");
+    expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-003")?.geom).toBeNull();
+  });
+
+  it("verifies every raw input workbook read by build_processed_data.py is registered in source-register.csv with SHA-256", () => {
+    const buildSrc = fs.readFileSync(path.join(ROOT, "scripts/build_processed_data.py"), "utf-8");
+    const rawRefs = [...new Set([...buildSrc.matchAll(/"([^\s"]+\.(?:xlsx|geojson))"/g)].map((m) => m[1]))].filter(
+      (name) => name !== "medan_districts_osm.geojson"
+    );
+    expect(rawRefs.length).toBe(20);
+
+    const csvLines = fs
+      .readFileSync(path.join(ROOT, "data/metadata/source-register.csv"), "utf-8")
+      .trim()
+      .split(/\r?\n/);
+    const headers = csvLines[0].split(",");
+    const rows = csvLines.slice(1).map((line) => {
+      const cols = line.split(",");
+      return Object.fromEntries(headers.map((h, i) => [h, cols[i] ?? ""]));
+    });
+
+    for (const refFile of rawRefs) {
+      const match = rows.find((r) => r.file_path.endsWith(`/${refFile}`));
+      expect(match, `Missing provenance entry in source-register.csv for ${refFile}`).toBeDefined();
+      expect(match.publisher.length).toBeGreaterThan(3);
+      expect(match.url).toMatch(/^https:\/\//);
+      expect(Number(match.file_size_bytes)).toBeGreaterThan(0);
+      expect(match.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(["acquired", "acquired_fallback"]).toContain(match.status);
     }
   });
 });

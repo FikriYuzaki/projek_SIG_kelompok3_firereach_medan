@@ -89,10 +89,48 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.selectOption("#filter-category", "rumah");
     await expect(page.locator("#explorer-metrics")).toContainText("113");
 
-    // Switch tab to Belum Terlokasi & Perlu Review
+    // Check 2023 impact & loss outlier mode
+    await page.selectOption("#filter-period", "2023-dampak");
+    await expect(page.locator("#filter-district")).toBeDisabled();
+    await expect(page.locator("#filter-category")).toBeDisabled();
+    await expect(page.locator("#explorer-table-count")).toHaveText("12 baris");
+    await page.locator("tr[data-row-key='Maret']").click();
+    await expect(page.locator("#detail-qa-note")).toContainText("776");
+
+    // Check 2016-2025 annual series mode & verify sorting/search do not reset map zoom
+    await page.selectOption("#filter-period", "2016-2025-tahunan");
+    await expect(page.locator("#explorer-table-count")).toHaveText("10 tahun");
+    await page.locator("#explorer-map .leaflet-control-zoom-in").click();
+    const zoomAfterManualIn = await page.evaluate(
+      () => window.__firereachDebug?.fitBoundsCalls ?? 0
+    );
+    await page.selectOption("#filter-sort", "desc");
+    await expect(page.locator("#explorer-table-wrap tbody tr").first()).toContainText("2019");
+    await page.fill("#filter-search", "2020");
+    await expect(page.locator("#explorer-table-count")).toHaveText("1 tahun");
+    const zoomAfterSortAndSearch = await page.evaluate(
+      () => window.__firereachDebug?.fitBoundsCalls ?? 0
+    );
+    expect(zoomAfterSortAndSearch).toBe(zoomAfterManualIn);
+
+    // Check empty filter state + Reset Filter recovery
+    await page.fill("#filter-search", "tidak-ada-kecamatan-xyz");
+    await expect(page.locator("#explorer-table-count")).toHaveText("0 baris");
+    await expect(page.locator("#explorer-chart-empty")).toBeVisible();
+    await page.click("#filter-reset");
+    await expect(page.locator("#explorer-table-count")).toHaveText("21 baris");
+
+    // Switch tab to Belum Terlokasi & Perlu Review and verify status filters + QA log
     await page.click("#tab-unlocated");
     await expect(page.getByText("UNLOC-2025-MONTHLY")).toBeVisible();
-    await expect(page.locator("#explorer-tab-unlocated").getByText("Medan Kota")).toBeVisible();
+    await expect(page.getByText("UNLOC-2016-2022-ANNUAL")).toBeVisible();
+    await expect(page.getByText("QA-2023-LOSS-OUTLIER")).toBeVisible();
+    await expect(page.locator("#explorer-tab-unlocated").getByText("Medan Kota", { exact: true })).toBeVisible();
+
+    await page.locator("[data-unloc-filter='needs_review']").click();
+    await expect(page.locator("#unlocated-filtered-count")).toContainText("1 dari");
+    await page.locator("[data-unloc-filter='semua']").click();
+    await expect(page.locator("#unlocated-filtered-count")).toContainText("4 dari");
 
     // Return to verified tab & toggle opt-in DEMO fixture
     await page.click("#tab-verified");
@@ -112,20 +150,52 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       await expect(previewToggle).not.toHaveText(beforeText);
     }
 
-    // 5. Keyboard navigation on sidebar link
+    // 5. Keyboard navigation on sidebar link & verify zero leaked maps AND charts
     await page.locator("aside nav a[href='/']").focus();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: /Ringkasan Pemetaan Kebakaran Kota Medan/i })).toBeVisible();
+    await page.locator("aside nav a[href='/about']").click();
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? -1)).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? -1)).toBe(0);
 
-    // 6. Tablet (768x1024) and Mobile (375x812) responsive checks
+    // 6. Desktop (1440x900) on /incident-explorer, Tablet (768x1024), and Mobile (375x812) responsive checks
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/incident-explorer");
+    const explorerDesktopOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(explorerDesktopOverflow).toBe(false);
+
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/incident-explorer");
     const tabletOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth
     );
     expect(tabletOverflow).toBe(false);
+    const tabletDemoBox = await page.locator("#toggle-demo-mode").boundingBox();
+    expect(tabletDemoBox.height).toBeGreaterThanOrEqual(44);
 
     await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/incident-explorer");
+    const explorerMobileCheck = await page.evaluate(() => {
+      const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      const metricOverflow = Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+        (el) => el.scrollWidth > el.clientWidth + 1
+      );
+      const brand = document.querySelector(".brand-link")?.getBoundingClientRect();
+      const badge = document.querySelector("#supabase-status-badge")?.getBoundingClientRect();
+      const headerOverlap =
+        brand && badge
+          ? !(brand.right <= badge.left || badge.right <= brand.left || brand.bottom <= badge.top || badge.bottom <= brand.top)
+          : false;
+      const headerZ = Number(getComputedStyle(document.querySelector(".app-header")).zIndex || 0);
+      return { docOverflow, metricOverflow, headerOverlap, headerZ };
+    });
+    expect(explorerMobileCheck.docOverflow).toBe(false);
+    expect(explorerMobileCheck.metricOverflow).toBe(false);
+    expect(explorerMobileCheck.headerOverlap).toBe(false);
+    expect(explorerMobileCheck.headerZ).toBeGreaterThan(1000);
+
     await page.goto("/");
     const mobileOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth

@@ -21,6 +21,8 @@
       "scale_total": 3,
       "scale_discrepancy": 0,
       "raw_area_reported": "968",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 2,
         "ruko": 0,
@@ -36,6 +38,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -49,6 +52,8 @@
       "scale_total": 5,
       "scale_discrepancy": 0,
       "raw_area_reported": "1937",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 2,
         "ruko": 1,
@@ -64,6 +69,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -77,6 +83,8 @@
       "scale_total": 13,
       "scale_discrepancy": 0,
       "raw_area_reported": "3963",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 4,
         "ruko": 1,
@@ -92,6 +100,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -105,6 +114,8 @@
       "scale_total": 19,
       "scale_discrepancy": 0,
       "raw_area_reported": "6998",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 6,
         "ruko": 0,
@@ -120,6 +131,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -133,6 +145,8 @@
       "scale_total": 5,
       "scale_discrepancy": 1,
       "raw_area_reported": "1246",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 1,
         "ruko": 0,
@@ -148,6 +162,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -161,6 +176,8 @@
       "scale_total": 14,
       "scale_discrepancy": 0,
       "raw_area_reported": "5489",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 7,
         "ruko": 1,
@@ -176,6 +193,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -189,6 +207,8 @@
       "scale_total": 7,
       "scale_discrepancy": 0,
       "raw_area_reported": "1768",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 5,
         "ruko": 2,
@@ -204,6 +224,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -217,6 +238,8 @@
       "scale_total": 14,
       "scale_discrepancy": 1,
       "raw_area_reported": "5.53",
+      "area_anomaly_flag": true,
+      "area_anomaly_note": "Nilai mentah '5.53' menggunakan pemisah titik terpotong pada Excel sumber; dipertahankan tanpa fabrikasi angka.",
       "categories": {
         "rumah": 6,
         "ruko": 2,
@@ -232,6 +255,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -245,6 +269,8 @@
       "scale_total": 3,
       "scale_discrepancy": 0,
       "raw_area_reported": "899",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 3,
         "ruko": 0,
@@ -260,6 +286,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -273,6 +300,8 @@
       "scale_total": 9,
       "scale_discrepancy": 0,
       "raw_area_reported": "1322",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 4,
         "ruko": 1,
@@ -288,6 +317,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -301,6 +331,8 @@
       "scale_total": 4,
       "scale_discrepancy": 0,
       "raw_area_reported": "1913",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 1,
         "ruko": 1,
@@ -316,6 +348,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -329,6 +362,8 @@
       "scale_total": 6,
       "scale_discrepancy": -1,
       "raw_area_reported": "1.84",
+      "area_anomaly_flag": true,
+      "area_anomaly_note": "Nilai mentah '1.84' menggunakan pemisah titik terpotong pada Excel sumber; dipertahankan tanpa fabrikasi angka.",
       "categories": {
         "rumah": 1,
         "ruko": 0,
@@ -344,6 +379,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -357,6 +393,8 @@
       "scale_total": 10,
       "scale_discrepancy": 1,
       "raw_area_reported": "4297",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 2,
         "ruko": 3,
@@ -372,6 +410,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -385,6 +424,8 @@
       "scale_total": 12,
       "scale_discrepancy": 0,
       "raw_area_reported": "4059",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 4,
         "ruko": 2,
@@ -400,6 +441,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -413,6 +455,8 @@
       "scale_total": 17,
       "scale_discrepancy": -1,
       "raw_area_reported": "6554",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 6,
         "ruko": 1,
@@ -428,6 +472,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -441,6 +486,8 @@
       "scale_total": 10,
       "scale_discrepancy": -1,
       "raw_area_reported": "3975",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 2,
         "ruko": 1,
@@ -456,6 +503,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -469,6 +517,8 @@
       "scale_total": 8,
       "scale_discrepancy": 1,
       "raw_area_reported": "2738",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 5,
         "ruko": 0,
@@ -484,6 +534,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -497,6 +548,8 @@
       "scale_total": 14,
       "scale_discrepancy": 0,
       "raw_area_reported": "4.33",
+      "area_anomaly_flag": true,
+      "area_anomaly_note": "Nilai mentah '4.33' menggunakan pemisah titik terpotong pada Excel sumber; dipertahankan tanpa fabrikasi angka.",
       "categories": {
         "rumah": 2,
         "ruko": 2,
@@ -512,6 +565,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -525,6 +579,8 @@
       "scale_total": 12,
       "scale_discrepancy": 0,
       "raw_area_reported": "2186",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 6,
         "ruko": 0,
@@ -540,6 +596,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -553,6 +610,8 @@
       "scale_total": 13,
       "scale_discrepancy": -1,
       "raw_area_reported": "5.46",
+      "area_anomaly_flag": true,
+      "area_anomaly_note": "Nilai mentah '5.46' menggunakan pemisah titik terpotong pada Excel sumber; dipertahankan tanpa fabrikasi angka.",
       "categories": {
         "rumah": 7,
         "ruko": 1,
@@ -568,6 +627,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     },
@@ -581,6 +641,8 @@
       "scale_total": 21,
       "scale_discrepancy": 0,
       "raw_area_reported": "9558",
+      "area_anomaly_flag": false,
+      "area_anomaly_note": null,
       "categories": {
         "rumah": 6,
         "ruko": 0,
@@ -596,6 +658,7 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36hqs3de8k1qab30hf8qthr"
     }
@@ -619,6 +682,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -640,6 +704,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -661,6 +726,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -682,6 +748,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -703,6 +770,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -724,6 +792,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -745,6 +814,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -766,6 +836,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -787,6 +858,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -808,6 +880,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -829,6 +902,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     },
@@ -850,6 +924,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36j14dc1thkhnag7p7sdm5w"
     }
@@ -873,6 +948,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -894,6 +970,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -915,6 +992,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -936,6 +1014,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -957,6 +1036,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -978,6 +1058,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -999,6 +1080,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -1020,6 +1102,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -1041,6 +1124,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -1062,6 +1146,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -1083,6 +1168,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     },
@@ -1104,106 +1190,251 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "source_name": "Satu Data Medan (Dinas Damkarmat)",
       "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36kqphpwh98z8q5q7y3bfaa"
     }
   ],
   "monthly_2023_impact": [
     {
+      "period_year": 2023,
       "month_number": 1,
       "month_name": "Januari",
       "total_incidents": 17,
       "injured": 2,
       "fatalities": 3,
-      "raw_material_loss": "2.903.500"
+      "raw_material_loss": "2.903.500",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 2,
+      "scale_kecil_monthly": 15,
+      "raw_area_reported_monthly": "557",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 2,
       "month_name": "Februari",
       "total_incidents": 14,
       "injured": 0,
       "fatalities": 1,
-      "raw_material_loss": "2.250.000"
+      "raw_material_loss": "2.250.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 3,
+      "scale_kecil_monthly": 11,
+      "raw_area_reported_monthly": "2054",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 3,
       "month_name": "Maret",
       "total_incidents": 12,
       "injured": 0,
       "fatalities": 0,
-      "raw_material_loss": "776"
+      "raw_material_loss": "776",
+      "loss_anomaly_flag": true,
+      "loss_anomaly_note": "Nilai mentah '776' tercatat tanpa akhiran ribuan; selisih total tahunan (58.365.000) terhadap 11 bulan lain (57.589.000) bernilai 776.000. namun nilai asli dipertahankan tanpa tebakan satuan.",
+      "scale_besar_monthly": 0,
+      "scale_kecil_monthly": 12,
+      "raw_area_reported_monthly": "1655",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 4,
       "month_name": "April",
       "total_incidents": 30,
       "injured": 4,
       "fatalities": 6,
-      "raw_material_loss": "8.692.000"
+      "raw_material_loss": "8.692.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 4,
+      "scale_kecil_monthly": 26,
+      "raw_area_reported_monthly": "6115",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 5,
       "month_name": "Mei",
       "total_incidents": 20,
       "injured": 2,
       "fatalities": 2,
-      "raw_material_loss": "4.436.000"
+      "raw_material_loss": "4.436.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 2,
+      "scale_kecil_monthly": 18,
+      "raw_area_reported_monthly": "692",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 6,
       "month_name": "Juni",
       "total_incidents": 16,
       "injured": 6,
       "fatalities": 0,
-      "raw_material_loss": "16.766.000"
+      "raw_material_loss": "16.766.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 3,
+      "scale_kecil_monthly": 13,
+      "raw_area_reported_monthly": "1683",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 7,
       "month_name": "Juli",
       "total_incidents": 18,
       "injured": 0,
       "fatalities": 0,
-      "raw_material_loss": "3.405.000"
+      "raw_material_loss": "3.405.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 2,
+      "scale_kecil_monthly": 16,
+      "raw_area_reported_monthly": "2396",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 8,
       "month_name": "Agustus",
       "total_incidents": 15,
       "injured": 2,
       "fatalities": 1,
-      "raw_material_loss": "8.651.000"
+      "raw_material_loss": "8.651.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 1,
+      "scale_kecil_monthly": 14,
+      "raw_area_reported_monthly": "1986",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 9,
       "month_name": "September",
       "total_incidents": 26,
       "injured": 0,
       "fatalities": 1,
-      "raw_material_loss": "2.702.000"
+      "raw_material_loss": "2.702.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 2,
+      "scale_kecil_monthly": 24,
+      "raw_area_reported_monthly": "2289",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 10,
       "month_name": "Oktober",
       "total_incidents": 22,
       "injured": 0,
       "fatalities": 0,
-      "raw_material_loss": "4.288.000"
+      "raw_material_loss": "4.288.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 2,
+      "scale_kecil_monthly": 20,
+      "raw_area_reported_monthly": "2888",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 11,
       "month_name": "November",
       "total_incidents": 19,
       "injured": 1,
       "fatalities": 0,
-      "raw_material_loss": "1.890.500"
+      "raw_material_loss": "1.890.500",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 3,
+      "scale_kecil_monthly": 16,
+      "raw_area_reported_monthly": "52888",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     },
     {
+      "period_year": 2023,
       "month_number": 12,
       "month_name": "Desember",
       "total_incidents": 10,
       "injured": 0,
       "fatalities": 0,
-      "raw_material_loss": "1.605.000"
+      "raw_material_loss": "1.605.000",
+      "loss_anomaly_flag": false,
+      "loss_anomaly_note": "Header asli tidak mencantumkan satuan mata uang eksplisit; angka dipertahankan mentah.",
+      "scale_besar_monthly": 1,
+      "scale_kecil_monthly": 9,
+      "raw_area_reported_monthly": "1827",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "source_name": "Satu Data Medan (Dinas Damkarmat)",
+      "source_url": "https://medanterkini.medan.go.id/api/resources/download/01k4rt314v47hhc1pta428scq0"
     }
   ],
   "annual_series": [
@@ -1211,60 +1442,130 @@
       "year": 2016,
       "total_incidents": 246,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 246,
+      "comparison_rekap_total": null,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2017,
       "total_incidents": 201,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 201,
+      "comparison_rekap_total": null,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2018,
       "total_incidents": 216,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 216,
+      "comparison_rekap_total": null,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2019,
       "total_incidents": 275,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 341,
+      "comparison_rekap_total": null,
+      "consistency_flag": true,
+      "consistency_note": "Perbedaan cakupan wilayah penanggulangan: rekap Kota Medan = 275; penanggulangan Medan+luar kota = 341.",
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2020,
       "total_incidents": 227,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 228,
+      "comparison_rekap_total": 264,
+      "consistency_flag": true,
+      "consistency_note": "Perbedaan cakupan wilayah penanggulangan: rekap Kota Medan = 227; penanggulangan Medan+luar kota = 228; rekap bulanan 2020 = 264.",
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2021,
       "total_incidents": 207,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 208,
+      "comparison_rekap_total": null,
+      "consistency_flag": true,
+      "consistency_note": "Perbedaan cakupan wilayah penanggulangan: rekap Kota Medan = 207; penanggulangan Medan+luar kota = 208.",
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2022,
       "total_incidents": 216,
       "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": 216,
+      "comparison_rekap_total": 216,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
     },
     {
       "year": 2023,
       "total_incidents": 219,
       "granularity": "district_aggregate",
+      "location_accuracy": "district_only",
+      "verification_status": "needs_review",
+      "geom": null,
+      "comparison_total_with_outside_medan": null,
+      "comparison_rekap_total": null,
+      "consistency_flag": true,
+      "consistency_note": "Total 219 sama di ketiga tabel 2023, tetapi 8 kecamatan selisih +/-1 dan rincian skala berbeda (30/189 vs 25/194).",
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2023.xlsx"
     },
     {
       "year": 2024,
       "total_incidents": 269,
       "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": null,
+      "comparison_rekap_total": null,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2024.xlsx"
     },
     {
       "year": 2025,
       "total_incidents": 251,
       "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "comparison_total_with_outside_medan": null,
+      "comparison_rekap_total": null,
+      "consistency_flag": false,
+      "consistency_note": null,
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2025.xlsx"
     }
   ],
@@ -1289,6 +1590,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "reason": "File resmi Tahun 2025 hanya menyediakan rekapitulasi bulanan menurut 8 kategori objek tanpa kolom kecamatan, alamat jalan, atau koordinat individual.",
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2025.xlsx"
     },
@@ -1299,6 +1601,7 @@
       "granularity": "monthly_aggregate",
       "location_accuracy": "unknown",
       "verification_status": "unlocated",
+      "geom": null,
       "reason": "File resmi Tahun 2024 hanya menyediakan rekapitulasi bulanan menurut 8 kategori objek tanpa kolom kecamatan, alamat jalan, atau koordinat individual.",
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2024.xlsx"
     },
@@ -1309,8 +1612,70 @@
       "granularity": "district_aggregate",
       "location_accuracy": "district_only",
       "verification_status": "needs_review",
+      "geom": null,
       "reason": "Agregasi tingkat kecamatan tersedia untuk 21 wilayah, namun belum memiliki alamat kejadian individual maupun koordinat titik untuk KDE.",
       "source_file": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2023.xlsx"
+    },
+    {
+      "batch_id": "UNLOC-2016-2022-ANNUAL",
+      "period_label": "Tahun 2016 - 2022",
+      "record_count": 1588,
+      "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "verification_status": "unlocated",
+      "geom": null,
+      "reason": "Arsip historis 2016-2022 hanya memuat jumlah kejadian tahunan/bulanan level kota tanpa atribut kecamatan maupun koordinat individual.",
+      "source_file": "Jumlah_Kebakaran_Di_Kota_Medan_Tahun_2016_-_2022.xlsx"
+    }
+  ],
+  "data_quality_anomalies": [
+    {
+      "anomaly_id": "QA-2023-WHITESPACE",
+      "period": "2023 - 2025",
+      "severity": "normalisasi",
+      "summary": "Spasi ganda 'Medan  Kota', spasi di ujung nama kecamatan/bulan ('Medan Denai ', 'Maret ', 'MEI ', 'November '), dan nilai kosong '\\xa0-'.",
+      "resolution": "Dinormalisasi otomatis di build_processed_data.py dan helper runtime tanpa mengubah angka kejadian.",
+      "source_files": "Rekapitulasi_Data_Kejadian_Kebakaran_di_Kota_Medan_Tahun_2023.xlsx"
+    },
+    {
+      "anomaly_id": "QA-2023-DIST-SCALE-DIFF",
+      "period": "2023",
+      "severity": "perlu_review",
+      "summary": "Selisih +/-1 kejadian di 8 kecamatan (Medan Kota, Tembung, Baru, Petisah, Timur, Sunggal, Helvetia, Labuhan) antara rekap objek vs skala kecamatan; empat +1 dan empat -1 sehingga total kota tetap 219.",
+      "resolution": "Selisih dicatat eksplisit pada atribut scale_discrepancy tiap kecamatan dan ditampilkan di tab QA.",
+      "source_files": "Rekapitulasi_2023 vs Skala_dan_Kecamatan_2023"
+    },
+    {
+      "anomaly_id": "QA-2023-SCALE-SPLIT-DIFF",
+      "period": "2023",
+      "severity": "perlu_review",
+      "summary": "Rincian skala kebakaran 2023 berbeda antara file kecamatan (30 Besar / 189 Kecil) dan file bulanan (25 Besar / 194 Kecil), keduanya berjumlah 219.",
+      "resolution": "Kedua rincian disimpan terpisah (scale_besar/kecil vs scale_besar_monthly/kecil_monthly) tanpa memilih satu pihak secara diam-diam.",
+      "source_files": "Skala_dan_Kecamatan_2023 vs Skala_dan_Luas_Lokasi_2023"
+    },
+    {
+      "anomaly_id": "QA-2023-AREA-FORMAT",
+      "period": "2023",
+      "severity": "anomali_satuan",
+      "summary": "Kolom luas lokasi kecamatan mencampur bilangan meter (968, 3963) dan desimal terpotong (1.84, 5.53, 4.33, 5.46, baris total 77.03 vs jumlah bulanan 77.030).",
+      "resolution": "Nilai asli dipertahankan apa adanya pada raw_area_reported dengan flag area_anomaly_flag.",
+      "source_files": "Jumlah_Kebakaran_Dirinci_Menurut_Skala_dan_Kecamatan_Tahun_2023.xlsx"
+    },
+    {
+      "anomaly_id": "QA-2023-LOSS-OUTLIER",
+      "period": "2023 (Maret)",
+      "severity": "anomali_satuan",
+      "summary": "Kerugian bulan Maret tercatat '776' (sementara total tahunan 58.365.000 dikurangi 11 bulan lain 57.589.000 berselisih 776.000) dan header tidak menyebut satuan rupiah.",
+      "resolution": "Nilai '776' dipertahankan mentah pada raw_material_loss bersama loss_anomaly_flag dan catatan verifikasi.",
+      "source_files": "Jumlah_Kebakaran_Dirinci_Menurut_Korban_Jiwa_Dan_Material_Tahun_2023.xlsx"
+    },
+    {
+      "anomaly_id": "QA-2016-2022-SCOPE",
+      "period": "2019, 2020, 2021",
+      "severity": "perbedaan_cakupan",
+      "summary": "Arsip 'Kota Medan' berbeda dengan arsip '+Di Luar Kota Medan': 2019 (275 vs 341), 2020 (227 vs 228 vs 264 pada rekap bulanan), dan 2021 (207 vs 208).",
+      "resolution": "Total pembanding dan consistency_flag disimpan pada annual_series agar pengguna mengetahui perbedaan cakupan wilayah.",
+      "source_files": "Jumlah_Kebakaran_2016-2022 vs arsip penanggulangan bulanan"
     }
   ]
 }
