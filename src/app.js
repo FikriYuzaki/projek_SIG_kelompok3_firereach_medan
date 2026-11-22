@@ -11,7 +11,7 @@ export function startApp(rootElement) {
   const supabase = createSupabaseService();
   const shell = createShellLayout(rootElement, supabase);
   const notify = createNotificationService(shell.notificationRegion);
-  const dataStatus = createDataStatusService("/data");
+  const dataStatus = createDataStatusService("/data", supabase);
 
   const services = {
     supabase,
