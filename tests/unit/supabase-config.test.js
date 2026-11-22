@@ -12,6 +12,23 @@ describe("supabase local-only safety & credential hygiene", () => {
     expect(svc.statusLabel).toContain("Mode Lokal");
   });
 
+  it("rejects malformed Supabase URLs and secret/service_role keys safely", () => {
+    const badUrl = createSupabaseService({
+      VITE_SUPABASE_URL: "not-a-valid-url",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_demo"
+    });
+    expect(badUrl.isConfigured).toBe(false);
+    expect(badUrl.client).toBeNull();
+
+    const secretKey = createSupabaseService({
+      VITE_SUPABASE_URL: "https://example.supabase.co",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_secret_forbidden_token"
+    });
+    expect(secretKey.isConfigured).toBe(false);
+    expect(secretKey.client).toBeNull();
+    expect(secretKey.note).toContain("dilarang");
+  });
+
   it("never exposes service_role or secret keys in frontend source files", () => {
     const srcRoot = path.resolve(process.cwd(), "src");
     const stack = [srcRoot];

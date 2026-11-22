@@ -1,0 +1,69 @@
+{
+  "isDemo": true,
+  "dataLabel": "DEMO",
+  "module": "hotspot-analyzer",
+  "owner": "Adeptri",
+  "notice": "DATA DEMO UNTUK PENGEMBANGAN UI: bukan hasil KDE resmi. Menunggu input titik kebakaran terverifikasi (exact_verified / address_geocoded_verified).",
+  "analysis": {
+    "title": "Demo KDE Kebakaran Kota Medan (Fixture Kontrak)",
+    "period_label": "DEMO 2024-2025",
+    "kernel_method": "Quartic",
+    "bandwidth_meters": 1000,
+    "pixel_size_meters": 100,
+    "working_crs": "EPSG:32647",
+    "classification_method": "Quantile (4 kelas)",
+    "incident_count_used": 0
+  },
+  "zones": {
+    "type": "FeatureCollection",
+    "crs": { "type": "name", "properties": { "name": "EPSG:4326" } },
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "isDemo": true,
+          "dataLabel": "DEMO",
+          "zone_id": "demo-hotspot-1",
+          "density_class": "Tinggi (DEMO)",
+          "density_rank": 3,
+          "area_km2": 2.4
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [98.665, 3.582],
+              [98.685, 3.582],
+              [98.685, 3.598],
+              [98.665, 3.598],
+              [98.665, 3.582]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "isDemo": true,
+          "dataLabel": "DEMO",
+          "zone_id": "demo-hotspot-2",
+          "density_class": "Sedang (DEMO)",
+          "density_rank": 2,
+          "area_km2": 3.1
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [98.69, 3.555],
+              [98.712, 3.555],
+              [98.712, 3.573],
+              [98.69, 3.573],
+              [98.69, 3.555]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

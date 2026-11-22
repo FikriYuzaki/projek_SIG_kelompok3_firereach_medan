@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "name": "mako_damkarmat_verified",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "station_code": "MAKO-00",
+        "name": "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
+        "station_type": "mako",
+        "address": "Jl. Candi Borobudur No. 2, Kota Medan",
+        "verification_status": "verified",
+        "location_accuracy": "exact_verified",
+        "source_name": "Satu Data Medan (Knowledge Informasi Damkarmat)",
+        "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [98.67144703626451, 3.589536437471534]
+      }
+    }
+  ]
+}

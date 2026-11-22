@@ -24,3 +24,7 @@ Thumbs.db
 # Raw and interim data (archived locally, documented in data/metadata/source-register.csv)
 data/raw/
 data/interim/
+
+# Python caches and local TA deliverable archive
+__pycache__/
+deliverables/

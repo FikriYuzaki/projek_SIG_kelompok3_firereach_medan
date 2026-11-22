@@ -1,0 +1,73 @@
+{
+  "pipeline_name": "medan_fire_hotspot_kde",
+  "module": "hotspot-analyzer",
+  "owner": "Adeptri",
+  "crs": {
+    "input": "EPSG:4326",
+    "working_metric": "EPSG:32647",
+    "output_web": "EPSG:4326"
+  },
+  "boundary": {
+    "path": "public/data/medan_districts_osm.geojson",
+    "is_official": false,
+    "source": "OpenStreetMap Nominatim (Fallback Geoportal Medan)",
+    "attribution": "© OpenStreetMap contributors",
+    "license": "ODbL 1.0",
+    "note": "Fallback OpenStreetMap; bukan batas administrasi resmi Pemko Medan."
+  },
+  "input_filter": {
+    "require_unique_incident_id": true,
+    "require_valid_incident_date": true,
+    "required_verification_status": "verified",
+    "allowed_location_accuracies": [
+      "exact_verified",
+      "address_geocoded_verified"
+    ],
+    "exclude_demo_records": true,
+    "require_geojson_point": true,
+    "enforce_medan_point_in_polygon": true
+  },
+  "kde_parameters": {
+    "algorithm": "qgis:heatmapkerneldensityestimation",
+    "kernel_shape": "Quartic",
+    "kernel_code": 0,
+    "bandwidth_meters": 1000,
+    "pixel_size_meters": 100
+  },
+  "classification": {
+    "method": "Quantile",
+    "percentile_method": "linear_type7",
+    "num_classes": 4,
+    "exclude_nodata": true,
+    "exclude_non_positive_background": true,
+    "clip_to_boundary_before_quantiles": true,
+    "tiers": [
+      { "rank": 1, "tier": "low", "label": "Rendah", "quantile_min": 0.0, "quantile_max": 0.25 },
+      { "rank": 2, "tier": "medium", "label": "Sedang", "quantile_min": 0.25, "quantile_max": 0.5 },
+      { "rank": 3, "tier": "high", "label": "Tinggi", "quantile_min": 0.5, "quantile_max": 0.75 },
+      { "rank": 4, "tier": "very-high", "label": "Sangat Tinggi", "quantile_min": 0.75, "quantile_max": 1.0 }
+    ]
+  },
+  "output_contract": {
+    "geojson_type": "FeatureCollection",
+    "output_path": "public/data/hotspot-analyzer.verified.geojson",
+    "required_analysis_fields": [
+      "source",
+      "period_label",
+      "kernel_method",
+      "bandwidth_meters",
+      "pixel_size_meters",
+      "working_crs",
+      "classification_method",
+      "incident_count_used"
+    ],
+    "required_feature_properties": [
+      "isDemo",
+      "dataLabel",
+      "zone_id",
+      "density_class",
+      "density_rank",
+      "area_km2"
+    ]
+  }
+}

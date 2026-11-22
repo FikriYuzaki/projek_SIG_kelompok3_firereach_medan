@@ -1,8 +1,28 @@
 {
-  "generated_at": "2026-11-19",
+  "generated_at": "2026-11-21",
   "city": "Kota Medan",
   "crs_web": "EPSG:4326",
   "crs_metric": "EPSG:32647",
+  "verified_outputs": {
+    "hotspot-analyzer": {
+      "available": false,
+      "path": "/data/hotspot-analyzer.verified.geojson",
+      "status": "pending_verified_points",
+      "reason": "Dataset titik kebakaran individual terverifikasi (exact_verified / address_geocoded_verified) belum tersedia; UI menggunakan fixture DEMO."
+    },
+    "station-coverage": {
+      "available": true,
+      "path": "/data/station-coverage.provisional.json",
+      "status": "provisional",
+      "reason": "Menggunakan 1 pos terverifikasi (Mako 0.0) dan jaringan jalan drivable OSM Kota Medan (EPSG:32647); pos UPT Damkarmat lainnya belum terverifikasi (p2k.medan.go.id HTTP 403)."
+    },
+    "priority-planner": {
+      "available": true,
+      "path": "/data/priority-planner.provisional.json",
+      "status": "provisional",
+      "reason": "Indeks komposit 3 faktor pada 21 kecamatan (agregat kebakaran 2023 bukan KDE + kepadatan penduduk BPS 2025 + gap jangkauan 5 km Mako 0.0 provisional)."
+    }
+  },
   "datasets": [
     {
       "id": "medan-fire-2024",
@@ -76,6 +96,19 @@
       "status": "verified",
       "sha256": "aa52f8a140aa32df3c49fc52cbe04b2acc66687baf0f256d6834dc71e6add3e5",
       "url": "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe"
+    },
+    {
+      "id": "medan-roads-osm",
+      "title": "Jaringan Jalan Drivable Kota Medan (Ekstrak Geofabrik OSM, EPSG:32647)",
+      "publisher": "Geofabrik / OpenStreetMap Contributors",
+      "period": "2026-11-20T21:21:03Z",
+      "granularity": "network",
+      "location_accuracy": "unknown",
+      "record_count": 44522,
+      "status": "fallback_osm",
+      "license": "ODbL 1.0 (© OpenStreetMap contributors)",
+      "sha256": "2482c91a4b7359a38336a963ca42c1aa18c7655bac3d62aa806110b33838c51a",
+      "url": "https://download.geofabrik.de/asia/indonesia/sumatra/sumatra-latest.osm.pbf"
     }
   ],
   "blockers": [
@@ -95,9 +128,9 @@
       "reason": "Proteksi bot TSPD (HTTP 520) dan challenge Cloudflare; diatasi menggunakan tabel resmi BPS/Disdukcapil 2022-2025 di Satu Data Medan."
     },
     {
-      "source": "Jaringan Jalan Sumatra OSM (Geofabrik)",
-      "url": "https://download.geofabrik.de/asia/indonesia/sumatra-latest.osm.pbf",
-      "reason": "Arsip 270 MB (data per 2026-11-18T21:21:02Z) tidak diunduh ke Git; akan diekstrak dan dipotong lokal oleh Adriel di QGIS."
+      "source": "Arsip Mentah Jaringan Jalan Sumatra OSM (Geofabrik PBF)",
+      "url": "https://download.geofabrik.de/asia/indonesia/sumatra/sumatra-latest.osm.pbf",
+      "reason": "Arsip 270 MB (data per 2026-11-20T21:21:03Z) tidak di-commit ke Git (tersimpan di data/raw/ yang di-gitignore); jaringan jalan drivable Kota Medan (44.522 segmen, 6.723,27 km) telah diekstrak ke EPSG:32647."
     }
   ]
 }

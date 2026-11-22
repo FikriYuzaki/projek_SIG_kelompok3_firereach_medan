@@ -39,7 +39,7 @@ export const FEATURE_REGISTRY = Object.freeze([
     shortTitle: "Hotspot Analyzer",
     owner: "Adeptri",
     route: "/hotspot-analyzer",
-    status: FEATURE_STATUSES.COMING_SOON,
+    status: FEATURE_STATUSES.IN_DEVELOPMENT,
     description:
       "Analisis konsentrasi spasial kejadian kebakaran historis berbasis Kernel Density Estimation (KDE) pada CRS EPSG:32647.",
     plannedInputs: [
@@ -56,7 +56,7 @@ export const FEATURE_REGISTRY = Object.freeze([
     shortTitle: "Station Coverage",
     owner: "Adriel",
     route: "/station-coverage",
-    status: FEATURE_STATUSES.COMING_SOON,
+    status: FEATURE_STATUSES.IN_DEVELOPMENT,
     description:
       "Evaluasi jangkauan layanan pos Damkarmat berbasis jaringan jalan Kota Medan dan perbandingannya dengan buffer jarak lurus.",
     plannedInputs: [
@@ -73,7 +73,7 @@ export const FEATURE_REGISTRY = Object.freeze([
     shortTitle: "Priority Planner",
     owner: "Olo",
     route: "/priority-planner",
-    status: FEATURE_STATUSES.COMING_SOON,
+    status: FEATURE_STATUSES.IN_DEVELOPMENT,
     description:
       "Penyusunan skor dan peringkat kecamatan prioritas peningkatan layanan berdasarkan hotspot historis, gap jangkauan, dan paparan penduduk.",
     plannedInputs: [

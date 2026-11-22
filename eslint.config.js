@@ -11,6 +11,7 @@ export default [
       "coverage/**",
       "data/**",
       "scripts/**",
+      "deliverables/**",
       ".agents/**"
     ]
   },
