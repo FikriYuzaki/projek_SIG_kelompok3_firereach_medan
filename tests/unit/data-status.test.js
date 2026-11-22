@@ -270,4 +270,141 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(priority.sourceMode).toBe("provisional");
     expect(priority.zones).toHaveLength(21);
   });
+
+  it("preserves the Supabase error in getLastError() when getManifest() falls back to local JSON and clears it only when Supabase succeeds", async () => {
+    const localManifest = { city: "Kota Medan", source: "local-manifest" };
+    const remoteManifest = { city: "Kota Medan", source: "supabase-manifest" };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => localManifest
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const maybeSingle = vi
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: { message: "permission denied for table app_data_snapshots" } })
+      .mockRejectedValueOnce(new Error("supabase network timeout"))
+      .mockResolvedValueOnce({ data: { payload: remoteManifest, dataset_status: "verified" }, error: null });
+
+    const builder = {
+      select: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
+      maybeSingle
+    };
+    const supabase = {
+      isConfigured: true,
+      client: { from: vi.fn(() => builder) }
+    };
+
+    const dataStatus = createDataStatusService("/data", supabase);
+
+    // 1. Supabase query error -> falls back to local manifest AND preserves Supabase error
+    const firstResp = await dataStatus.getManifest();
+    expect(firstResp).toEqual({ ok: true, manifest: localManifest, error: null });
+    expect(dataStatus.getLastError()).toBe("permission denied for table app_data_snapshots");
+
+    // 2. Cached getManifest() call must not wipe the preserved fallback error
+    const cachedResp = await dataStatus.getManifest();
+    expect(cachedResp).toEqual({ ok: true, manifest: localManifest, error: null });
+    expect(dataStatus.getLastError()).toBe("permission denied for table app_data_snapshots");
+
+    // 3. Thrown network exception on refresh -> falls back to local manifest AND updates error
+    const secondResp = await dataStatus.refresh();
+    expect(secondResp).toEqual({ ok: true, manifest: localManifest, error: null });
+    expect(dataStatus.getLastError()).toBe("supabase network timeout");
+
+    // 4. Subsequent Supabase success clears getLastError() back to null
+    const thirdResp = await dataStatus.refresh();
+    expect(thirdResp).toEqual({ ok: true, manifest: remoteManifest, error: null });
+    expect(dataStatus.getLastError()).toBeNull();
+  });
+
+  it("records a missing-snapshot error when Supabase returns an empty row and falls back to local JSON", async () => {
+    const localManifest = { city: "Kota Medan", source: "local-fallback" };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => localManifest
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const emptyRow = createSupabaseService({ data: null, error: null });
+    const dataStatus = createDataStatusService("/data", emptyRow.service);
+
+    const resp = await dataStatus.getManifest();
+    expect(resp).toEqual({ ok: true, manifest: localManifest, error: null });
+    expect(dataStatus.getLastError()).toContain("manifest");
+    expect(dataStatus.getLastError()).toMatch(/tidak ditemukan|tidak tersedia/i);
+
+    const nullPayload = createSupabaseService({ data: { payload: null, dataset_status: "unavailable" }, error: null });
+    const dataStatusNullPayload = createDataStatusService("/data", nullPayload.service);
+    await expect(dataStatusNullPayload.fetchJson("priority-planner.provisional.json")).resolves.toEqual(localManifest);
+    expect(dataStatusNullPayload.getLastError()).toContain("priority_planner_provisional");
+  });
+
+  it("loads local manifest cleanly without setting a fake error when Supabase is not configured", async () => {
+    const localManifest = { city: "Kota Medan", source: "local-only" };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => localManifest
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const dataStatus = createDataStatusService("/data", { isConfigured: false, client: null });
+    const resp = await dataStatus.getManifest();
+
+    expect(resp).toEqual({ ok: true, manifest: localManifest, error: null });
+    expect(dataStatus.getLastError()).toBeNull();
+  });
+
+  it("keeps DEMO fixtures strictly local without clearing a prior Supabase fallback error", async () => {
+    const localManifest = { city: "Kota Medan", source: "local-manifest" };
+    const demoPayload = { isDemo: true, dataLabel: "DEMO" };
+    const fetchMock = vi.fn(async (url) => {
+      if (url === "/data/manifest.json") {
+        return { ok: true, json: async () => localManifest };
+      }
+      if (url === "/data/demo/hotspot-analyzer.demo.json") {
+        return { ok: true, json: async () => demoPayload };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { service } = createSupabaseService({
+      data: null,
+      error: { message: "snapshot query timed out" }
+    });
+    const dataStatus = createDataStatusService("/data", service);
+
+    await dataStatus.getManifest();
+    expect(dataStatus.getLastError()).toBe("snapshot query timed out");
+
+    const demoResult = await dataStatus.fetchJson("demo/hotspot-analyzer.demo.json");
+    expect(demoResult).toEqual(demoPayload);
+    expect(service.client.from).toHaveBeenCalledTimes(1);
+    expect(dataStatus.getLastError()).toBe("snapshot query timed out");
+  });
+
+  it("propagates and records local file errors when both Supabase fallback and local fetch fail", async () => {
+    const { service } = createSupabaseService({
+      data: null,
+      error: { message: "supabase unavailable" }
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const dataStatus = createDataStatusService("/data", service);
+
+    await expect(dataStatus.fetchJson("fire_incidents_summary.json")).rejects.toThrow("HTTP 503");
+    expect(dataStatus.getLastError()).toContain("HTTP 503");
+
+    const manifestResp = await dataStatus.getManifest();
+    expect(manifestResp.ok).toBe(false);
+    expect(manifestResp.manifest).toBeNull();
+    expect(manifestResp.error).toContain("HTTP 503");
+    expect(dataStatus.getLastError()).toContain("HTTP 503");
+  });
 });

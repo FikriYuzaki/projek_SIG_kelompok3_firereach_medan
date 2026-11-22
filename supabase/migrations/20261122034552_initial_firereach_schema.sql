@@ -1,4 +1,4 @@
--- FireReach Medan initial spatial schema (local review ready; not applied to remote)
+-- FireReach Medan initial spatial schema (version-controlled copy of applied remote migration 20261122034552)
 -- Follows Supabase PostGIS & Postgres best practices:
 -- - PostGIS installed in dedicated extensions schema
 -- - Explicit SRID 4326 geometry columns + GiST spatial indexes

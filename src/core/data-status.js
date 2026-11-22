@@ -29,8 +29,9 @@ export function createDataStatusService(baseUrl = "/data", supabaseService = nul
 
   async function fetchJson(relativePath) {
     const snapshotKey = resolveSnapshotKey(relativePath);
+    const useSupabase = Boolean(snapshotKey && supabaseService?.isConfigured && supabaseService?.client);
 
-    if (snapshotKey && supabaseService?.isConfigured && supabaseService?.client) {
+    if (useSupabase) {
       try {
         const { data, error } = await supabaseService.client
           .from("app_data_snapshots")
@@ -43,6 +44,8 @@ export function createDataStatusService(baseUrl = "/data", supabaseService = nul
         } else if (data && data.payload !== undefined && data.payload !== null) {
           lastError = null;
           return data.payload;
+        } else {
+          lastError = `Snapshot Supabase tidak ditemukan atau tidak tersedia: ${snapshotKey}`;
         }
       } catch (err) {
         lastError = err?.message || `Koneksi snapshot Supabase gagal: ${snapshotKey}`;
@@ -50,7 +53,11 @@ export function createDataStatusService(baseUrl = "/data", supabaseService = nul
     }
 
     try {
-      return await fetchLocalJson(relativePath);
+      const localData = await fetchLocalJson(relativePath);
+      if (!supabaseService?.isConfigured || !supabaseService?.client) {
+        lastError = null;
+      }
+      return localData;
     } catch (err) {
       lastError = err?.message || "Gagal memuat dataset lokal.";
       throw err;
@@ -64,10 +71,9 @@ export function createDataStatusService(baseUrl = "/data", supabaseService = nul
     try {
       const data = await fetchJson("manifest.json");
       cachedManifest = data;
-      lastError = null;
       return { ok: true, manifest: data, error: null };
     } catch (err) {
-      lastError = err.message || "Gagal membaca manifest data.";
+      lastError = err?.message || "Gagal membaca manifest data.";
       return { ok: false, manifest: null, error: lastError };
     }
   }
