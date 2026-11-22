@@ -45,4 +45,4 @@ Leaflet 2D remains the sole spatial analysis map. `src/components/three-preview.
 ## 4. Local-Only vs Supabase Mode
 
 - **Local-Only Mode (Current Default)**: When `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is empty, the application serves validated files from `public/data/` and labels connection status honestly as `Mode Lokal (tanpa Supabase)`.
-- **Connected Supabase Mode**: Once the project owner provisions Supabase and applies `supabase/migrations/20261119000001_initial_firereach_schema.sql`, modules query curated `public.*` tables using the publishable key under Row Level Security.
+- **Connected Supabase Mode**: Once the project owner provisions Supabase and applies `supabase/migrations/20261122034552_initial_firereach_schema.sql` and `supabase/migrations/20261122034632_public_snapshot_and_aggregate_access.sql`, modules query curated `public.*` tables using the publishable key under Row Level Security.

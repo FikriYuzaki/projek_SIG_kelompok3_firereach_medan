@@ -4,7 +4,7 @@ Remote database migrations have **not been applied** because no remote Supabase 
 
 ## 1. Spatial Extension & Schema Safety
 
-Migration file: `supabase/migrations/20261119000001_initial_firereach_schema.sql`
+Migration files: `supabase/migrations/20261122034552_initial_firereach_schema.sql`, `supabase/migrations/20261122034632_public_snapshot_and_aggregate_access.sql`
 
 - Installs `postgis` and `pgcrypto` inside the dedicated `extensions` schema (`create extension if not exists postgis with schema extensions;`), keeping `spatial_ref_sys` out of the exposed `public` Data API schema.
 - Defines `public.set_updated_at()` as `security invoker` with `set search_path = ''`.
