@@ -42,6 +42,17 @@ export async function renderDashboard({ container, services, navigate }) {
 
   const totals = summary.summary_totals;
   const manifest = manifestResp.manifest;
+  const spmList = summary.damkarmat_spm || [];
+  const spmService = spmList.find((item) => item.unit === "%");
+  const spmResponse = spmList.find((item) => item.unit === "menit");
+  const spmServiceText = spmService
+    ? `${spmService.realization_value}% (target ${spmService.target_value}%)`
+    : "-";
+  const spmResponseText = spmResponse
+    ? `${spmResponse.realization_value.toFixed(2)} mnt (target ${spmResponse.target_value.toFixed(2)} mnt)`
+    : typeof totals.spm_response_time_minutes === "number"
+      ? `${totals.spm_response_time_minutes.toFixed(2)} mnt`
+      : "-";
 
   container.innerHTML = `
     <section class="page-header">
@@ -106,13 +117,25 @@ export async function renderDashboard({ container, services, navigate }) {
 
             <dt style="font-size: var(--text-sm);">Titik kejadian individual berkoordinat</dt>
             <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.individual_geocoded_count)}</dd>
+
+            <dt style="font-size: var(--text-sm);">SPM layanan penyelamatan &amp; evakuasi</dt>
+            <dd class="mono tabular" style="margin: 0; font-weight: 700;">${spmServiceText}</dd>
+
+            <dt style="font-size: var(--text-sm);">SPM waktu tanggap (target 15.00 mnt)</dt>
+            <dd class="mono tabular" style="margin: 0; font-weight: 700;">${spmResponseText}</dd>
+
+            <dt style="font-size: var(--text-sm);">Penyelamatan non-kebakaran (2023 - 2025, terpisah)</dt>
+            <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.non_fire_rescues_2023_2025_total || 0)}</dd>
+
+            <dt style="font-size: var(--text-sm);">Kandidat media independen (perlu review, terpisah)</dt>
+            <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.independent_candidate_incidents_total || 0)} (${services.format.number(totals.independent_candidate_incidents_approximate || 0)} titik ruas)</dd>
           </dl>
         </section>
 
         <section class="panel-subtle">
           <h3>Catatan Granularitas &amp; Akses</h3>
           <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
-            Rekapitulasi resmi 2024 dan 2025 pada Satu Data Medan belum mencantumkan koordinat atau kolom kecamatan, sehingga peta di samping hanya menampilkan agregat kecamatan 2023 serta titik Mako 0.0.
+            Rekapitulasi resmi 2024 dan 2025 pada Satu Data Medan belum mencantumkan koordinat atau kolom kecamatan, sehingga peta di samping hanya menampilkan agregat kecamatan 2023 serta titik Mako 0.0. Enam kandidat pos UPT serta ${services.format.number(totals.independent_candidate_incidents_total || 0)} kandidat media independen berstatus needs_review disimpan terpisah di Fire Incident Explorer.
           </p>
           <p style="font-size: var(--text-xs); color: var(--color-ink-muted); margin-bottom: 0;">
             ${manifest.blockers.length} catatan pembatasan akses tercatat pada halaman <a href="/about" data-nav="/about">Tentang &amp; Sumber Data</a>.

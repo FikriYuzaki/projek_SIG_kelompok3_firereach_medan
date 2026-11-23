@@ -54,6 +54,7 @@ import {
   extractValidPointCoordinates,
   fetchSupabaseIncidents,
   filterDemoRecords,
+  filterIndependentCandidates,
   filterOfficialRows,
   filterSupabasePoints,
   isRecordKdeEligible,
@@ -652,6 +653,35 @@ describe("incident-explorer service helpers", () => {
     const annual = filterOfficialRows({ summary, period: "2016-2025-tahunan" });
     expect(annual).toHaveLength(10);
     expect(annual.find((r) => r.year === 2019)?.consistency_flag).toBe(true);
+
+    const monthlyHist = filterOfficialRows({ summary, period: "2016-2021-bulanan" });
+    expect(monthlyHist).toHaveLength(72);
+    expect(monthlyHist.reduce((s, r) => s + r.filteredCount, 0)).toBe(1372);
+
+    const bpbd = filterOfficialRows({ summary, period: "bpbd-2021-2023", district: "Medan Belawan" });
+    expect(bpbd).toHaveLength(1);
+    expect(bpbd[0].fire_incidents).toBe(11);
+
+    const bpbdMonthly = filterOfficialRows({ summary, period: "bpbd-2022-2023-bulanan" });
+    expect(bpbdMonthly).toHaveLength(24);
+    expect(bpbdMonthly.reduce((s, r) => s + r.filteredCount, 0)).toBe(225);
+    expect(
+      filterSupabasePoints(
+        [{ isDemo: false, verification_status: "verified", geom: { coordinates: [98.67, 3.59] }, lat: 3.59, lon: 98.67 }],
+        { period: "bpbd-2022-2023-bulanan" }
+      )
+    ).toEqual([]);
+
+    const nonFire = filterOfficialRows({ summary, period: "non-kebakaran-2023-2025" });
+    expect(nonFire).toHaveLength(36);
+    expect(nonFire.reduce((s, r) => s + r.filteredCount, 0)).toBe(2218);
+
+    const indFiltered = filterIndependentCandidates(summary.independent_incident_candidates?.records || [], {
+      district: "Medan Deli"
+    });
+    expect(indFiltered).toHaveLength(2);
+    expect(indFiltered.every((r) => r.verification_status === "needs_review" && r.kde_eligible === false)).toBe(true);
+    expect(filterSupabasePoints(indFiltered, { period: "kandidat-independen" })).toEqual([]);
   });
 
   it("computes adaptive choropleth breaks even for sparse or zero categories", () => {
