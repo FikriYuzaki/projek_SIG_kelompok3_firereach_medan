@@ -1,6 +1,15 @@
 import { FEATURE_REGISTRY, FEATURE_STATUS_META } from "../core/feature-registry.js";
 import { renderStatePanel } from "./state-panel.js";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export async function renderAbout({ container, services, navigate }) {
   const manifestResp = await services.dataStatus.getManifest();
   if (!manifestResp.ok) {
@@ -102,28 +111,81 @@ export async function renderAbout({ container, services, navigate }) {
                 (ds) => `
               <tr>
                 <td>
-                  <strong>${ds.title}</strong>
-                  <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">
-                    SHA-256: ${ds.sha256 ? ds.sha256.slice(0, 14) + "..." : "-"}
+                  <strong>${escapeHtml(ds.title)}</strong>
+                  <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted); overflow-wrap: anywhere;">
+                    SHA-256: ${ds.sha256 ? escapeHtml(ds.sha256.slice(0, 14)) + "..." : "-"}
+                    ${ds.url ? ` | <a href="${escapeHtml(ds.url)}" target="_blank" rel="noopener noreferrer">Sumber</a>` : ""}
                   </div>
                 </td>
-                <td>${ds.publisher}</td>
-                <td>${ds.period}</td>
-                <td><code class="mono">${ds.granularity}</code></td>
+                <td>${escapeHtml(ds.publisher)}</td>
+                <td>${escapeHtml(ds.period)}</td>
+                <td><code class="mono">${escapeHtml(ds.granularity)}</code></td>
                 <td class="mono tabular">${services.format.number(ds.record_count)}</td>
-                <td>
-                  <span class="status-badge ${ds.status === "verified" ? "status-badge--active" : "status-badge--dev"}">
-                    ${ds.status === "verified" ? "Terverifikasi" : "Fallback OSM"}
-                  </span>
-                </td>
-              </tr>
-            `
+                  <td>
+                    <span class="status-badge ${ds.status === "verified" ? "status-badge--active" : "status-badge--dev"}">
+                      ${ds.status === "verified" ? "Terverifikasi" : "Fallback OSM"}
+                    </span>
+                  </td>
+                </tr>
+              `
               )
               .join("")}
           </tbody>
         </table>
       </div>
     </section>
+
+    ${
+      manifest.independent_enrichment
+        ? `
+      <section class="panel">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2);">
+          <h2>Pengayaan Kandidat Independen (Belum Terverifikasi)</h2>
+          <span class="status-badge status-badge--dev">[~] needs_review (Terpisah dari Statistik Resmi)</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--color-ink-muted);">
+          ${escapeHtml(manifest.independent_enrichment.scope_note)}
+          <a href="/incident-explorer" data-nav="/incident-explorer">Tinjau di Fire Incident Explorer</a>.
+        </p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kandidat Dataset</th>
+                <th>Sumber &amp; Metode</th>
+                <th>Periode</th>
+                <th>Jumlah</th>
+                <th>Akurasi / KDE</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(manifest.independent_enrichment.datasets || [])
+                .map(
+                  (item) => `
+                <tr>
+                  <td>
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">
+                      SHA-256: ${item.sha256 ? escapeHtml(item.sha256.slice(0, 14)) + "..." : "-"}
+                    </div>
+                  </td>
+                  <td>${escapeHtml(item.publisher)}</td>
+                  <td>${escapeHtml(item.period)}</td>
+                  <td class="mono tabular">${services.format.number(item.record_count)}</td>
+                  <td><code class="mono">${escapeHtml(item.accuracy_summary)}</code></td>
+                  <td><span class="status-badge status-badge--dev">[~] ${escapeHtml(item.status)}</span></td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `
+        : ""
+    }
 
     <section class="panel">
       <h2>Catatan Pembatasan Akses &amp; Blocker Sumber</h2>
@@ -141,9 +203,9 @@ export async function renderAbout({ container, services, navigate }) {
               .map(
                 (b) => `
               <tr>
-                <td><strong>${b.source}</strong></td>
-                <td><code class="mono" style="font-size: var(--text-xs);">${b.url}</code></td>
-                <td>${b.reason}</td>
+                <td><strong>${escapeHtml(b.source)}</strong></td>
+                <td><a href="${escapeHtml(b.url)}" target="_blank" rel="noopener noreferrer" class="mono" style="font-size: var(--text-xs); overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(b.url)}</a></td>
+                <td>${escapeHtml(b.reason)}</td>
               </tr>
             `
               )

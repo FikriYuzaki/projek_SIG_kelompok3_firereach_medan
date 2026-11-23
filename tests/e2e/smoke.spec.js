@@ -4,6 +4,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
   test("covers dashboard, Hotspot Analyzer, Station Coverage, Priority Planner, Explorer filters, WebGL fallback, lifecycle cleanup, error state, and responsive layout", async ({
     page
   }) => {
+    test.setTimeout(60000);
     const consoleErrors = [];
     const pageErrors = [];
     const failedAssets = [];
@@ -512,5 +513,104 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#priority-provisional-rejected")).toBeVisible();
     await expect(page.locator("#priority-status-badge")).toHaveAttribute("data-status-mode", "demo");
     await expect(page.locator("#priority-status-badge")).toContainText("DEMO");
+  });
+
+  test("displays enriched Satu Data series, BPBD comparison, non-fire rescues, and unverified independent candidates cleanly", async ({
+    page
+  }) => {
+    const consoleErrors = [];
+    const pageErrors = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    page.on("pageerror", (err) => pageErrors.push(err.message));
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.getByText(/100% \(target 100%\)/i)).toBeVisible();
+    await expect(page.getByText(/13\.10 mnt \(target 15\.00 mnt\)/i)).toBeVisible();
+    await expect(page.getByText(/2\.218/)).toBeVisible();
+    await expect(page.getByText(/27 \(17 titik ruas\)/)).toBeVisible();
+
+    await page.goto("/about");
+    await expect(page.getByText(/Pengayaan Kandidat Independen \(Belum Terverifikasi\)/i)).toBeVisible();
+    await expect(page.getByText(/BPBD Rekapitulasi Bencana Tahun 2021/i)).toBeVisible();
+    await expect(page.locator("table a[href*='p2k.medan.go.id']")).toHaveAttribute("target", "_blank");
+    await expect(page.locator("table a[href*='medanterkini.medan.go.id']").first()).toHaveAttribute("target", "_blank");
+
+    await page.goto("/incident-explorer");
+    await expect(page.getByRole("heading", { name: "Fire Incident Explorer" })).toBeVisible({ timeout: 15000 });
+    await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect(page.locator("#tab-verified")).toHaveText("Eksplorasi Dataset & Peta");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Data Resmi Damkarmat");
+
+    await page.selectOption("#filter-period", "2016-2021-bulanan");
+    await expect(page.locator("#explorer-table-count")).toHaveText("72 baris");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("1.372");
+
+    await page.selectOption("#filter-period", "bpbd-2021-2023");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Pembanding BPBD (Terpisah)");
+    await expect(page.locator("#explorer-table-count")).toHaveText("21 baris");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("BPBD");
+    await page.selectOption("#filter-district", "Medan Belawan");
+    await expect(page.locator("#explorer-table-count")).toHaveText("1 baris");
+    await expect(page.locator("#detail-kv")).toContainText("Medan Belawan");
+
+    await page.selectOption("#filter-period", "bpbd-2022-2023-bulanan");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Pembanding BPBD (Terpisah)");
+    await expect(page.locator("#explorer-table-count")).toHaveText("24 baris");
+    await expect(page.locator("#explorer-metrics")).toContainText("225");
+
+    await page.selectOption("#filter-period", "non-kebakaran-2023-2025");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Penyelamatan Non-Kebakaran (Terpisah)");
+    await expect(page.locator("#explorer-table-count")).toHaveText("36 baris");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("2.218");
+    await expect(page.locator("#detail-kv")).toContainText("is_fire_incident = false");
+    await page.locator("tr[data-row-key='Oktober 2024']").click();
+    await expect(page.locator("#detail-qa-note")).toContainText("62 vs jumlah kategori kanan 61");
+
+    await page.selectOption("#filter-period", "kandidat-independen");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Kandidat Independen (needs_review)");
+    await expect(page.locator("#explorer-table-count")).toHaveText("27 kandidat");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("Belum Terverifikasi");
+    await expect(page.locator("#detail-kv")).toContainText("Non-KDE");
+    await expect(page.locator("#explorer-upt-candidates-panel")).toBeVisible();
+    await expect(page.locator("#explorer-upt-candidates-panel")).toContainText("UPT-01");
+    await expect(page.locator("#explorer-upt-candidates-panel")).toContainText("geom = null (tidak di peta)");
+    await expect(page.locator("#explorer-upt-candidates-panel a[href*='peraturan.bpk.go.id']").first()).toHaveAttribute(
+      "target",
+      "_blank"
+    );
+    await page.locator("tr[data-row-key='IND-2026-0127-DELI']").click();
+    await expect(page.locator("#detail-kv")).toContainText("Liputan Duplikat Terhubung (3)");
+    await expect(page.locator("#detail-kv a[href*='652642']")).toHaveAttribute("target", "_blank");
+    await page.selectOption("#filter-district", "Medan Deli");
+    await expect(page.locator("#explorer-table-count")).toHaveText("2 kandidat");
+
+    for (const vp of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 375, height: 812 }
+    ]) {
+      await page.setViewportSize(vp);
+      const layoutCheck = await page.evaluate(() => ({
+        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        metricOverflow: Array.from(document.querySelectorAll(".metric-box, .metric-value")).some(
+          (el) => el.scrollWidth > el.clientWidth + 1
+        )
+      }));
+      expect(layoutCheck.docOverflow, `overflow at ${vp.width}px`).toBe(false);
+      expect(layoutCheck.metricOverflow, `metric overflow at ${vp.width}px`).toBe(false);
+    }
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/about");
+    const aboutOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(aboutOverflow).toBe(false);
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
   });
 });

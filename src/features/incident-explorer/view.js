@@ -6,6 +6,7 @@ import {
   classifyChoroplethTier,
   computeChoroplethBreaks,
   filterDemoRecords,
+  filterIndependentCandidates,
   filterOfficialRows,
   filterSupabasePoints,
   getDominantCategory,
@@ -39,6 +40,21 @@ function renderBadge(status) {
     return `<span class="status-badge status-badge--dev">[~] needs_review</span>`;
   }
   return `<span class="status-badge status-badge--demo">[!] ${escapeHtml(status || "unlocated")}</span>`;
+}
+
+function formatSourceLinkLabel(url, fallbackIndex = 1) {
+  const raw = String(url || "");
+  if (raw.includes("peraturan.bpk.go.id")) {
+    return "JDIH BPK (Perwali 25/2018)";
+  }
+  const antaraMatch = raw.match(/antaranews\.com\/berita\/(\d+)/);
+  if (antaraMatch) {
+    return `ANTARA Sumut (${antaraMatch[1]})`;
+  }
+  if (raw.includes("detik.com")) {
+    return `Detik Sumut (#${fallbackIndex})`;
+  }
+  return `Sumber #${fallbackIndex}`;
 }
 
 function getRowKey(row, isDemoMode) {
@@ -110,6 +126,116 @@ function buildDetailHtml({ row, state, format, categoryLabels }) {
       `,
       qaNote: row.consistency_flag ? row.consistency_note : "",
       previewType: "umum"
+    };
+  }
+
+  if (state.period === "2016-2021-bulanan") {
+    return {
+      html: `
+        <dt>Periode</dt><dd>${escapeHtml(row.display_label || row.displayLabel)}</dd>
+        <dt>Kejadian Kebakaran (Kota Medan)</dt><dd class="mono tabular">${format.number(row.total_incidents)}</dd>
+        <dt>Granularitas</dt><dd class="mono">${escapeHtml(row.granularity)}</dd>
+        <dt>Akurasi &amp; Status</dt><dd class="mono">${escapeHtml(row.location_accuracy)} / ${escapeHtml(row.verification_status)}</dd>
+        <dt>Geometri</dt><dd class="mono">geom = null</dd>
+        <dt>Sumber Data</dt><dd>${escapeHtml(row.source_name || "Satu Data Medan")}</dd>
+      `,
+      qaNote: "Arsip bulanan 2016 - 2021 tingkat kota (72 baris, total 1.372); tidak merinci kecamatan maupun koordinat individual.",
+      previewType: "umum"
+    };
+  }
+
+  if (state.period === "bpbd-2021-2023") {
+    return {
+      html: `
+        <dt>Kecamatan</dt><dd>${escapeHtml(row.district_name)} <span class="mono">(${escapeHtml(row.area_code)})</span></dd>
+        <dt>Kebakaran BPBD 2022</dt><dd class="mono tabular">${format.number(row.fire_incidents)}</dd>
+        <dt>Kebakaran BPBD 2021</dt><dd class="mono tabular">${format.number(row.fire_incidents_2021)}</dd>
+        <dt>Banjir / Puting Beliung / Longsor (2022)</dt><dd class="mono tabular">${row.flood_events} / ${row.wind_events} / ${row.landslide_events}</dd>
+        <dt>Total Bencana BPBD 2022</dt><dd class="mono tabular">${format.number(row.total_disasters)}</dd>
+        <dt>Akurasi &amp; Status</dt><dd>${escapeHtml(row.location_accuracy)} / ${renderBadge(row.verification_status)}</dd>
+        <dt>Geometri</dt><dd class="mono">Poligon kecamatan (titik = null)</dd>
+        <dt>Sumber Data</dt><dd>${escapeHtml(row.source_name || "BPBD Kota Medan")}</dd>
+      `,
+      qaNote:
+        "Data pembanding BPBD (2021: 108 kebakaran vs Damkarmat 207; 2022: 138 vs 216; bulanan 2023: 87 vs 219). Baris JUMLAH BPBD 2022 mencetak tanah longsor 0 meski Medan Tuntungan tercatat 1.",
+      previewType: "umum"
+    };
+  }
+
+  if (state.period === "bpbd-2022-2023-bulanan") {
+    return {
+      html: `
+        <dt>Periode</dt><dd>${escapeHtml(row.display_label || row.displayLabel)}</dd>
+        <dt>Tahun / Bulan</dt><dd class="mono">${escapeHtml(row.period_year)} / ${escapeHtml(row.month_name)}</dd>
+        <dt>Kebakaran (BPBD)</dt><dd class="mono tabular">${format.number(row.fire_incidents || 0)}</dd>
+        <dt>Banjir / Puting Beliung / Longsor</dt><dd class="mono tabular">${row.flood_events || 0} / ${row.wind_events || 0} / ${row.landslide_events || 0}</dd>
+        <dt>Total Bencana (BPBD)</dt><dd class="mono tabular">${format.number(row.total_disasters || 0)}</dd>
+        <dt>Granularitas</dt><dd class="mono">${escapeHtml(row.granularity)}</dd>
+        <dt>Geometri</dt><dd class="mono">geom = null (unknown)</dd>
+        <dt>Sumber Data</dt><dd>${escapeHtml(row.source_name || "BPBD Kota Medan")}</dd>
+      `,
+      qaNote:
+        "Seri bulanan BPBD 2022 (138 kebakaran) dan 2023 (87 kebakaran; total 225) disajikan terpisah sebagai pembanding Damkarmat (216 dan 219) tanpa atribut koordinat atau kecamatan.",
+      previewType: "umum"
+    };
+  }
+
+  if (state.period === "non-kebakaran-2023-2025") {
+    const discNote = row.left_vs_category_discrepancy
+      ? ` Selisih internal spreadsheet: total kolom kiri ${row.total_rescues} vs jumlah kategori kanan ${row.category_sum_total} (${row.left_vs_category_discrepancy > 0 ? `+${row.left_vs_category_discrepancy}` : row.left_vs_category_discrepancy}).`
+      : "";
+    return {
+      html: `
+        <dt>Periode</dt><dd>${escapeHtml(row.display_label || row.displayLabel)}</dd>
+        <dt>Total Penyelamatan Non-Kebakaran</dt><dd class="mono tabular">${format.number(row.total_rescues)}</dd>
+        <dt>Jumlah Rincian Kategori</dt><dd class="mono tabular">${format.number(row.category_sum_total)}</dd>
+        <dt>Jenis Terbanyak</dt><dd>${escapeHtml(row.dominant_rescue_type || "-")} (${format.number(row.dominant_rescue_count || 0)})</dd>
+        <dt>Klasifikasi Kebakaran</dt><dd class="mono">is_fire_incident = false (terpisah)</dd>
+        <dt>Geometri</dt><dd class="mono">geom = null</dd>
+        <dt>Sumber Data</dt><dd>${escapeHtml(row.source_name)}</dd>
+      `,
+      qaNote: `Operasi penyelamatan non-kebakaran tidak dihitung ke angka kejadian kebakaran.${discNote}`,
+      previewType: "umum"
+    };
+  }
+
+  if (state.period === "kandidat-independen") {
+    const hasCoords = typeof row.lat === "number" && typeof row.lon === "number";
+    const occurredTime = row.occurred_time_wib ? `${escapeHtml(row.occurred_time_wib)} WIB` : "Tidak tersedia (bukan 00:00)";
+    const additionalUrls = Array.isArray(row.additional_source_urls) ? row.additional_source_urls : [];
+    const additionalLinksHtml = additionalUrls.length
+      ? `
+        <dt>Liputan Duplikat Terhubung (${additionalUrls.length})</dt>
+        <dd>
+          <ul style="margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem;">
+            ${additionalUrls
+              .map(
+                (url, idx) =>
+                  `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="overflow-wrap: anywhere;">${escapeHtml(formatSourceLinkLabel(url, idx + 1))}</a></li>`
+              )
+              .join("")}
+          </ul>
+        </dd>
+      `
+      : "";
+    return {
+      html: `
+        <dt>ID Kandidat</dt><dd class="mono">${escapeHtml(row.source_record_id)}</dd>
+        <dt>Tanggal &amp; Jam Kejadian</dt><dd class="mono">${escapeHtml(row.occurred_on || "-")} | ${occurredTime}</dd>
+        <dt>Jam Laporan / Pemadaman</dt><dd class="mono">${escapeHtml(row.reported_at_wib ? `${row.reported_at_wib} WIB` : "-")} / ${escapeHtml(row.extinguish_window_wib || "-")}</dd>
+        <dt>Publikasi Artikel</dt><dd class="mono">${escapeHtml(row.published_at || "-")}</dd>
+        <dt>Kecamatan / Kelurahan</dt><dd>${escapeHtml(row.district_name || "-")}${row.subdistrict_name ? ` / ${escapeHtml(row.subdistrict_name)}` : ""}</dd>
+        <dt>Lokasi (Generalisasi Ruas)</dt><dd>${escapeHtml(row.address_text || "-")}</dd>
+        <dt>Objek</dt><dd>${escapeHtml(row.object_summary || row.object_type || "-")}</dd>
+        <dt>Unit Terlibat</dt><dd>${escapeHtml(row.dispatched_units_note || "-")}</dd>
+        <dt>Akurasi &amp; KDE</dt><dd class="mono">${escapeHtml(row.location_accuracy)} / Non-KDE</dd>
+        <dt>Geometri</dt><dd class="mono">${hasCoords ? `${row.lat}, ${row.lon} (${escapeHtml(row.osm_ref || "OSM")})` : "geom = null (district_only)"}</dd>
+        <dt>Status Verifikasi</dt><dd>${renderBadge(row.verification_status)}</dd>
+        <dt>Sumber Publik</dt><dd><a href="${escapeHtml(row.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.source_name)}</a></dd>
+        ${additionalLinksHtml}
+      `,
+      qaNote: row.review_notes || "Kandidat dari media berita terbuka; belum terverifikasi laporan resmi Damkarmat.",
+      previewType: row.object_type || "umum"
     };
   }
 
@@ -242,6 +368,217 @@ function buildOfficialTableMarkup({ rows, state, format }) {
     };
   }
 
+  if (state.period === "2016-2021-bulanan") {
+    return {
+      title: "Rekapitulasi Bulanan Kejadian Kebakaran Kota Medan (2016 - 2021)",
+      count: `${rows.length} baris`,
+      html: `
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Tahun</th>
+                <th>Jumlah Kejadian</th>
+                <th>Granularitas</th>
+                <th>Akurasi</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-interactive="true" data-row-key="${escapeHtml(r.displayLabel)}" tabindex="0" class="${state.selectedKey === r.displayLabel ? "is-selected" : ""}">
+                  <td><strong>${escapeHtml(r.displayLabel)}</strong></td>
+                  <td class="mono">${r.period_year}</td>
+                  <td class="mono tabular"><strong>${format.number(r.filteredCount)}</strong></td>
+                  <td class="mono">${escapeHtml(r.granularity)}</td>
+                  <td class="mono">${escapeHtml(r.location_accuracy)}</td>
+                  <td>${renderBadge(r.verification_status)}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+    };
+  }
+
+  if (state.period === "bpbd-2021-2023") {
+    return {
+      title: "Pembanding BPBD Kota Medan per Kecamatan (Kebakaran 2021 - 2022)",
+      count: `${rows.length} baris`,
+      html: `
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kecamatan</th>
+                <th>Kebakaran 2022 (BPBD)</th>
+                <th>Kebakaran 2021 (BPBD)</th>
+                <th>Banjir 2022</th>
+                <th>Puting Beliung 2022</th>
+                <th>Longsor 2022</th>
+                <th>Total Bencana 2022</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-interactive="true" data-row-key="${escapeHtml(r.displayLabel)}" tabindex="0" class="${state.selectedKey === r.displayLabel ? "is-selected" : ""}">
+                  <td><strong>${escapeHtml(r.district_name)}</strong></td>
+                  <td class="mono tabular"><strong>${format.number(r.fire_incidents)}</strong></td>
+                  <td class="mono tabular">${format.number(r.fire_incidents_2021)}</td>
+                  <td class="mono tabular">${r.flood_events}</td>
+                  <td class="mono tabular">${r.wind_events}</td>
+                  <td class="mono tabular">${r.landslide_events}</td>
+                  <td class="mono tabular">${format.number(r.total_disasters)}</td>
+                  <td>${renderBadge(r.verification_status)}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+    };
+  }
+
+  if (state.period === "non-kebakaran-2023-2025") {
+    return {
+      title: "Rekapitulasi Operasi Penyelamatan Non-Kebakaran Damkarmat (2023 - 2025)",
+      count: `${rows.length} baris`,
+      html: `
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Total Penyelamatan</th>
+                <th>Jumlah Kategori</th>
+                <th>Jenis Dominan</th>
+                <th>Selisih Kolom</th>
+                <th>Klasifikasi</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-interactive="true" data-row-key="${escapeHtml(r.displayLabel)}" tabindex="0" class="${state.selectedKey === r.displayLabel ? "is-selected" : ""}">
+                  <td><strong>${escapeHtml(r.displayLabel)}</strong></td>
+                  <td class="mono tabular"><strong>${format.number(r.total_rescues)}</strong></td>
+                  <td class="mono tabular">${format.number(r.category_sum_total)}</td>
+                  <td>${escapeHtml(r.dominant_rescue_type || "-")} (${format.number(r.dominant_rescue_count || 0)})</td>
+                  <td class="mono tabular">${r.left_vs_category_discrepancy || 0}</td>
+                  <td class="mono">Non-Kebakaran</td>
+                  <td>${renderBadge(r.verification_status)}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+    };
+  }
+
+  if (state.period === "bpbd-2022-2023-bulanan") {
+    return {
+      title: "Pembanding Bulanan BPBD Kota Medan (Kebakaran & Total Bencana 2022 - 2023)",
+      count: `${rows.length} baris`,
+      html: `
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Kebakaran (BPBD)</th>
+                <th>Banjir</th>
+                <th>Puting Beliung</th>
+                <th>Longsor</th>
+                <th>Total Bencana</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-interactive="true" data-row-key="${escapeHtml(r.displayLabel)}" tabindex="0" class="${state.selectedKey === r.displayLabel ? "is-selected" : ""}">
+                  <td><strong>${escapeHtml(r.displayLabel)}</strong></td>
+                  <td class="mono tabular"><strong>${format.number(r.fire_incidents || 0)}</strong></td>
+                  <td class="mono tabular">${r.flood_events || 0}</td>
+                  <td class="mono tabular">${r.wind_events || 0}</td>
+                  <td class="mono tabular">${r.landslide_events || 0}</td>
+                  <td class="mono tabular">${format.number(r.total_disasters || 0)}</td>
+                  <td>${renderBadge(r.verification_status)}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+    };
+  }
+
+  if (state.period === "kandidat-independen") {
+    return {
+      title: "Tabel Kandidat Kejadian Media Independen (needs_review, Bukan Statistik Resmi)",
+      count: `${rows.length} kandidat`,
+      html: `
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID Kandidat</th>
+                <th>Tgl Kejadian</th>
+                <th>Kecamatan</th>
+                <th>Lokasi (Generalisasi Ruas)</th>
+                <th>Objek</th>
+                <th>Akurasi</th>
+                <th>Geometri</th>
+                <th>Status</th>
+                <th>Sumber</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-interactive="true" data-row-key="${escapeHtml(r.source_record_id)}" tabindex="0" class="${state.selectedKey === r.source_record_id ? "is-selected" : ""}">
+                  <td class="mono"><strong>${escapeHtml(r.source_record_id)}</strong></td>
+                  <td class="mono">${escapeHtml(r.occurred_on)}${r.occurred_time_wib ? ` ${escapeHtml(r.occurred_time_wib)}` : ""}</td>
+                  <td>${escapeHtml(r.district_name || "-")}</td>
+                  <td>${escapeHtml(r.address_text || "-")}</td>
+                  <td>${escapeHtml(r.object_summary || r.object_type || "-")}</td>
+                  <td class="mono">${escapeHtml(r.location_accuracy)}</td>
+                  <td class="mono">${typeof r.lat === "number" ? "Point" : "null"}</td>
+                  <td>${renderBadge(r.verification_status)}</td>
+                  <td>
+                    <a href="${escapeHtml(r.source_url)}" target="_blank" rel="noopener noreferrer" data-external-link="true">${escapeHtml(r.source_name)}</a>${Array.isArray(r.additional_source_urls) && r.additional_source_urls.length > 0 ? ` <span class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">(+${r.additional_source_urls.length})</span>` : ""}
+                  </td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+    };
+  }
+
   return {
     title: isDist
       ? "Rekapitulasi Kejadian Kebakaran per Kecamatan (2023)"
@@ -361,11 +698,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         <div>
           <h1>${escapeHtml(manifest.title)}</h1>
           <p class="page-lead">
-            Eksplorasi data kejadian kebakaran Kota Medan resmi (2023 kecamatan &amp; dampak bulanan, 2024-2025 bulanan, serta deret historis 2016-2025) beserta pemisahan data yang belum terlokasi.
+            Eksplorasi data kejadian kebakaran Kota Medan resmi (2016 - 2025), pembanding BPBD, penyelamatan non-kebakaran, serta kandidat media independen secara terpisah.
           </p>
         </div>
         <div class="explorer-header-actions">
           <span class="status-badge status-badge--dev">[~] Dalam Pengembangan</span>
+          <span class="status-badge status-badge--active" id="explorer-mode-badge">Mode: Data Resmi Damkarmat</span>
           <span class="status-badge status-badge--local" id="explorer-source-mode">${escapeHtml(supabaseBadgeText)}</span>
           <button type="button" class="btn btn-secondary btn-sm" id="toggle-demo-mode" aria-pressed="false">
             Pratinjau Kontrak Individual (DEMO)
@@ -377,7 +715,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
       <div class="tab-bar" role="tablist" aria-label="Tampilan data Fire Incident Explorer">
         <button type="button" class="tab-btn" role="tab" id="tab-verified" aria-selected="true" aria-controls="explorer-tab-verified" data-tab="verified">
-          Data Resmi Terverifikasi
+          Eksplorasi Dataset &amp; Peta
         </button>
         <button type="button" class="tab-btn" role="tab" id="tab-unlocated" aria-selected="false" aria-controls="explorer-tab-unlocated" data-tab="unlocated">
           Belum Terlokasi &amp; Perlu Review (${summary.unlocated_register.length} batch)
@@ -395,6 +733,11 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
                 <option value="2024-bulanan">2024 (Agregat Bulanan)</option>
                 <option value="2025-bulanan">2025 (Agregat Bulanan)</option>
                 <option value="2016-2025-tahunan">2016 - 2025 (Tren Historis Tahunan)</option>
+                <option value="2016-2021-bulanan">2016 - 2021 (Agregat Bulanan Damkarmat)</option>
+                <option value="bpbd-2021-2023">2021 - 2023 (Pembanding BPBD Medan)</option>
+                <option value="bpbd-2022-2023-bulanan">2022 - 2023 (Pembanding Bulanan BPBD Medan)</option>
+                <option value="non-kebakaran-2023-2025">2023 - 2025 (Penyelamatan Non-Kebakaran)</option>
+                <option value="kandidat-independen">2024 - 2026 (Kandidat Media Independen - Perlu Review)</option>
               </select>
             </div>
             <div class="field">
@@ -420,8 +763,8 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
               <label for="filter-sort">Urutkan Hasil</label>
               <select id="filter-sort">
                 <option value="default">Urutan Asli Sumber</option>
-                <option value="desc">Kejadian Terbanyak</option>
-                <option value="asc">Kejadian Tersedikit</option>
+                <option value="desc">Terbanyak / Terbaru</option>
+                <option value="asc">Tersedikit / Terlama</option>
                 <option value="name">Nama / Tahun (A - Z)</option>
               </select>
             </div>
@@ -488,17 +831,21 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           </div>
           <div id="explorer-table-wrap"></div>
         </section>
+
+        <section class="panel" id="explorer-upt-candidates-panel" style="margin-top: var(--space-4);" hidden></section>
       </div>
 
       <div id="explorer-tab-unlocated" role="tabpanel" aria-labelledby="tab-unlocated" hidden></div>
     `;
 
+    const modeBadgeEl = container.querySelector("#explorer-mode-badge");
     const bannerEl = container.querySelector("#explorer-granularity-banner");
     const demoBtn = container.querySelector("#toggle-demo-mode");
     const tabVerifiedBtn = container.querySelector("#tab-verified");
     const tabUnlocatedBtn = container.querySelector("#tab-unlocated");
     const tabVerifiedPanel = container.querySelector("#explorer-tab-verified");
     const tabUnlocatedPanel = container.querySelector("#explorer-tab-unlocated");
+    const uptCandidatesPanelEl = container.querySelector("#explorer-upt-candidates-panel");
 
     const periodSel = container.querySelector("#filter-period");
     const districtSel = container.querySelector("#filter-district");
@@ -542,13 +889,17 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     let invalidateTimer = null;
     let isMounted = true;
 
+    function isChoroplethPeriod() {
+      return state.period === "2023-kecamatan" || state.period === "bpbd-2021-2023";
+    }
+
     function getMapLayerKey() {
       return `${state.demoMode}|${state.period}|${state.district}|${state.category}|${state.search}|${state.showSupabasePoints}`;
     }
 
     function computeDistrictFeatureStyle(feature) {
       const name = feature.properties.district_name;
-      if (state.period !== "2023-kecamatan") {
+      if (!isChoroplethPeriod()) {
         return { color: "#556164", weight: 1, fillColor: "#ECEAE2", fillOpacity: 0.45 };
       }
       const matched = activeRowMap.get(name);
@@ -585,7 +936,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
     function applySelectionUiOnly(selectedKey) {
       state.selectedKey = selectedKey;
-      const found = activeRowsSnapshot.find((item) => getRowKey(item, state.demoMode) === selectedKey);
+      const found = activeRowsSnapshot.find(
+        (item) => getRowKey(item, state.demoMode || state.period === "kandidat-independen") === selectedKey
+      );
       updateDetail(found);
 
       const rows = tableWrapEl.querySelectorAll("tr[data-row-key]");
@@ -756,7 +1109,34 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       });
     }
 
+    function updateModeBadge() {
+      if (!modeBadgeEl) return;
+      if (state.demoMode && state.demoFixture) {
+        modeBadgeEl.className = "status-badge status-badge--demo";
+        modeBadgeEl.textContent = "Mode: DATA DEMO (Pratinjau Skema)";
+        return;
+      }
+      if (state.period === "kandidat-independen") {
+        modeBadgeEl.className = "status-badge status-badge--dev";
+        modeBadgeEl.textContent = "Mode: Kandidat Independen (needs_review)";
+        return;
+      }
+      if (state.period === "bpbd-2021-2023" || state.period === "bpbd-2022-2023-bulanan") {
+        modeBadgeEl.className = "status-badge status-badge--dev";
+        modeBadgeEl.textContent = "Mode: Pembanding BPBD (Terpisah)";
+        return;
+      }
+      if (state.period === "non-kebakaran-2023-2025") {
+        modeBadgeEl.className = "status-badge status-badge--dev";
+        modeBadgeEl.textContent = "Mode: Penyelamatan Non-Kebakaran (Terpisah)";
+        return;
+      }
+      modeBadgeEl.className = "status-badge status-badge--active";
+      modeBadgeEl.textContent = "Mode: Data Resmi Damkarmat";
+    }
+
     function updateBanner() {
+      updateModeBadge();
       if (state.demoMode && state.demoFixture) {
         bannerEl.className = "notice-banner notice-banner--demo";
         bannerEl.innerHTML = `
@@ -779,7 +1159,32 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       } else if (state.period === "2016-2025-tahunan") {
         bannerEl.className = "notice-banner notice-banner--warn";
         bannerEl.innerHTML = `
-          <strong>Catatan Seri Historis 2016 - 2025:</strong> Data 2016-2022 tersedia pada level agregat tahunan/bulanan kota (<code>geom = null</code>) dengan perbedaan cakupan luar kota pada arsip 2019, 2020, dan 2021.
+          <strong>Catatan Seri Historis 2016 - 2025:</strong> Data 2016 - 2022 tersedia pada level agregat tahunan/bulanan kota (<code>geom = null</code>) dengan perbedaan cakupan luar kota pada arsip 2019, 2020, dan 2021.
+        `;
+      } else if (state.period === "2016-2021-bulanan") {
+        bannerEl.className = "notice-banner notice-banner--warn";
+        bannerEl.innerHTML = `
+          <strong>Agregat Bulanan Damkarmat 2016 - 2021 (72 Baris):</strong> Seluruh 72 baris bulanan berjumlah 1.372 kejadian dan cocok identik per tahun dengan seri tahunan resmi, tanpa kolom kecamatan atau koordinat (<code>geom = null</code>).
+        `;
+      } else if (state.period === "bpbd-2021-2023") {
+        bannerEl.className = "notice-banner notice-banner--warn";
+        bannerEl.innerHTML = `
+          <strong>Dataset Pembanding BPBD Kota Medan (2021 - 2023):</strong> Disajikan terpisah dari statistik resmi Dinas Damkarmat (BPBD mencatat 108 kebakaran di 2021, 138 di 2022, dan 87 bulanan di 2023 dibanding Damkarmat 207, 216, dan 219).
+        `;
+      } else if (state.period === "bpbd-2022-2023-bulanan") {
+        bannerEl.className = "notice-banner notice-banner--warn";
+        bannerEl.innerHTML = `
+          <strong>Pembanding Bulanan BPBD Kota Medan (2022 - 2023):</strong> Berisi 24 baris bulanan (138 kebakaran di 2022 dan 87 kebakaran di 2023; total 225 kebakaran dari 303 bencana BPBD). Disajikan terpisah dari statistik resmi Damkarmat tanpa koordinat atau kecamatan (<code>geom = null</code>).
+        `;
+      } else if (state.period === "non-kebakaran-2023-2025") {
+        bannerEl.className = "notice-banner notice-banner--warn";
+        bannerEl.innerHTML = `
+          <strong>Penyelamatan Non-Kebakaran Damkarmat (2023 - 2025):</strong> Berisi 2.218 operasi evakuasi non-kebakaran (ular, sarang tawon, cincin, kucing, dll.). Dipisahkan tegas dan tidak pernah dihitung ke jumlah kebakaran (<code>geom = null</code>).
+        `;
+      } else if (state.period === "kandidat-independen") {
+        bannerEl.className = "notice-banner notice-banner--warn";
+        bannerEl.innerHTML = `
+          <strong>Kandidat Media Independen (Belum Terverifikasi / Non-KDE):</strong> Berisi 27 kejadian unik hasil deduplikasi dari 35 artikel berita terbuka (ANTARA Sumut &amp; Detik Sumut) dan 6 kandidat pos UPT. Hanya 17 kejadian memiliki titik perkiraan ruas/landmark (<code>approximate</code>) dan 10 kejadian tetap <code>geom = null</code>; tidak menggantikan data resmi Damkarmat.
         `;
       } else {
         const yr = state.period === "2024-bulanan" ? "2024" : "2025";
@@ -897,27 +1302,138 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         return;
       }
 
+      if (state.period === "bpbd-2021-2023") {
+        chartTitleEl.textContent = "Bagaimana perbandingan kejadian kebakaran BPBD per Kecamatan (2021 vs 2022)?";
+        chartHandle = services.charts.createChart(chartCanvas, {
+          type: "bar",
+          data: {
+            labels: rows.map((r) => r.district_name),
+            datasets: [
+              {
+                label: "BPBD Kebakaran 2022 (138 total)",
+                data: rows.map((r) => Number(r.fire_incidents || 0)),
+                backgroundColor: "#B84A35"
+              },
+              {
+                label: "BPBD Kebakaran 2021 (108 total)",
+                data: rows.map((r) => Number(r.fire_incidents_2021 || 0)),
+                backgroundColor: "#356067"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+        return;
+      }
+
+      if (state.period === "bpbd-2022-2023-bulanan") {
+        chartTitleEl.textContent = "Bagaimana tren bulanan kebakaran dibanding total bencana BPBD (2022 - 2023)?";
+        chartHandle = services.charts.createChart(chartCanvas, {
+          type: "bar",
+          data: {
+            labels: rows.map((r) => r.displayLabel),
+            datasets: [
+              {
+                label: "Kebakaran BPBD (kejadian)",
+                data: rows.map((r) => Number(r.fire_incidents || 0)),
+                backgroundColor: "#B84A35"
+              },
+              {
+                label: "Total Bencana BPBD (kebakaran, banjir, angin, longsor)",
+                data: rows.map((r) => Number(r.total_disasters || 0)),
+                backgroundColor: "#356067"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+        return;
+      }
+
+      if (state.period === "kandidat-independen") {
+        chartTitleEl.textContent = "Berapa sebaran kandidat berita kebakaran per Kecamatan (bukan sensus lengkap)?";
+        const byDistrict = new Map();
+        for (const r of rows) {
+          const d = r.district_name || "Tidak Tercatat";
+          const cur = byDistrict.get(d) || { approx: 0, distOnly: 0 };
+          if (r.location_accuracy === "approximate") cur.approx += 1;
+          else cur.distOnly += 1;
+          byDistrict.set(d, cur);
+        }
+        const labels = [...byDistrict.keys()].sort((a, b) => a.localeCompare(b, "id"));
+        chartHandle = services.charts.createChart(chartCanvas, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Perkiraan Ruas/Landmark (approximate)",
+                data: labels.map((l) => byDistrict.get(l).approx),
+                backgroundColor: "#D58A43"
+              },
+              {
+                label: "Kecamatan Saja (geom = null)",
+                data: labels.map((l) => byDistrict.get(l).distOnly),
+                backgroundColor: "#356067"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+            }
+          }
+        });
+        return;
+      }
+
       const catLabel = CATEGORY_LABELS[state.category];
       if (state.period === "2023-kecamatan") {
         chartTitleEl.textContent = `Berapa jumlah kejadian (${catLabel}) per Kecamatan pada Tahun 2023?`;
+      } else if (state.period === "2016-2021-bulanan") {
+        chartTitleEl.textContent = "Bagaimana tren bulanan kebakaran Kota Medan sepanjang 2016 - 2021?";
+      } else if (state.period === "non-kebakaran-2023-2025") {
+        chartTitleEl.textContent = "Bagaimana tren bulanan operasi penyelamatan non-kebakaran (2023 - 2025)?";
       } else {
         const yr = state.period === "2024-bulanan" ? "2024" : "2025";
         chartTitleEl.textContent = `Bagaimana tren bulanan kejadian (${catLabel}) sepanjang Tahun ${yr}?`;
       }
 
+      const isBar = state.period === "2023-kecamatan";
+      const seriesLabel =
+        state.period === "non-kebakaran-2023-2025"
+          ? "Penyelamatan non-kebakaran (operasi)"
+          : state.period === "2016-2021-bulanan"
+            ? "Kebakaran Kota Medan (kejadian)"
+            : `${catLabel} (kejadian)`;
+      const seriesColor = state.period === "non-kebakaran-2023-2025" ? "#356067" : "#B84A35";
+      const fillColor =
+        state.period === "non-kebakaran-2023-2025" ? "rgba(53, 96, 103, 0.16)" : "rgba(184, 74, 53, 0.2)";
+
       chartHandle = services.charts.createChart(chartCanvas, {
-        type: state.period === "2023-kecamatan" ? "bar" : "line",
+        type: isBar ? "bar" : "line",
         data: {
           labels: rows.map((r) => r.displayLabel),
           datasets: [
             {
-              label: `${catLabel} (kejadian)`,
+              label: seriesLabel,
               data: rows.map((r) => r.filteredCount),
-              backgroundColor: state.period === "2023-kecamatan" ? "#B84A35" : "rgba(184, 74, 53, 0.2)",
-              borderColor: "#B84A35",
+              backgroundColor: isBar ? seriesColor : fillColor,
+              borderColor: seriesColor,
               borderWidth: 2,
               tension: 0.2,
-              fill: state.period !== "2023-kecamatan"
+              fill: !isBar
             }
           ]
         },
@@ -936,7 +1452,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       districtGeoLayer = null;
 
       if (supabaseLayerBarEl) {
-        supabaseLayerBarEl.hidden = state.demoMode || !hasSupabasePoints;
+        supabaseLayerBarEl.hidden = state.demoMode || state.period === "kandidat-independen" || !hasSupabasePoints;
       }
 
       if (state.demoMode && state.demoFixture) {
@@ -973,12 +1489,114 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         return;
       }
 
+      if (state.period === "kandidat-independen") {
+        activeBreaks = null;
+        activeRowMap = new Map();
+        const approxIncidents = rows.filter((r) => typeof r.lat === "number" && typeof r.lon === "number");
+        const candStations = (summary.candidate_stations?.stations || []).filter(
+          (st) => typeof st.lat === "number" && typeof st.lon === "number"
+        );
+        mapTitleEl.textContent = "Peta Kandidat Media Independen & Pos UPT Perkiraan (needs_review)";
+        legendEl.innerHTML = `
+          <span class="legend-item"><span class="legend-swatch" style="background: #8A5218; border-radius: 50%;"></span> Kandidat Kebakaran (${approxIncidents.length} approximate, Non-KDE)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background: #FBF2E6; border: 2px solid #356067; border-radius: 50%;"></span> Kandidat UPT V &amp; VI (${candStations.length} approximate ruas, needs_review)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background: #356067; border-radius: 50%;"></span> Mako 0.0 Terverifikasi</span>
+        `;
+        provenanceEl.innerHTML = `
+          <span>Kandidat: ANTARA News Sumut, Detik Sumut, Perwali 25/2018 &amp; OSM Nominatim (status: needs_review, Non-KDE)</span>
+          <span>Batas: OpenStreetMap Nominatim (&copy; OpenStreetMap contributors, ODbL)</span>
+        `;
+
+        const normalizedTargetDistrict =
+          state.district !== "semua" ? normalizeDistrictName(state.district) : null;
+        let selectedDistrictLayer = null;
+
+        districtGeoLayer = L.geoJSON(districtsGeoJson, {
+          style: (feature) => {
+            const isTarget =
+              normalizedTargetDistrict &&
+              normalizeDistrictName(feature.properties.district_name) === normalizedTargetDistrict;
+            return {
+              color: isTarget ? "#202A2D" : "#6E7A7D",
+              weight: isTarget ? 2 : 1,
+              fillColor: "#ECEAE2",
+              fillOpacity: isTarget ? 0.32 : 0.14
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const name = feature.properties.district_name;
+            if (normalizedTargetDistrict && normalizeDistrictName(name) === normalizedTargetDistrict) {
+              selectedDistrictLayer = layer;
+            }
+            const distCount = rows.filter((r) => r.district_name === name).length;
+            layer.bindPopup(
+              `<strong>${escapeHtml(name)}</strong><br/>Kandidat berita pada filter: ${distCount} (bukan sensus resmi)`
+            );
+          }
+        }).addTo(dynamicOverlay);
+
+        for (const st of summary.verified_stations || []) {
+          L.circleMarker([st.lat, st.lon], {
+            radius: 8,
+            color: "#FFFFFF",
+            weight: 2,
+            fillColor: "#356067",
+            fillOpacity: 1
+          })
+            .bindPopup(`<strong>${escapeHtml(st.name)}</strong><br/>${escapeHtml(st.address)}<br/>Status: Terverifikasi`)
+            .addTo(dynamicOverlay);
+        }
+
+        for (const st of candStations) {
+          L.circleMarker([st.lat, st.lon], {
+            radius: 7,
+            color: "#356067",
+            weight: 2.5,
+            fillColor: "#FBF2E6",
+            fillOpacity: 0.95
+          })
+            .bindPopup(
+              `<strong>${escapeHtml(st.name)}</strong><br/>${escapeHtml(st.address)}<br/>Status: ${escapeHtml(st.verification_status)} (${escapeHtml(st.location_accuracy)})<br/><em>${escapeHtml(st.conflict_notes)}</em>`
+            )
+            .addTo(dynamicOverlay);
+        }
+
+        for (const rec of approxIncidents) {
+          const timeText = rec.occurred_time_wib ? ` ${rec.occurred_time_wib} WIB` : "";
+          L.circleMarker([rec.lat, rec.lon], {
+            radius: 7,
+            color: "#202A2D",
+            weight: 2,
+            fillColor: "#8A5218",
+            fillOpacity: 0.88
+          })
+            .bindPopup(
+              `<strong>${escapeHtml(rec.source_record_id)} (Kandidat)</strong><br/>` +
+                `Tanggal: ${escapeHtml(rec.occurred_on)}${escapeHtml(timeText)}<br/>` +
+                `Lokasi: ${escapeHtml(rec.address_text)}<br/>` +
+                `Objek: ${escapeHtml(rec.object_summary || rec.object_type)}<br/>` +
+                `Akurasi: ${escapeHtml(rec.location_accuracy)} / Status: ${escapeHtml(rec.verification_status)}<br/>` +
+                `<a href="${escapeHtml(rec.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(rec.source_name)}</a>`
+            )
+            .on("click", () => applySelectionUiOnly(rec.source_record_id))
+            .addTo(dynamicOverlay);
+        }
+
+        if (fitExtent) {
+          services.maps.fitBounds(mapHandle.map, selectedDistrictLayer || districtGeoLayer);
+        }
+        return;
+      }
+
       activeRowMap = new Map(rows.map((r) => [r.district_name, r]));
-      const isDist = state.period === "2023-kecamatan";
+      const isDist = isChoroplethPeriod();
 
       if (isDist) {
         activeBreaks = computeChoroplethBreaks(rows.map((r) => r.filteredCount));
-        mapTitleEl.textContent = `Peta Kejadian 2023 per Kecamatan (${CATEGORY_LABELS[state.category]})`;
+        mapTitleEl.textContent =
+          state.period === "bpbd-2021-2023"
+            ? "Peta Kebakaran BPBD per Kecamatan (Tahun 2022, Pembanding)"
+            : `Peta Kejadian 2023 per Kecamatan (${CATEGORY_LABELS[state.category]})`;
         const legendParts = [
           `<span class="legend-item"><span class="legend-swatch" style="background: ${TIER_COLORS.zero};"></span> ${activeBreaks.zeroLabel}</span>`
         ];
@@ -1010,7 +1628,13 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
               ? "Agregat Bulanan 2025"
               : state.period === "2023-dampak"
                 ? "Dampak Bulanan 2023"
-                : "Seri Tahunan 2016 - 2025";
+                : state.period === "2016-2021-bulanan"
+                  ? "Agregat Bulanan 2016 - 2021"
+                  : state.period === "bpbd-2022-2023-bulanan"
+                    ? "Pembanding Bulanan BPBD 2022 - 2023"
+                    : state.period === "non-kebakaran-2023-2025"
+                      ? "Penyelamatan Non-Kebakaran 2023 - 2025"
+                      : "Seri Tahunan 2016 - 2025";
         mapTitleEl.textContent = `Batas Wilayah Kota Medan (${periodLabel})`;
         legendEl.innerHTML = `
           <span class="legend-item"><span class="legend-swatch" style="background: #ECEAE2;"></span> Data pada mode ini tidak memiliki atribut koordinat individual (geom = null)</span>
@@ -1042,10 +1666,10 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         }
       }
 
-      provenanceEl.innerHTML = `
-        <span>Batas: OpenStreetMap Nominatim (&copy; OpenStreetMap contributors, ODbL)</span>
-        <span>Data: Dinas Damkarmat Kota Medan via Satu Data Medan</span>
-      `;
+      provenanceEl.innerHTML =
+        state.period === "bpbd-2021-2023" || state.period === "bpbd-2022-2023-bulanan"
+          ? `<span>Batas: OpenStreetMap Nominatim (&copy; OpenStreetMap contributors, ODbL)</span><span>Data: BPBD Kota Medan via Satu Data Medan (pembanding)</span>`
+          : `<span>Batas: OpenStreetMap Nominatim (&copy; OpenStreetMap contributors, ODbL)</span><span>Data: Dinas Damkarmat Kota Medan via Satu Data Medan</span>`;
 
       let selectedDistrictLayer = null;
       const normalizedTargetDistrict =
@@ -1061,7 +1685,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           const matched = activeRowMap.get(name);
           const countText =
             isDist && matched
-              ? `${matched.filteredCount} kejadian`
+              ? state.period === "bpbd-2021-2023"
+                ? `BPBD 2022: ${matched.filteredCount} kebakaran (2021: ${matched.fire_incidents_2021})`
+                : `${matched.filteredCount} kejadian`
               : "Data kecamatan tidak dirinci pada mode periode ini";
           layer.bindPopup(`<strong>${escapeHtml(name)}</strong><br/>${escapeHtml(countText)}`);
           layer.on("click", () => {
@@ -1184,10 +1810,18 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       const rowEls = tableWrapEl.querySelectorAll("tr[data-row-key]");
       rowEls.forEach((tr) => {
         const pick = () => applySelectionUiOnly(tr.getAttribute("data-row-key"));
-        tr.addEventListener("click", pick, { signal: ac.signal });
+        tr.addEventListener(
+          "click",
+          (e) => {
+            if (e.target && e.target.closest("a")) return;
+            pick();
+          },
+          { signal: ac.signal }
+        );
         tr.addEventListener(
           "keydown",
           (e) => {
+            if (e.target && e.target.closest("a")) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               pick();
@@ -1198,6 +1832,88 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       });
     }
 
+    function renderUptCandidatesPanel() {
+      if (!uptCandidatesPanelEl) return;
+      if (state.demoMode || state.period !== "kandidat-independen") {
+        uptCandidatesPanelEl.hidden = true;
+        uptCandidatesPanelEl.innerHTML = "";
+        return;
+      }
+
+      const stations = summary.candidate_stations?.stations || [];
+      const approxCount = stations.filter((s) => Boolean(s.geom)).length;
+      const nullCount = stations.length - approxCount;
+
+      uptCandidatesPanelEl.hidden = false;
+      uptCandidatesPanelEl.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2);">
+          <h2>Inspeksi Kandidat Pos UPT Wilayah I - VI (Bukan Pos Terverifikasi)</h2>
+          <span class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">
+            ${stations.length} kandidat (${nullCount} geom = null, ${approxCount} titik ruas)
+          </span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--color-ink-muted); margin-bottom: var(--space-3);">
+          Seluruh pos UPT berstatus <code class="mono">needs_review</code> karena <code class="mono">p2k.medan.go.id</code> mengembalikan HTTP 403 Cloudflare. Pos dengan <code class="mono">geom = null</code> (UPT-01 sampai UPT-04) tidak ditampilkan sebagai titik pada peta.
+        </p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kode &amp; Nama Pos</th>
+                <th>Wilayah / Alamat Kandidat</th>
+                <th>Status</th>
+                <th>Akurasi &amp; Peta</th>
+                <th>Catatan Konflik Alamat</th>
+                <th>Referensi Sumber</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${stations
+                .map((st) => {
+                  const hasCoords = Boolean(st.geom && typeof st.lat === "number" && typeof st.lon === "number");
+                  const evidenceUrls =
+                    Array.isArray(st.evidence_urls) && st.evidence_urls.length > 0
+                      ? st.evidence_urls
+                      : st.source_url
+                        ? [st.source_url]
+                        : [];
+                  const refHtml = evidenceUrls.length
+                    ? `<ul style="margin: 0; padding-left: 1rem; display: grid; gap: 0.2rem;">${evidenceUrls
+                        .map(
+                          (u, idx) =>
+                            `<li><a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(formatSourceLinkLabel(u, idx + 1))}</a></li>`
+                        )
+                        .join("")}</ul>`
+                    : "-";
+                  return `
+                    <tr>
+                      <td>
+                        <strong class="mono">${escapeHtml(st.station_code)}</strong>
+                        <div style="font-size: var(--text-xs); color: var(--color-ink-muted);">${escapeHtml(st.name)}</div>
+                      </td>
+                      <td>
+                        <strong>${escapeHtml(st.district_name || "-")}</strong>
+                        <div style="font-size: var(--text-xs); color: var(--color-ink-muted);">${escapeHtml(st.address || "-")}</div>
+                      </td>
+                      <td>${renderBadge(st.verification_status)}</td>
+                      <td>
+                        <span class="mono">${escapeHtml(st.location_accuracy)}</span>
+                        <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">
+                          ${hasCoords ? `Titik ruas (${escapeHtml(st.osm_ref || "OSM")})` : "geom = null (tidak di peta)"}
+                        </div>
+                      </td>
+                      <td style="font-size: var(--text-xs);">${escapeHtml(st.conflict_notes || "-")}</td>
+                      <td style="font-size: var(--text-xs);">${refHtml}</td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
     function renderMetrics(rows) {
       if (state.demoMode && state.demoFixture) {
         const located = rows.filter((r) => typeof r.lat === "number").length;
@@ -1206,6 +1922,57 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           <div class="metric-box"><div class="metric-label">Memiliki Koordinat Perkiraan</div><div class="metric-value">${located}</div></div>
           <div class="metric-box"><div class="metric-label">Belum Terlokasi (DEMO)</div><div class="metric-value">${rows.length - located}</div></div>
           <div class="metric-box"><div class="metric-label">Label Status</div><div class="metric-value">DEMO</div></div>
+        `;
+        return;
+      }
+
+      if (state.period === "kandidat-independen") {
+        const approxCount = rows.filter((r) => typeof r.lat === "number").length;
+        metricsEl.innerHTML = `
+          <div class="metric-box"><div class="metric-label">Kandidat Unik Terfilter</div><div class="metric-value">${services.format.number(rows.length)}</div></div>
+          <div class="metric-box"><div class="metric-label">Perkiraan Ruas (approximate)</div><div class="metric-value">${services.format.number(approxCount)}</div></div>
+          <div class="metric-box"><div class="metric-label">Kecamatan Saja (geom = null)</div><div class="metric-value">${services.format.number(rows.length - approxCount)}</div></div>
+          <div class="metric-box"><div class="metric-label">Status Verifikasi &amp; KDE</div><div class="metric-value metric-value--meta">needs_review / Non-KDE</div></div>
+        `;
+        return;
+      }
+
+      if (state.period === "bpbd-2021-2023") {
+        const fire2022 = rows.reduce((s, r) => s + Number(r.fire_incidents || 0), 0);
+        const fire2021 = rows.reduce((s, r) => s + Number(r.fire_incidents_2021 || 0), 0);
+        metricsEl.innerHTML = `
+          <div class="metric-box"><div class="metric-label">Kebakaran BPBD 2022</div><div class="metric-value">${services.format.number(fire2022)}</div></div>
+          <div class="metric-box"><div class="metric-label">Kebakaran BPBD 2021</div><div class="metric-value">${services.format.number(fire2021)}</div></div>
+          <div class="metric-box"><div class="metric-label">Kebakaran BPBD 2023 (Bulanan)</div><div class="metric-value">87</div></div>
+          <div class="metric-box"><div class="metric-label">Peran Dataset</div><div class="metric-value metric-value--meta">Pembanding BPBD</div></div>
+        `;
+        return;
+      }
+
+      if (state.period === "bpbd-2022-2023-bulanan") {
+        const fireTotal = rows.reduce((s, r) => s + Number(r.fire_incidents || 0), 0);
+        const fire2022 = rows
+          .filter((r) => Number(r.period_year) === 2022)
+          .reduce((s, r) => s + Number(r.fire_incidents || 0), 0);
+        const fire2023 = rows
+          .filter((r) => Number(r.period_year) === 2023)
+          .reduce((s, r) => s + Number(r.fire_incidents || 0), 0);
+        metricsEl.innerHTML = `
+          <div class="metric-box"><div class="metric-label">Kebakaran BPBD (Filter)</div><div class="metric-value">${services.format.number(fireTotal)}</div></div>
+          <div class="metric-box"><div class="metric-label">BPBD 2022 / 2023</div><div class="metric-value metric-value--meta">${services.format.number(fire2022)} / ${services.format.number(fire2023)}</div></div>
+          <div class="metric-box"><div class="metric-label">Baris Bulan Terfilter</div><div class="metric-value">${services.format.number(rows.length)}</div></div>
+          <div class="metric-box"><div class="metric-label">Peran Dataset</div><div class="metric-value metric-value--meta">Pembanding BPBD (geom = null)</div></div>
+        `;
+        return;
+      }
+
+      if (state.period === "non-kebakaran-2023-2025") {
+        const totalRescues = rows.reduce((s, r) => s + Number(r.total_rescues || 0), 0);
+        metricsEl.innerHTML = `
+          <div class="metric-box"><div class="metric-label">Operasi Non-Kebakaran</div><div class="metric-value">${services.format.number(totalRescues)}</div></div>
+          <div class="metric-box"><div class="metric-label">Total Arsip 2023 - 2025</div><div class="metric-value">${services.format.number(summary.non_fire_rescues?.combined_total || 0)}</div></div>
+          <div class="metric-box"><div class="metric-label">Baris Bulan Terfilter</div><div class="metric-value">${services.format.number(rows.length)}</div></div>
+          <div class="metric-box"><div class="metric-label">Klasifikasi</div><div class="metric-value metric-value--meta">Non-Kebakaran (Terpisah)</div></div>
         `;
         return;
       }
@@ -1234,40 +2001,54 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
 
     function syncView() {
-      const isDist = state.period === "2023-kecamatan" && !state.demoMode;
+      const supportsDistrict =
+        !state.demoMode &&
+        (state.period === "2023-kecamatan" ||
+          state.period === "bpbd-2021-2023" ||
+          state.period === "kandidat-independen");
       const supportsCategory =
         !state.demoMode &&
         (state.period === "2023-kecamatan" ||
           state.period === "2024-bulanan" ||
-          state.period === "2025-bulanan");
+          state.period === "2025-bulanan" ||
+          state.period === "kandidat-independen");
 
-      districtSel.disabled = !isDist;
+      districtSel.disabled = !supportsDistrict;
       periodSel.disabled = state.demoMode;
       categorySel.disabled = !supportsCategory;
       sortSel.disabled = state.demoMode;
 
       updateBanner();
 
-      const activeRows = state.demoMode && state.demoFixture
-        ? filterDemoRecords(state.demoFixture.records, {
-            search: state.search
-          })
-        : filterOfficialRows({
-            summary,
-            period: state.period,
-            district: state.district,
-            category: state.category,
-            search: state.search,
-            sortBy: state.sortBy
-          });
+      const activeRows =
+        state.demoMode && state.demoFixture
+          ? filterDemoRecords(state.demoFixture.records, {
+              search: state.search
+            })
+          : state.period === "kandidat-independen"
+            ? filterIndependentCandidates(summary.independent_incident_candidates?.records || [], {
+                district: state.district,
+                category: state.category,
+                search: state.search,
+                sortBy: state.sortBy
+              })
+            : filterOfficialRows({
+                summary,
+                period: state.period,
+                district: state.district,
+                category: state.category,
+                search: state.search,
+                sortBy: state.sortBy
+              });
 
       activeRowsSnapshot = activeRows;
 
-      if (!state.selectedKey || !activeRows.some((r) => getRowKey(r, state.demoMode) === state.selectedKey)) {
-        state.selectedKey = activeRows[0] ? getRowKey(activeRows[0], state.demoMode) : null;
+      const isRecordKeyMode = state.demoMode || state.period === "kandidat-independen";
+      if (!state.selectedKey || !activeRows.some((r) => getRowKey(r, isRecordKeyMode) === state.selectedKey)) {
+        state.selectedKey = activeRows[0] ? getRowKey(activeRows[0], isRecordKeyMode) : null;
       }
 
-      const selectedRow = activeRows.find((r) => getRowKey(r, state.demoMode) === state.selectedKey);
+      const selectedRow = activeRows.find((r) => getRowKey(r, isRecordKeyMode) === state.selectedKey);
 
       renderMetrics(activeRows);
       const nextLayerKey = getMapLayerKey();
@@ -1281,11 +2062,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         lastMapLayerKey = nextLayerKey;
         lastExtentCtx = nextExtentCtx;
         renderMapAndLegend(activeRows, { fitExtent: shouldFit });
-      } else if (!state.demoMode && districtGeoLayer) {
+      } else if (!state.demoMode && districtGeoLayer && isChoroplethPeriod()) {
         districtGeoLayer.setStyle((feature) => computeDistrictFeatureStyle(feature));
       }
       renderChart(activeRows);
       renderTable(activeRows);
+      renderUptCandidatesPanel();
       updateDetail(selectedRow);
     }
 
@@ -1326,11 +2108,22 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       "change",
       () => {
         state.period = periodSel.value;
-        if (state.period !== "2023-kecamatan") {
+        if (
+          state.period !== "2023-kecamatan" &&
+          state.period !== "bpbd-2021-2023" &&
+          state.period !== "kandidat-independen"
+        ) {
           state.district = "semua";
           districtSel.value = "semua";
         }
-        if (state.period === "2023-dampak" || state.period === "2016-2025-tahunan") {
+        if (
+          state.period === "2023-dampak" ||
+          state.period === "2016-2025-tahunan" ||
+          state.period === "2016-2021-bulanan" ||
+          state.period === "bpbd-2021-2023" ||
+          state.period === "bpbd-2022-2023-bulanan" ||
+          state.period === "non-kebakaran-2023-2025"
+        ) {
           state.category = "semua";
           categorySel.value = "semua";
         }

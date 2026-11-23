@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-21",
+  "generated_at": "2026-11-23",
   "city": "Kota Medan",
   "crs_web": "EPSG:4326",
   "crs_metric": "EPSG:32647",
@@ -24,6 +24,136 @@
     }
   },
   "datasets": [
+    {
+      "id": "medan-fire-2016-2021-bulanan",
+      "title": "Daftar Jumlah Kebakaran Per Bulan Di Kota Medan Tahun 2016 - 2021 (72 Baris Bulanan)",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari 2016 - Desember 2021",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 1372,
+      "status": "verified",
+      "dataset_group": "damkarmat_fire",
+      "sha256": "3ecd7e89c385126131197d5fe49b98f76988e393f0adfcd95bceea802eef56a1",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01jrymvexvvp9g4bg9z50xpvxp"
+    },
+    {
+      "id": "bpbd-kebencanaan-2021-kecamatan",
+      "title": "BPBD Rekapitulasi Bencana Tahun 2021 Menurut Kecamatan (Pembanding Kebakaran = 108)",
+      "publisher": "BPBD Kota Medan (via Satu Data Medan)",
+      "period": "2021",
+      "granularity": "district_aggregate",
+      "location_accuracy": "district_only",
+      "record_count": 108,
+      "status": "verified",
+      "dataset_group": "bpbd_comparison",
+      "sha256": "fbb7adce4f527c954d071db3be836c7b169d409cfea87e94d0139cd001e920a0",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01k3msptkv0gdddt5d97r55rk2"
+    },
+    {
+      "id": "bpbd-kebencanaan-2022-kecamatan",
+      "title": "BPBD Rekapitulasi Kebencanaan Perkecamatan Tahun 2022 (Pembanding Kebakaran = 138)",
+      "publisher": "BPBD Kota Medan (via Satu Data Medan)",
+      "period": "2022",
+      "granularity": "district_aggregate",
+      "location_accuracy": "district_only",
+      "record_count": 138,
+      "status": "verified",
+      "dataset_group": "bpbd_comparison",
+      "sha256": "910b1b94a3b51d32b85a18ad281723ba2f031c00259d97b873c1c304a8796e66",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01jvv2a8j83ybhn6z5xjpw9znp"
+    },
+    {
+      "id": "bpbd-kebencanaan-2022-bulanan",
+      "title": "BPBD Rekapitulasi Bencana Berdasarkan Jenis dan Bulan 2022 (Pembanding Kebakaran = 138)",
+      "publisher": "BPBD Kota Medan (via Satu Data Medan)",
+      "period": "Januari - Desember 2022",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 138,
+      "status": "verified",
+      "dataset_group": "bpbd_comparison",
+      "sha256": "b7e0e6858354d0f2a9cc42a20f03e4b7210d05dcf26ec6fbbbfbbf2398664cfe",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01k46rrywpd6yjr87zjn6mpgy9"
+    },
+    {
+      "id": "bpbd-kebencanaan-2023-bulanan",
+      "title": "BPBD Jumlah Kejadian Kebencanaan Menurut Jenis Per Bulan 2023 (Pembanding Kebakaran = 87)",
+      "publisher": "BPBD Kota Medan (via Satu Data Medan)",
+      "period": "Januari - Desember 2023",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 87,
+      "status": "verified",
+      "dataset_group": "bpbd_comparison",
+      "sha256": "95d31efe0f501b0a35e1de7893d46b5cd100430e9243d666614294ffeda9e4dc",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01k4pb0g0t6x05m7r8setmd2sk"
+    },
+    {
+      "id": "bpbd-rekapitulasi-2021-2022",
+      "title": "BPBD Rekapitulasi Total Kebencanaan Kota Medan 2021 - 2022 (152 dan 187)",
+      "publisher": "BPBD Kota Medan (via Satu Data Medan)",
+      "period": "2021 - 2022",
+      "granularity": "annual_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 339,
+      "status": "verified",
+      "dataset_group": "bpbd_comparison",
+      "sha256": "61fc6ea909ec418b8527ff106404e38ca8d1d24e5ba1cc0bbbae7d6b0a981b56",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01k46scknttkcrft0zm8m4cg2z"
+    },
+    {
+      "id": "medan-damkarmat-spm",
+      "title": "Target dan Realisasi Pencapaian Standar Pelayanan Minimal Dinas Damkarmat",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "2023 - 2024",
+      "granularity": "policy_table",
+      "location_accuracy": "unknown",
+      "record_count": 2,
+      "status": "verified",
+      "dataset_group": "damkarmat_spm",
+      "sha256": "dd9e3f3c56767de13abb5473ecefffa401bbdf759b27f5ec30f4f43bc3cfcb88",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01k87f0pqenry2bkvy0mvazah2"
+    },
+    {
+      "id": "medan-non-fire-rescues-2023",
+      "title": "Rekapitulasi Data Penyelamatan Non-Kebakaran Tahun 2023 (Terpisah)",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari - Desember 2023",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 449,
+      "status": "verified",
+      "dataset_group": "damkarmat_non_fire",
+      "sha256": "dec8fe1445886ea95ee4ead66471dafb094f07e5921d31cd9a29845d04687139",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36gzes0mxtmd6ykm1367ggn"
+    },
+    {
+      "id": "medan-non-fire-rescues-2024",
+      "title": "Rekapitulasi Data Penyelamatan Non-Kebakaran Tahun 2024 (Terpisah)",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari - Desember 2024",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 691,
+      "status": "verified",
+      "dataset_group": "damkarmat_non_fire",
+      "sha256": "749bdb143d5d061904356c4c525163e13a3ef5e26874aeba62f0d2225e95f510",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36ja2y8a9j0h0mdadc7f4sx"
+    },
+    {
+      "id": "medan-non-fire-rescues-2025",
+      "title": "Rekapitulasi Data Penyelamatan Non-Kebakaran Tahun 2025 (Terpisah)",
+      "publisher": "Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan (Satu Data Medan)",
+      "period": "Januari - Desember 2025",
+      "granularity": "monthly_aggregate",
+      "location_accuracy": "unknown",
+      "record_count": 1078,
+      "status": "verified",
+      "dataset_group": "damkarmat_non_fire",
+      "sha256": "b29ab8c3b5b942ea1ab3c030a968d9b9ccd28b70b34a539cf372f19f837b4d1a",
+      "url": "https://medanterkini.medan.go.id/api/resources/download/01m36kf1esskwdhks8xh35z5sj"
+    },
     {
       "id": "medan-fire-2024",
       "title": "Rekapitulasi Data Kejadian Kebakaran di Kota Medan Tahun 2024",
@@ -111,11 +241,38 @@
       "url": "https://download.geofabrik.de/asia/indonesia/sumatra/sumatra-latest.osm.pbf"
     }
   ],
+  "independent_enrichment": {
+    "scope_note": "Kandidat dari media berita kredibel (ANTARA Sumut, Detik Sumut), JDIH BPK (Perwali 25/2018), dan geocoding ruas OSM Nominatim disimpan terpisah dari dataset resmi dan belum masuk perhitungan KDE maupun coverage terverifikasi.",
+    "datasets": [
+      {
+        "id": "medan-fire-incident-candidates",
+        "title": "Kandidat Kejadian Kebakaran Kota Medan (Media Independen 2024 - 2026)",
+        "publisher": "ANTARA News Sumut & Detik Sumut (+ OSM Nominatim)",
+        "period": "Januari 2024 - Juli 2026",
+        "record_count": 27,
+        "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
+        "status": "needs_review",
+        "path": "/data/public_incident_candidates.json",
+        "sha256": "e4f462163f3a2723d9073d1dcd11c3588c1a0d86303698ca3f9ce6c609838e4b"
+      },
+      {
+        "id": "medan-damkarmat-upt-candidates",
+        "title": "Kandidat Pos UPT Wilayah I - VI Dinas Damkarmat Kota Medan",
+        "publisher": "JDIH BPK (Perwali 25/2018), ANTARA Sumut, & OSM Nominatim",
+        "period": "2018 - 2026",
+        "record_count": 6,
+        "accuracy_summary": "2 approximate (UPT-05 & UPT-06) + 4 district_only (UPT-01..04, geom=null)",
+        "status": "needs_review",
+        "path": "/data/damkarmat_station_candidates.json",
+        "sha256": "b7d239c9af32d36f783e2dba180a00953bc22443ae591848cfdec887f28b2ff2"
+      }
+    ]
+  },
   "blockers": [
     {
       "source": "Pos Damkarmat UPT Infografis & Berita Harian",
       "url": "https://p2k.medan.go.id/berita/Infografis-Letak-Pos-Damkarmat-Kota-Medan.html",
-      "reason": "HTTP 403 tantangan anti-bot Cloudflare (challenges.cloudflare.com); perlu pengunduhan manual di browser oleh tim."
+      "reason": "HTTP 403 tantangan anti-bot Cloudflare (challenges.cloudflare.com); tidak dilakukan bypass. Kandidat UPT dihimpun terpisah dengan status needs_review."
     },
     {
       "source": "Geoportal Kota Medan (Batas Kelurahan / Kecamatan Resmi)",

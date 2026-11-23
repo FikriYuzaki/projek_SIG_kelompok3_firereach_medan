@@ -344,7 +344,17 @@ export function filterSupabasePoints(
     if (!rec || rec.isDemo || !rec.geom) return false;
 
     const year = getRecordPeriodYear(rec);
-    if (period === "2023-kecamatan" || period === "2023-dampak") {
+    if (
+      period === "bpbd-2021-2023" ||
+      period === "bpbd-2022-2023-bulanan" ||
+      period === "non-kebakaran-2023-2025" ||
+      period === "kandidat-independen"
+    ) {
+      return false;
+    }
+    if (period === "2016-2021-bulanan") {
+      if (year === null || year < 2016 || year > 2021) return false;
+    } else if (period === "2023-kecamatan" || period === "2023-dampak") {
       if (year !== 2023) return false;
     } else if (period === "2024-bulanan") {
       if (year !== 2024) return false;
@@ -642,6 +652,15 @@ function getSourceRowsForPeriod(summary, period) {
   if (period === "2024-bulanan") return summary.monthly_2024 || [];
   if (period === "2025-bulanan") return summary.monthly_2025 || [];
   if (period === "2016-2025-tahunan") return summary.annual_series || [];
+  if (period === "2016-2021-bulanan") return summary.monthly_2016_2021 || [];
+  if (period === "bpbd-2021-2023") return summary.bpbd_comparison?.district_2022 || [];
+  if (period === "bpbd-2022-2023-bulanan") {
+    return [
+      ...(summary.bpbd_comparison?.monthly_2022 || []),
+      ...(summary.bpbd_comparison?.monthly_2023 || [])
+    ];
+  }
+  if (period === "non-kebakaran-2023-2025") return summary.non_fire_rescues?.monthly_series || [];
   return summary.district_2023 || [];
 }
 
@@ -655,7 +674,7 @@ export function filterOfficialRows({
   excludeZero = false
 }) {
   const query = String(search || "").replace(/\s+/g, " ").trim().toLowerCase();
-  const isDistrictPeriod = period === "2023-kecamatan";
+  const isDistrictPeriod = period === "2023-kecamatan" || period === "bpbd-2021-2023";
   const hasCategories =
     period === "2023-kecamatan" || period === "2024-bulanan" || period === "2025-bulanan";
   const sourceRows = getSourceRowsForPeriod(summary || {}, period);
@@ -671,9 +690,16 @@ export function filterOfficialRows({
       ? districtLabel
       : period === "2016-2025-tahunan"
         ? String(row.year)
-        : row.month_name;
+        : row.display_label || row.month_name;
 
-    const searchTarget = [displayLabel, row.area_code || "", row.source_name || "", row.source_file || ""]
+    const searchTarget = [
+      displayLabel,
+      row.area_code || "",
+      row.source_name || "",
+      row.source_file || "",
+      row.dominant_rescue_type || "",
+      row.period_year ? String(row.period_year) : ""
+    ]
       .join(" ")
       .toLowerCase();
     if (query && !searchTarget.includes(query)) {
@@ -683,7 +709,9 @@ export function filterOfficialRows({
     const activeCount =
       hasCategories && category !== "semua"
         ? Number(row.categories?.[category] || 0)
-        : Number(row.total_incidents || 0);
+        : period === "bpbd-2022-2023-bulanan"
+          ? Number(row.fire_incidents ?? 0)
+          : Number(row.fire_incidents ?? row.total_incidents ?? row.total_rescues ?? 0);
 
     if (excludeZero && activeCount === 0) {
       continue;
@@ -703,6 +731,71 @@ export function filterOfficialRows({
     filtered.sort((a, b) => a.filteredCount - b.filteredCount || a.displayLabel.localeCompare(b.displayLabel, "id"));
   } else if (sortBy === "name") {
     filtered.sort((a, b) => a.displayLabel.localeCompare(b.displayLabel, "id"));
+  }
+
+  return filtered;
+}
+
+export function filterIndependentCandidates(
+  records = [],
+  { district = "semua", category = "semua", search = "", sortBy = "default" } = {}
+) {
+  const query = String(search || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const targetDistrict = district !== "semua" ? normalizeDistrictName(district) : "semua";
+
+  const filtered = (records || [])
+    .map((item) => {
+      const normalized = normalizeIncidentRecord({ ...item, isDemo: false });
+      return {
+        ...item,
+        ...normalized,
+        kde_eligible: false,
+        verification_status: item.verification_status || "needs_review",
+        displayLabel: String(item.source_record_id || normalized.source_record_id)
+      };
+    })
+    .filter((rec) => {
+      if (rec.isDemo) return false;
+      if (targetDistrict !== "semua" && rec.district_name !== targetDistrict) return false;
+      if (category && category !== "semua") {
+        const mapped = matchObjectTypeToCategory(rec.object_type) || rec.object_type;
+        if (mapped !== category) return false;
+      }
+      if (!query) return true;
+      const hay = [
+        rec.source_record_id,
+        rec.occurred_on || "",
+        rec.district_name || "",
+        rec.subdistrict_name || "",
+        rec.address_text || "",
+        rec.object_summary || "",
+        rec.object_type || "",
+        rec.source_name || "",
+        rec.dispatched_units_note || ""
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(query);
+    });
+
+  if (sortBy === "desc") {
+    filtered.sort(
+      (a, b) =>
+        String(b.occurred_on || "").localeCompare(String(a.occurred_on || "")) ||
+        a.source_record_id.localeCompare(b.source_record_id, "id")
+    );
+  } else if (sortBy === "asc") {
+    filtered.sort(
+      (a, b) =>
+        String(a.occurred_on || "").localeCompare(String(b.occurred_on || "")) ||
+        a.source_record_id.localeCompare(b.source_record_id, "id")
+    );
+  } else if (sortBy === "name") {
+    filtered.sort(
+      (a, b) =>
+        String(a.district_name || "").localeCompare(String(b.district_name || ""), "id") ||
+        a.source_record_id.localeCompare(b.source_record_id, "id")
+    );
   }
 
   return filtered;
