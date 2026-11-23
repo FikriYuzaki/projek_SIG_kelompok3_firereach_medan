@@ -629,10 +629,11 @@ export async function fetchSupabaseIncidents(
 }
 
 export async function loadExplorerDatasets(services) {
-  const [summary, districtsGeoJson, supabaseStatus] = await Promise.all([
-    services.dataStatus.fetchJson("fire_incidents_summary.json"),
+  const supabasePromise = fetchSupabaseIncidents(services.supabase);
+  const summary = await services.dataStatus.fetchJson("fire_incidents_summary.json");
+  const [districtsGeoJson, supabaseStatus] = await Promise.all([
     services.dataStatus.fetchJson("medan_districts_osm.geojson"),
-    fetchSupabaseIncidents(services.supabase)
+    supabasePromise
   ]);
 
   return {

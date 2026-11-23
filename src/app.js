@@ -9,9 +9,10 @@ import { createRouter } from "./router/index.js";
 
 export function startApp(rootElement) {
   const supabase = createSupabaseService();
-  const shell = createShellLayout(rootElement, supabase);
-  const notify = createNotificationService(shell.notificationRegion);
   const dataStatus = createDataStatusService("/data", supabase);
+  const shell = createShellLayout(rootElement, supabase, dataStatus.getSnapshotStatus());
+  dataStatus.subscribe((status) => shell.updateDataSourceStatus(status));
+  const notify = createNotificationService(shell.notificationRegion);
 
   const services = {
     supabase,

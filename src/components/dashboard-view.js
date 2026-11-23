@@ -3,7 +3,7 @@ import { FEATURE_REGISTRY, FEATURE_STATUS_META } from "../core/feature-registry.
 import { renderStatePanel } from "./state-panel.js";
 
 export async function renderDashboard({ container, services, navigate }) {
-  const manifestResp = await services.dataStatus.getManifest();
+  let manifestResp = await services.dataStatus.getManifest();
   if (!manifestResp.ok) {
     container.replaceChildren(
       renderStatePanel({
@@ -23,10 +23,39 @@ export async function renderDashboard({ container, services, navigate }) {
   let summary = null;
   let geojson = null;
   try {
-    [summary, geojson] = await Promise.all([
-      services.dataStatus.fetchJson("fire_incidents_summary.json"),
-      services.dataStatus.fetchJson("medan_districts_osm.geojson")
-    ]);
+    const manifestWasSupabase =
+      services.dataStatus.getSnapshotStatus?.().snapshotSources?.manifest === "supabase";
+    let reloadedManifest = false;
+    const reloadLocalManifest = async () => {
+      manifestResp = await services.dataStatus.getManifest();
+      if (!manifestResp?.ok || !manifestResp.manifest) {
+        throw new Error(manifestResp?.error || "Gagal memuat manifest data lokal.");
+      }
+      reloadedManifest = true;
+    };
+
+    summary = await services.dataStatus.fetchJson("fire_incidents_summary.json");
+    const afterSummaryStatus = services.dataStatus.getSnapshotStatus?.();
+    if (
+      manifestWasSupabase &&
+      (afterSummaryStatus?.isFallback || afterSummaryStatus?.isStaleFallback)
+    ) {
+      await reloadLocalManifest();
+    }
+
+    const summaryWasSupabase =
+      services.dataStatus.getSnapshotStatus?.().snapshotSources?.fire_incidents_summary ===
+      "supabase";
+    geojson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
+    const afterGeoStatus = services.dataStatus.getSnapshotStatus?.();
+    if (afterGeoStatus?.isFallback || afterGeoStatus?.isStaleFallback) {
+      if (manifestWasSupabase && !reloadedManifest) {
+        await reloadLocalManifest();
+      }
+      if (summaryWasSupabase) {
+        summary = await services.dataStatus.fetchJson("fire_incidents_summary.json");
+      }
+    }
   } catch (err) {
     container.replaceChildren(
       renderStatePanel({

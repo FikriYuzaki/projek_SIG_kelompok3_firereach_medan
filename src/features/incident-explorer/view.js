@@ -282,11 +282,77 @@ function buildDetailHtml({ row, state, format, categoryLabels }) {
   };
 }
 
+function getExplorerChartTitle(state) {
+  if (state.demoMode && state.demoFixture) {
+    return "Contoh Sebaran Record Kontrak (DATA DEMO)";
+  }
+  if (state.period === "2023-dampak") {
+    return "Bagaimana tren bulanan kejadian & korban kebakaran Tahun 2023?";
+  }
+  if (state.period === "2016-2025-tahunan") {
+    return "Bagaimana tren tahunan kebakaran Kota Medan (2016 - 2025)?";
+  }
+  if (state.period === "bpbd-2021-2023") {
+    return "Bagaimana perbandingan kejadian kebakaran BPBD per Kecamatan (2021 vs 2022)?";
+  }
+  if (state.period === "bpbd-2022-2023-bulanan") {
+    return "Bagaimana tren bulanan kebakaran dibanding total bencana BPBD (2022 - 2023)?";
+  }
+  if (state.period === "kandidat-independen") {
+    return "Berapa sebaran kandidat berita kebakaran per Kecamatan (bukan sensus lengkap)?";
+  }
+  const catLabel = CATEGORY_LABELS[state.category] || CATEGORY_LABELS.semua;
+  if (state.period === "2023-kecamatan") {
+    return `Berapa jumlah kejadian (${catLabel}) per Kecamatan pada Tahun 2023?`;
+  }
+  if (state.period === "2016-2021-bulanan") {
+    return "Bagaimana tren bulanan kebakaran Kota Medan sepanjang 2016 - 2021?";
+  }
+  if (state.period === "non-kebakaran-2023-2025") {
+    return "Bagaimana tren bulanan operasi penyelamatan non-kebakaran (2023 - 2025)?";
+  }
+  const yr = state.period === "2024-bulanan" ? "2024" : "2025";
+  return `Bagaimana tren bulanan kejadian (${catLabel}) sepanjang Tahun ${yr}?`;
+}
+
+function getExplorerTableTitle(state) {
+  if (state.demoMode && state.demoFixture) {
+    return "Tabel Kontrak Record Individual (DATA DEMO)";
+  }
+  if (state.period === "2023-dampak") {
+    return "Rekapitulasi Bulanan Dampak & Kerugian Kebakaran (2023)";
+  }
+  if (state.period === "2016-2025-tahunan") {
+    return "Deret Historis Kejadian Kebakaran Kota Medan (2016 - 2025)";
+  }
+  if (state.period === "2016-2021-bulanan") {
+    return "Rekapitulasi Bulanan Kejadian Kebakaran Kota Medan (2016 - 2021)";
+  }
+  if (state.period === "bpbd-2021-2023") {
+    return "Pembanding BPBD Kota Medan per Kecamatan (Kebakaran 2021 - 2022)";
+  }
+  if (state.period === "bpbd-2022-2023-bulanan") {
+    return "Pembanding Bulanan BPBD Kota Medan (Kebakaran & Total Bencana 2022 - 2023)";
+  }
+  if (state.period === "non-kebakaran-2023-2025") {
+    return "Rekapitulasi Operasi Penyelamatan Non-Kebakaran Damkarmat (2023 - 2025)";
+  }
+  if (state.period === "kandidat-independen") {
+    return "Tabel Kandidat Kejadian Media Independen (needs_review, Bukan Statistik Resmi)";
+  }
+  if (state.period === "2023-kecamatan") {
+    return "Rekapitulasi Kejadian Kebakaran per Kecamatan (2023)";
+  }
+  const yr = state.period === "2024-bulanan" ? "2024" : "2025";
+  return `Rekapitulasi Bulanan Kejadian Kebakaran (${yr})`;
+}
+
 function buildOfficialTableMarkup({ rows, state, format }) {
   const isDist = state.period === "2023-kecamatan";
+  const title = getExplorerTableTitle(state);
   if (state.period === "2023-dampak") {
     return {
-      title: "Rekapitulasi Bulanan Dampak & Kerugian Kebakaran (2023)",
+      title,
       count: `${rows.length} baris`,
       html: `
         <div class="table-scroll">
@@ -329,7 +395,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "2016-2025-tahunan") {
     return {
-      title: "Deret Historis Kejadian Kebakaran Kota Medan (2016 - 2025)",
+      title,
       count: `${rows.length} tahun`,
       html: `
         <div class="table-scroll">
@@ -370,7 +436,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "2016-2021-bulanan") {
     return {
-      title: "Rekapitulasi Bulanan Kejadian Kebakaran Kota Medan (2016 - 2021)",
+      title,
       count: `${rows.length} baris`,
       html: `
         <div class="table-scroll">
@@ -409,7 +475,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "bpbd-2021-2023") {
     return {
-      title: "Pembanding BPBD Kota Medan per Kecamatan (Kebakaran 2021 - 2022)",
+      title,
       count: `${rows.length} baris`,
       html: `
         <div class="table-scroll">
@@ -452,7 +518,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "non-kebakaran-2023-2025") {
     return {
-      title: "Rekapitulasi Operasi Penyelamatan Non-Kebakaran Damkarmat (2023 - 2025)",
+      title,
       count: `${rows.length} baris`,
       html: `
         <div class="table-scroll">
@@ -493,7 +559,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "bpbd-2022-2023-bulanan") {
     return {
-      title: "Pembanding Bulanan BPBD Kota Medan (Kebakaran & Total Bencana 2022 - 2023)",
+      title,
       count: `${rows.length} baris`,
       html: `
         <div class="table-scroll">
@@ -534,7 +600,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
 
   if (state.period === "kandidat-independen") {
     return {
-      title: "Tabel Kandidat Kejadian Media Independen (needs_review, Bukan Statistik Resmi)",
+      title,
       count: `${rows.length} kandidat`,
       html: `
         <div class="table-scroll">
@@ -580,9 +646,7 @@ function buildOfficialTableMarkup({ rows, state, format }) {
   }
 
   return {
-    title: isDist
-      ? "Rekapitulasi Kejadian Kebakaran per Kecamatan (2023)"
-      : `Rekapitulasi Bulanan Kejadian Kebakaran (${state.period === "2024-bulanan" ? "2024" : "2025"})`,
+    title,
     count: `${rows.length} baris`,
     html: `
       <div class="table-scroll">
@@ -1201,6 +1265,8 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         chartHandle = null;
       }
 
+      chartTitleEl.textContent = getExplorerChartTitle(state);
+
       if (!rows.length) {
         chartEmptyEl.hidden = false;
         chartFrameEl.hidden = true;
@@ -1211,7 +1277,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       chartFrameEl.hidden = false;
 
       if (state.demoMode && state.demoFixture) {
-        chartTitleEl.textContent = "Contoh Sebaran Record Kontrak (DATA DEMO)";
         const counts = {};
         for (const r of rows) {
           const d = r.district_name || "Tidak Tercatat";
@@ -1233,7 +1298,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.period === "2023-dampak") {
-        chartTitleEl.textContent = "Bagaimana tren bulanan kejadian & korban kebakaran Tahun 2023?";
         chartHandle = services.charts.createChart(chartCanvas, {
           type: "bar",
           data: {
@@ -1266,7 +1330,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.period === "2016-2025-tahunan") {
-        chartTitleEl.textContent = "Bagaimana tren tahunan kebakaran Kota Medan (2016 - 2025)?";
         chartHandle = services.charts.createChart(chartCanvas, {
           type: "line",
           data: {
@@ -1303,7 +1366,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.period === "bpbd-2021-2023") {
-        chartTitleEl.textContent = "Bagaimana perbandingan kejadian kebakaran BPBD per Kecamatan (2021 vs 2022)?";
         chartHandle = services.charts.createChart(chartCanvas, {
           type: "bar",
           data: {
@@ -1331,7 +1393,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.period === "bpbd-2022-2023-bulanan") {
-        chartTitleEl.textContent = "Bagaimana tren bulanan kebakaran dibanding total bencana BPBD (2022 - 2023)?";
         chartHandle = services.charts.createChart(chartCanvas, {
           type: "bar",
           data: {
@@ -1359,7 +1420,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.period === "kandidat-independen") {
-        chartTitleEl.textContent = "Berapa sebaran kandidat berita kebakaran per Kecamatan (bukan sensus lengkap)?";
         const byDistrict = new Map();
         for (const r of rows) {
           const d = r.district_name || "Tidak Tercatat";
@@ -1399,16 +1459,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       const catLabel = CATEGORY_LABELS[state.category];
-      if (state.period === "2023-kecamatan") {
-        chartTitleEl.textContent = `Berapa jumlah kejadian (${catLabel}) per Kecamatan pada Tahun 2023?`;
-      } else if (state.period === "2016-2021-bulanan") {
-        chartTitleEl.textContent = "Bagaimana tren bulanan kebakaran Kota Medan sepanjang 2016 - 2021?";
-      } else if (state.period === "non-kebakaran-2023-2025") {
-        chartTitleEl.textContent = "Bagaimana tren bulanan operasi penyelamatan non-kebakaran (2023 - 2025)?";
-      } else {
-        const yr = state.period === "2024-bulanan" ? "2024" : "2025";
-        chartTitleEl.textContent = `Bagaimana tren bulanan kejadian (${catLabel}) sepanjang Tahun ${yr}?`;
-      }
 
       const isBar = state.period === "2023-kecamatan";
       const seriesLabel =
@@ -1747,8 +1797,13 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
 
     function renderTable(rows) {
+      tableTitleEl.textContent = getExplorerTableTitle(state);
       if (!rows.length) {
-        tableCountEl.textContent = "0 baris";
+        tableCountEl.textContent = state.demoMode
+          ? "0 record DEMO"
+          : state.period === "kandidat-independen"
+            ? "0 kandidat"
+            : "0 baris";
         tableWrapEl.replaceChildren(
           renderStatePanel({
             variant: "empty",
@@ -1762,7 +1817,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       }
 
       if (state.demoMode && state.demoFixture) {
-        tableTitleEl.textContent = "Tabel Kontrak Record Individual (DATA DEMO)";
         tableCountEl.textContent = `${rows.length} record DEMO`;
         tableWrapEl.innerHTML = `
           <div class="table-scroll">

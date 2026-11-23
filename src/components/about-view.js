@@ -1,4 +1,5 @@
 import { FEATURE_REGISTRY, FEATURE_STATUS_META } from "../core/feature-registry.js";
+import { describeActiveDataSource } from "../core/data-status.js";
 import { renderStatePanel } from "./state-panel.js";
 
 function escapeHtml(value) {
@@ -29,6 +30,13 @@ export async function renderAbout({ container, services, navigate }) {
   }
 
   const { manifest } = manifestResp;
+  const snapshotStatus =
+    services.dataStatus.getSnapshotStatus?.() || {
+      mode: services.supabase.isConfigured ? "supabase_pending" : "local",
+      isStaleFallback: false,
+      reason: null
+    };
+  const sourceMeta = describeActiveDataSource(snapshotStatus);
 
   container.innerHTML = `
     <section class="page-header">
@@ -38,10 +46,20 @@ export async function renderAbout({ container, services, navigate }) {
           FireReach Medan memetakan kejadian kebakaran dan mengevaluasi jangkauan layanan pemadam kebakaran di Kota Medan menggunakan data publik terverifikasi dan pemrosesan GIS terbuka.
         </p>
       </div>
-      <span class="status-badge ${services.supabase.isConfigured ? "status-badge--active" : "status-badge--local"}">
-        <span aria-hidden="true">${services.supabase.isConfigured ? "[+]" : "[o]"}</span>
-        <span>${services.supabase.statusLabel}</span>
-      </span>
+      <div class="header-status-group">
+        <span class="status-badge ${services.supabase.isConfigured ? "status-badge--active" : "status-badge--local"}">
+          <span aria-hidden="true">${services.supabase.isConfigured ? "[+]" : "[o]"}</span>
+          <span>Koneksi: ${escapeHtml(services.supabase.statusLabel)}</span>
+        </span>
+        <span
+          class="status-badge ${sourceMeta.badgeClass}"
+          id="about-data-source-badge"
+          title="${escapeHtml(sourceMeta.title)}"
+        >
+          <span aria-hidden="true">${sourceMeta.marker}</span>
+          <span>${escapeHtml(sourceMeta.label)}</span>
+        </span>
+      </div>
     </section>
 
     <div class="split-layout split-layout--balanced">
@@ -80,7 +98,10 @@ export async function renderAbout({ container, services, navigate }) {
       <section class="panel-subtle">
         <h2>Koneksi Basis Data &amp; Standar CRS</h2>
         <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
-          <strong>Status Supabase:</strong> ${services.supabase.note}
+          <strong>Status Koneksi Supabase:</strong> ${escapeHtml(services.supabase.note)}
+        </p>
+        <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);" id="about-active-source-note">
+          <strong>Sumber Data Aktif:</strong> ${escapeHtml(sourceMeta.label)}${(snapshotStatus.isStaleFallback || snapshotStatus.isFallback) && snapshotStatus.reason ? ` (${escapeHtml(snapshotStatus.reason)})` : ""}
         </p>
         <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
           <strong>Standar CRS:</strong> Analisis jarak, luas, dan kepadatan metrik dijalankan pada <code class="mono">${manifest.crs_metric}</code> (UTM Zone 47N), sedangkan penyimpanan PostGIS dan pertukaran GeoJSON web memakai <code class="mono">${manifest.crs_web}</code>.

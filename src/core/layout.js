@@ -1,6 +1,19 @@
 import { FEATURE_REGISTRY, FEATURE_STATUS_META } from "./feature-registry.js";
+import { describeActiveDataSource } from "./data-status.js";
 
-export function createShellLayout(rootElement, supabaseStatus) {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export function createShellLayout(rootElement, supabaseStatus, initialSnapshotStatus = null) {
+  const sourceMeta = describeActiveDataSource(
+    initialSnapshotStatus || { mode: supabaseStatus.isConfigured ? "supabase_pending" : "local" }
+  );
   rootElement.innerHTML = `
     <div class="app-shell">
       <a class="skip-link" href="#app-main">Langsung ke konten utama</a>
@@ -35,10 +48,20 @@ export function createShellLayout(rootElement, supabaseStatus) {
           <span
             class="status-badge ${supabaseStatus.isConfigured ? "status-badge--active" : "status-badge--local"}"
             id="supabase-status-badge"
-            title="${supabaseStatus.note}"
+            title="${escapeHtml(supabaseStatus.note)}"
           >
             <span aria-hidden="true">${supabaseStatus.isConfigured ? "[+]" : "[o]"}</span>
-            <span>${supabaseStatus.statusLabel}</span>
+            <span>Koneksi: ${escapeHtml(supabaseStatus.statusLabel)}</span>
+          </span>
+          <span
+            class="status-badge ${sourceMeta.badgeClass}"
+            id="data-source-status-badge"
+            title="${escapeHtml(sourceMeta.title)}"
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden="true" data-role="marker">${sourceMeta.marker}</span>
+            <span data-role="label">${escapeHtml(sourceMeta.label)}</span>
           </span>
         </div>
       </header>
@@ -110,6 +133,18 @@ export function createShellLayout(rootElement, supabaseStatus) {
   const backdrop = rootElement.querySelector("#sidebar-backdrop");
   const outlet = rootElement.querySelector("#route-outlet");
   const notificationRegion = rootElement.querySelector("#app-notification");
+  const dataSourceBadge = rootElement.querySelector("#data-source-status-badge");
+  const dataSourceMarkerEl = dataSourceBadge?.querySelector('[data-role="marker"]');
+  const dataSourceLabelEl = dataSourceBadge?.querySelector('[data-role="label"]');
+
+  function updateDataSourceStatus(snapshotStatus) {
+    if (!dataSourceBadge) return;
+    const next = describeActiveDataSource(snapshotStatus);
+    dataSourceBadge.className = `status-badge ${next.badgeClass}`;
+    dataSourceBadge.title = next.title;
+    if (dataSourceMarkerEl) dataSourceMarkerEl.textContent = next.marker;
+    if (dataSourceLabelEl) dataSourceLabelEl.textContent = next.label;
+  }
 
   function setDrawerOpen(open) {
     sidebar.classList.toggle("is-open", open);
@@ -152,6 +187,7 @@ export function createShellLayout(rootElement, supabaseStatus) {
     outlet,
     notificationRegion,
     setActiveRoute,
-    closeDrawer: () => setDrawerOpen(false)
+    closeDrawer: () => setDrawerOpen(false),
+    updateDataSourceStatus
   };
 }
