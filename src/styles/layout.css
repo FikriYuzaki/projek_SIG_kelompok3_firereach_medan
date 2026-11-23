@@ -60,9 +60,16 @@
 
 .header-status-group {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.header-status-group .status-badge {
+  white-space: normal;
   max-width: 100%;
 }
 

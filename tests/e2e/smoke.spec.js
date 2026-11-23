@@ -24,7 +24,8 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Ringkasan Pemetaan Kebakaran Kota Medan/i })).toBeVisible();
-    await expect(page.locator("#supabase-status-badge")).toContainText("Mode Lokal");
+    await expect(page.locator("#supabase-status-badge")).toContainText("Koneksi: Mode Lokal");
+    await expect(page.locator("#data-source-status-badge")).toContainText("Sumber Data: JSON Lokal");
 
     for (const navLabel of ["Incident Explorer", "Hotspot Analyzer", "Station Coverage", "Priority Planner"]) {
       await expect(page.locator("#module-nav-list").getByText(navLabel)).toBeVisible();
@@ -320,10 +321,10 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       );
       const brand = document.querySelector(".brand-link")?.getBoundingClientRect();
       const badge = document.querySelector("#supabase-status-badge")?.getBoundingClientRect();
-      const headerOverlap =
-        brand && badge
-          ? !(brand.right <= badge.left || badge.right <= brand.left || brand.bottom <= badge.top || badge.bottom <= brand.top)
-          : false;
+      const sourceBadge = document.querySelector("#data-source-status-badge")?.getBoundingClientRect();
+      const overlaps = (a, b) =>
+        Boolean(a && b && !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top));
+      const headerOverlap = overlaps(brand, badge) || overlaps(brand, sourceBadge) || overlaps(badge, sourceBadge);
       const headerZ = Number(getComputedStyle(document.querySelector(".app-header")).zIndex || 0);
       return { docOverflow, metricOverflow, headerOverlap, headerZ };
     });
@@ -535,12 +536,16 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.goto("/about");
     await expect(page.getByText(/Pengayaan Kandidat Independen \(Belum Terverifikasi\)/i)).toBeVisible();
     await expect(page.getByText(/BPBD Rekapitulasi Bencana Tahun 2021/i)).toBeVisible();
+    await expect(page.locator("#about-data-source-badge")).toContainText("Sumber Data: JSON Lokal");
+    await expect(page.locator("#about-active-source-note")).toContainText("Sumber Data: JSON Lokal");
     await expect(page.locator("table a[href*='p2k.medan.go.id']")).toHaveAttribute("target", "_blank");
     await expect(page.locator("table a[href*='medanterkini.medan.go.id']").first()).toHaveAttribute("target", "_blank");
 
     await page.goto("/incident-explorer");
     await expect(page.getByRole("heading", { name: "Fire Incident Explorer" })).toBeVisible({ timeout: 15000 });
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
+    await expect(page.locator("#supabase-status-badge")).toContainText("Koneksi: Mode Lokal");
+    await expect(page.locator("#data-source-status-badge")).toContainText("Sumber Data: JSON Lokal");
     await expect(page.locator("#tab-verified")).toHaveText("Eksplorasi Dataset & Peta");
     await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Data Resmi Damkarmat");
 
@@ -586,6 +591,18 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#detail-kv a[href*='652642']")).toHaveAttribute("target", "_blank");
     await page.selectOption("#filter-district", "Medan Deli");
     await expect(page.locator("#explorer-table-count")).toHaveText("2 kandidat");
+
+    // Verify empty-state chart & table titles always reflect active period rather than stale 2023 heading
+    await page.fill("#filter-search", "zzzz-tidak-ada");
+    await expect(page.locator("#explorer-table-count")).toHaveText("0 kandidat");
+    await expect(page.locator("#explorer-chart-title")).toContainText("kandidat berita kebakaran");
+    await expect(page.locator("#explorer-table-title")).toContainText("Kandidat Kejadian Media Independen");
+    await page.selectOption("#filter-period", "bpbd-2022-2023-bulanan");
+    await expect(page.locator("#explorer-table-count")).toHaveText("0 baris");
+    await expect(page.locator("#explorer-chart-title")).toContainText("BPBD (2022 - 2023)");
+    await expect(page.locator("#explorer-table-title")).toContainText("Pembanding Bulanan BPBD Kota Medan");
+    await page.click("#filter-reset");
+    await expect(page.locator("#explorer-table-count")).toHaveText("21 baris");
 
     for (const vp of [
       { width: 1440, height: 900 },
