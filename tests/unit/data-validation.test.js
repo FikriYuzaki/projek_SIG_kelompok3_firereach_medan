@@ -1,7 +1,12 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateStagingBundle } from "../../scripts/import_supabase_staging.mjs";
+import {
+  computeTextAssetChecksum,
+  normalizeTextAssetBytes,
+  validateStagingBundle
+} from "../../scripts/import_supabase_staging.mjs";
 
 const ROOT = path.resolve(process.cwd());
 
@@ -205,5 +210,35 @@ describe("processed data & DEMO fixture integrity", () => {
     expect(validationCounts.fire_stations).toBe(7);
     expect(validationCounts.fire_incidents).toBe(27);
     expect(bundle.schema_recommendations.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("keeps snapshot and independent catalog JSON checksums deterministic across CRLF and LF line endings", () => {
+    const manifest = readJson("public/data/manifest.json");
+    const bundle = readJson("data/processed/supabase_staging_bundle.json");
+
+    const sampleLf = '{"a":1,\n"b":2}\n';
+    const sampleCrlf = '{"a":1,\r\n"b":2}\r\n';
+    expect(normalizeTextAssetBytes(sampleLf)).toEqual(normalizeTextAssetBytes(sampleCrlf));
+
+    expect(bundle.tables.app_data_snapshots).toHaveLength(5);
+    for (const snap of bundle.tables.app_data_snapshots) {
+      const absPath = path.join(ROOT, snap.public_file_path);
+      const rawText = fs.readFileSync(absPath, "utf-8");
+      const lfBuf = normalizeTextAssetBytes(rawText.replace(/\r?\n/g, "\n"));
+      const crlfBuf = normalizeTextAssetBytes(rawText.replace(/\r?\n/g, "\r\n"));
+      const direct = computeTextAssetChecksum(absPath);
+
+      expect(direct.sha256).toBe(snap.content_sha256);
+      expect(direct.byteSize).toBe(snap.byte_size);
+      expect(crypto.createHash("sha256").update(lfBuf).digest("hex")).toBe(snap.content_sha256);
+      expect(lfBuf.length).toBe(snap.byte_size);
+      expect(crypto.createHash("sha256").update(crlfBuf).digest("hex")).toBe(snap.content_sha256);
+      expect(crlfBuf.length).toBe(snap.byte_size);
+    }
+
+    for (const item of manifest.independent_enrichment.datasets) {
+      const absPath = path.join(ROOT, "public", item.path.replace(/^\//, ""));
+      expect(computeTextAssetChecksum(absPath).sha256).toBe(item.sha256);
+    }
   });
 });

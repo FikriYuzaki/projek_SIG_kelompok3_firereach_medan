@@ -4836,15 +4836,15 @@
         "snapshot_key": "manifest",
         "dataset_status": "verified",
         "public_file_path": "public/data/manifest.json",
-        "content_sha256": "a8d5ca20f176ea3eb62aaeae239ef1814de770bcc27d918014af09a90d48390c",
-        "byte_size": 14485
+        "content_sha256": "466a11a1fd5709c61bb85cb16599874295287b40f5b6a11d4da0370607fc8257",
+        "byte_size": 14193
       },
       {
         "snapshot_key": "fire_incidents_summary",
         "dataset_status": "verified",
         "public_file_path": "public/data/fire_incidents_summary.json",
-        "content_sha256": "162cfa3b1cffae6d0cb2c80df41d77bdbc409a8ff82f3d56c1719f5677abafad",
-        "byte_size": 239551
+        "content_sha256": "3592af6a44658f8f900f7292a0d3cec0961dd3a63123865374de28588490d4ce",
+        "byte_size": 233166
       },
       {
         "snapshot_key": "medan_districts_osm",
@@ -4857,15 +4857,15 @@
         "snapshot_key": "station_coverage_provisional",
         "dataset_status": "provisional",
         "public_file_path": "public/data/station-coverage.provisional.json",
-        "content_sha256": "6ad6221161b1df7a2254499671d22c73d4294268b48e21df6e11db5e66fedf3c",
-        "byte_size": 178006
+        "content_sha256": "24fea1fe9b387b9fc2d36c5b7d6dc6c9bcc1df4093cb1739cae0c6fa72ce3826",
+        "byte_size": 171356
       },
       {
         "snapshot_key": "priority_planner_provisional",
         "dataset_status": "provisional",
         "public_file_path": "public/data/priority-planner.provisional.json",
-        "content_sha256": "7ed8cb1a68dd7dd0d94e1a0494941702dfa9e84fa1ff35d1695ea1e151417c09",
-        "byte_size": 23483
+        "content_sha256": "47c994bd2da72a47ef37cf7b900800fc203c78541f3fcaf190036868bd11a769",
+        "byte_size": 22962
       }
     ]
   },

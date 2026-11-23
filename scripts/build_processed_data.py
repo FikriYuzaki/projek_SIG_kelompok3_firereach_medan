@@ -110,6 +110,17 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def read_canonical_text_bytes(path: Path) -> bytes:
+    """Return UTF-8 bytes with CRLF and CR normalized to LF for cross-OS determinism."""
+    return path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def sha256_text_asset(path: Path) -> tuple[str, int]:
+    """Compute deterministic SHA-256 hex digest and LF byte size for text JSON assets."""
+    normalized = read_canonical_text_bytes(path)
+    return hashlib.sha256(normalized).hexdigest(), len(normalized)
+
+
 def perp_dist(pt, a, b):
     if a == b:
         return math.hypot(pt[0] - a[0], pt[1] - a[1])
@@ -909,12 +920,13 @@ def build_supabase_staging_bundle(
     for skey, dstatus, rel_path in snapshot_files:
         fpath = ROOT / rel_path
         if fpath.exists():
+            content_sha256, byte_size = sha256_text_asset(fpath)
             app_data_snapshots.append({
                 "snapshot_key": skey,
                 "dataset_status": dstatus,
                 "public_file_path": rel_path,
-                "content_sha256": sha256_file(fpath),
-                "byte_size": fpath.stat().st_size,
+                "content_sha256": content_sha256,
+                "byte_size": byte_size,
             })
 
     return {
@@ -1535,16 +1547,16 @@ def main():
     }
 
     geo_out = PROCESSED / "medan_districts_osm.geojson"
-    geo_out.write_text(json.dumps(districts_geojson, ensure_ascii=False), encoding="utf-8")
+    geo_out.write_text(json.dumps(districts_geojson, ensure_ascii=False), encoding="utf-8", newline="\n")
     shutil.copy2(geo_out, PUBLIC_DATA / "medan_districts_osm.geojson")
 
     inc_payload, st_payload = validate_and_emit_independent_candidates(district_features)
     inc_cand_out = PROCESSED / "public_incident_candidates.json"
-    inc_cand_out.write_text(json.dumps(inc_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    inc_cand_out.write_text(json.dumps(inc_payload, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     shutil.copy2(inc_cand_out, PUBLIC_DATA / "public_incident_candidates.json")
 
     st_cand_out = PROCESSED / "damkarmat_station_candidates.json"
-    st_cand_out.write_text(json.dumps(st_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    st_cand_out.write_text(json.dumps(st_payload, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     shutil.copy2(st_cand_out, PUBLIC_DATA / "damkarmat_station_candidates.json")
 
     spm_response_row = next((s for s in damkarmat_spm if s["unit"] == "menit"), None)
@@ -1586,7 +1598,7 @@ def main():
         "data_quality_anomalies": data_quality_anomalies,
     }
     summary_out = PROCESSED / "fire_incidents_summary.json"
-    summary_out.write_text(json.dumps(summary_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    summary_out.write_text(json.dumps(summary_payload, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     shutil.copy2(summary_out, PUBLIC_DATA / "fire_incidents_summary.json")
 
     shutil.copy2(
@@ -1838,7 +1850,7 @@ def main():
                     "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
                     "status": "needs_review",
                     "path": "/data/public_incident_candidates.json",
-                    "sha256": sha256_file(PUBLIC_DATA / "public_incident_candidates.json"),
+                    "sha256": sha256_text_asset(PUBLIC_DATA / "public_incident_candidates.json")[0],
                 },
                 {
                     "id": "medan-damkarmat-upt-candidates",
@@ -1849,7 +1861,7 @@ def main():
                     "accuracy_summary": "2 approximate (UPT-05 & UPT-06) + 4 district_only (UPT-01..04, geom=null)",
                     "status": "needs_review",
                     "path": "/data/damkarmat_station_candidates.json",
-                    "sha256": sha256_file(PUBLIC_DATA / "damkarmat_station_candidates.json"),
+                    "sha256": sha256_text_asset(PUBLIC_DATA / "damkarmat_station_candidates.json")[0],
                 },
             ],
         },
@@ -1877,7 +1889,7 @@ def main():
             },
         ],
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
 
     staging_bundle = build_supabase_staging_bundle(
         summary_payload=summary_payload,
@@ -1888,7 +1900,7 @@ def main():
         manifest=manifest,
     )
     staging_out = PROCESSED / "supabase_staging_bundle.json"
-    staging_out.write_text(json.dumps(staging_bundle, indent=2, ensure_ascii=False), encoding="utf-8")
+    staging_out.write_text(json.dumps(staging_bundle, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
 
     print("Processed GeoJSON bytes:", geo_out.stat().st_size)
     print("Processed summary JSON bytes:", summary_out.stat().st_size)

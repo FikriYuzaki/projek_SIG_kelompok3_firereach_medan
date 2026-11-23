@@ -253,7 +253,7 @@
         "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
         "status": "needs_review",
         "path": "/data/public_incident_candidates.json",
-        "sha256": "e4f462163f3a2723d9073d1dcd11c3588c1a0d86303698ca3f9ce6c609838e4b"
+        "sha256": "8b925a4c60564a296009139d17db76aed4e6b53f68c17d098164cab9725ae291"
       },
       {
         "id": "medan-damkarmat-upt-candidates",
@@ -264,7 +264,7 @@
         "accuracy_summary": "2 approximate (UPT-05 & UPT-06) + 4 district_only (UPT-01..04, geom=null)",
         "status": "needs_review",
         "path": "/data/damkarmat_station_candidates.json",
-        "sha256": "b7d239c9af32d36f783e2dba180a00953bc22443ae591848cfdec887f28b2ff2"
+        "sha256": "87d424479f6c1c7c2bf6f441e4b40d8ed4c4b84c5149a96eb3beaf00c2df6e80"
       }
     ]
   },

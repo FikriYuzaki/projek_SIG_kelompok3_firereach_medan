@@ -42,6 +42,19 @@ function assert(cond, msg) {
   }
 }
 
+export function normalizeTextAssetBytes(input) {
+  const text = Buffer.isBuffer(input) ? input.toString("utf-8") : String(input);
+  return Buffer.from(text.replace(/\r\n/g, "\n").replace(/\r/g, "\n"), "utf-8");
+}
+
+export function computeTextAssetChecksum(absPath) {
+  const normalized = normalizeTextAssetBytes(fs.readFileSync(absPath));
+  return {
+    sha256: crypto.createHash("sha256").update(normalized).digest("hex"),
+    byteSize: normalized.length
+  };
+}
+
 function isValidMedanPoint(geom) {
   if (!geom || typeof geom !== "object" || geom.type !== "Point" || !Array.isArray(geom.coordinates)) {
     return false;
@@ -148,8 +161,12 @@ export function validateStagingBundle(bundle, rootDir = ROOT) {
     assert(SNAPSHOT_STATUSES.has(snap.dataset_status), `Invalid snapshot status: ${snap.dataset_status}`);
     const absPath = path.join(rootDir, snap.public_file_path);
     assert(fs.existsSync(absPath), `Missing snapshot file: ${snap.public_file_path}`);
-    const actualSha = crypto.createHash("sha256").update(fs.readFileSync(absPath)).digest("hex");
+    const { sha256: actualSha, byteSize: actualByteSize } = computeTextAssetChecksum(absPath);
     assert(actualSha === snap.content_sha256, `SHA-256 mismatch for snapshot ${snap.snapshot_key}`);
+    assert(
+      actualByteSize === snap.byte_size,
+      `Byte size mismatch for snapshot ${snap.snapshot_key}: expected ${snap.byte_size}, got ${actualByteSize}`
+    );
   }
 
   return {
