@@ -6,7 +6,8 @@ Menjalankan pada CRS metrik `EPSG:32647`:
 2. Buffer Euclidean (2.000 m, 3.000 m, 5.000 m) diklip ke batas Kota Medan.
 3. Service Area berbasis jaringan jalan OSM (2.000 m, 3.000 m, 5.000 m) memakai `native:serviceareafromlayer`.
 4. Perbandingan cakupan wilayah & gap pada 21 kecamatan (`12.71.01`..`12.71.21`).
-5. Ekspor GeoPackage `qgis/station-coverage/layers/station_coverage_analysis.gpkg` (`EPSG:32647`)
+5. Validasi katalog kandidat pos publik (`public_station_candidates.json`) dan perhitungan skenario sensitivitas eksploratif (non-resmi) bagi kandidat yang memiliki koordinat perkiraan OSM.
+6. Ekspor GeoPackage `qgis/station-coverage/layers/station_coverage_analysis.gpkg` (`EPSG:32647`)
    dan output web `public/data/station-coverage.provisional.json` (`EPSG:4326`).
 """
 
@@ -17,7 +18,6 @@ import gc
 import json
 from pathlib import Path
 import sys
-import tempfile
 from typing import Any
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -26,12 +26,14 @@ if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
 from coverage_core import (  # noqa: E402
+    CANDIDATE_SCENARIO_LABEL,
     DEFAULT_ASSUMED_SPEED_KMH,
     DEFAULT_THRESHOLDS_METERS,
     REQUIRED_OUTPUT_CRS,
     REQUIRED_WORKING_CRS,
     compute_district_coverage_row,
     compute_scenario_time_minutes,
+    validate_candidate_station_records,
     validate_station_coverage_output,
     validate_station_records,
 )
@@ -61,101 +63,109 @@ def _extract_polygons_only(geom: Any) -> Any:
     return merged
 
 
-def _execute_coverage(
-    summary_path: Path,
-    boundary_path: Path,
-    roads_gpkg_path: Path,
-    roads_meta_path: Path,
-    out_json_path: Path,
-    out_gpkg_path: Path,
-    thresholds_m: tuple[int, ...] = DEFAULT_THRESHOLDS_METERS,
-    assumed_speed_kmh: float = DEFAULT_ASSUMED_SPEED_KMH,
-) -> dict[str, Any]:
-    from qgis.core import (
-        Qgis,
-        QgsCoordinateReferenceSystem,
-        QgsFeature,
-        QgsField,
-        QgsGeometry,
-        QgsPointXY,
-        QgsProject,
-        QgsVectorFileWriter,
-        QgsVectorLayer,
-    )
+def _build_points_layer_utm(
+    station_list: list[dict[str, Any]],
+    layer_name: str,
+    utm_crs: Any,
+) -> Any:
+    from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
     from qgis.PyQt.QtCore import QMetaType
     import processing
 
-    summary_data = json.loads(summary_path.read_text(encoding="utf-8"))
-    boundary_geojson = json.loads(boundary_path.read_text(encoding="utf-8"))
-    roads_meta = json.loads(roads_meta_path.read_text(encoding="utf-8"))
-
-    raw_stations = summary_data.get("verified_stations") or []
-    station_val = validate_station_records(raw_stations, boundary_geojson)
-    accepted_stations = station_val["accepted"]
-    if not accepted_stations:
-        raise RuntimeError(
-            "Tidak ada pos Damkarmat terverifikasi di dalam batas Kota Medan. "
-            f"Ringkasan: {json.dumps(station_val['summary'], ensure_ascii=False)}"
-        )
-
-    wgs84_crs = QgsCoordinateReferenceSystem(REQUIRED_OUTPUT_CRS)
-    utm_crs = QgsCoordinateReferenceSystem(REQUIRED_WORKING_CRS)
-
-    # Layer stasiun terverifikasi
-    mako_wgs = QgsVectorLayer("Point?crs=EPSG:4326", "mako_verified", "memory")
-    m_prov = mako_wgs.dataProvider()
-    m_prov.addAttributes(
+    pts_wgs = QgsVectorLayer("Point?crs=EPSG:4326", f"{layer_name}_wgs", "memory")
+    prov = pts_wgs.dataProvider()
+    prov.addAttributes(
         [
             QgsField("station_code", QMetaType.Type.QString),
             QgsField("name", QMetaType.Type.QString),
             QgsField("station_type", QMetaType.Type.QString),
             QgsField("address", QMetaType.Type.QString),
             QgsField("verification_status", QMetaType.Type.QString),
+            QgsField("location_accuracy", QMetaType.Type.QString),
         ]
     )
-    mako_wgs.updateFields()
-    station_feats = []
-    for st in accepted_stations:
-        qf = QgsFeature(mako_wgs.fields())
+    pts_wgs.updateFields()
+    feats = []
+    for st in station_list:
+        qf = QgsFeature(pts_wgs.fields())
         qf.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(st["lon"], st["lat"])))
         qf.setAttributes(
-            [st["station_code"], st["name"], st["station_type"], st["address"], st["verification_status"]]
+            [
+                st["station_code"],
+                st["name"],
+                st.get("station_type") or "upt",
+                st.get("address") or "-",
+                st.get("verification_status") or "needs_review",
+                st.get("location_accuracy") or "exact_verified",
+            ]
         )
-        station_feats.append(qf)
-    m_prov.addFeatures(station_feats)
-    mako_wgs.updateExtents()
-
-    mako_utm = processing.run(
+        feats.append(qf)
+    prov.addFeatures(feats)
+    pts_wgs.updateExtents()
+    return processing.run(
         "native:reprojectlayer",
-        {"INPUT": mako_wgs, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
+        {"INPUT": pts_wgs, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
     )["OUTPUT"]
 
-    boundary_wgs = QgsVectorLayer(str(boundary_path), "districts", "ogr")
-    roads_layer = QgsVectorLayer(f"{roads_gpkg_path}|layername=medan_roads_utm", "roads_utm", "ogr")
-    if not boundary_wgs.isValid() or not roads_layer.isValid():
-        raise RuntimeError("Layer boundary atau jaringan jalan gagal dibuka oleh QGIS.")
 
-    districts_utm_raw = processing.run(
+def _to_web_feature_collection(
+    mem_layer: Any,
+    wgs84_crs: Any,
+    data_label: str,
+    simplify_deg: float = 0.0,
+    extra_props: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    import processing
+
+    reproj = processing.run(
         "native:reprojectlayer",
-        {"INPUT": boundary_wgs, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
+        {"INPUT": mem_layer, "TARGET_CRS": wgs84_crs, "OUTPUT": "memory:"},
     )["OUTPUT"]
-    districts_utm = processing.run(
-        "native:fixgeometries",
-        {"INPUT": districts_utm_raw, "OUTPUT": "memory:"},
-    )["OUTPUT"]
+    if simplify_deg > 0:
+        reproj = processing.run(
+            "native:simplifygeometries",
+            {"INPUT": reproj, "METHOD": 0, "TOLERANCE": simplify_deg, "OUTPUT": "memory:"},
+        )["OUTPUT"]
+    field_names = [f.name() for f in reproj.fields()]
+    feats = []
+    for f in reproj.getFeatures():
+        props = {k: f[k] for k in field_names}
+        props["isDemo"] = False
+        props["dataLabel"] = data_label
+        if extra_props:
+            props.update(extra_props)
+        feats.append(
+            {
+                "type": "Feature",
+                "properties": props,
+                "geometry": json.loads(f.geometry().asJson()),
+            }
+        )
+    return {
+        "type": "FeatureCollection",
+        "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
+        "features": feats,
+    }
 
-    city_dissolved = processing.run(
-        "native:dissolve",
-        {"INPUT": districts_utm, "OUTPUT": "memory:"},
-    )["OUTPUT"]
-    city_geom = None
-    for feat in city_dissolved.getFeatures():
-        g = feat.geometry()
-        city_geom = g if city_geom is None else city_geom.combine(g)
-    if city_geom is None or city_geom.isEmpty():
-        raise RuntimeError("Geometri batas gabungan Kota Medan kosong.")
 
-    # Siapkan layer hasil di EPSG:32647
+def _compute_coverage_for_points(
+    *,
+    station_list: list[dict[str, Any]],
+    pts_utm: Any,
+    roads_layer: Any,
+    districts_utm: Any,
+    city_geom: Any,
+    thresholds_m: tuple[int, ...],
+    assumed_speed_kmh: float,
+    dissolve_network_lines: bool = False,
+    capture_lines_5km: bool = False,
+    baseline_by_thresh: dict[int, dict[str, Any]] | None = None,
+    baseline_dist_by_code: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    from qgis.core import Qgis, QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
+    from qgis.PyQt.QtCore import QMetaType
+    import processing
+
     euc_layer_utm = QgsVectorLayer("MultiPolygon?crs=EPSG:32647", "euclidean_buffers_utm", "memory")
     e_prov = euc_layer_utm.dataProvider()
     e_prov.addAttributes(
@@ -189,12 +199,10 @@ def _execute_coverage(
     euc_geom_by_thresh: dict[int, QgsGeometry] = {}
     net_lines_5km_layer = None
     summary_by_threshold: list[dict[str, Any]] = []
+    station_label = ", ".join(s["station_code"] for s in station_list)
 
-    station_label = ", ".join(s["station_code"] for s in accepted_stations)
-
-    # Saring jaringan jalan ke cakupan maksimum + 1.500 m dari stasiun agar analisis graf cepat & akurat
     max_thresh = float(max(thresholds_m))
-    search_extent = mako_utm.extent()
+    search_extent = pts_utm.extent()
     search_extent.grow(max_thresh + 1500.0)
     roads_scoped = processing.run(
         "native:extractbyextent",
@@ -207,11 +215,10 @@ def _execute_coverage(
     )["OUTPUT"]
 
     for thresh in sorted(thresholds_m):
-        # A. Euclidean buffer
         buf_raw = processing.run(
             "native:buffer",
             {
-                "INPUT": mako_utm,
+                "INPUT": pts_utm,
                 "DISTANCE": float(thresh),
                 "SEGMENTS": 24,
                 "END_CAP_STYLE": 0,
@@ -245,7 +252,6 @@ def _execute_coverage(
         )
         e_prov.addFeatures([ef])
 
-        # B. Network Service Area (QGIS Shortest path in meters on EPSG:32647 road graph)
         sa_res = processing.run(
             "native:serviceareafromlayer",
             {
@@ -259,7 +265,7 @@ def _execute_coverage(
                 "SPEED_FIELD": "",
                 "DEFAULT_SPEED": float(assumed_speed_kmh),
                 "TOLERANCE": 0.0,
-                "START_POINTS": mako_utm,
+                "START_POINTS": pts_utm,
                 "TRAVEL_COST2": float(thresh),
                 "INCLUDE_BOUNDS": False,
                 "POINT_TOLERANCE": 250.0,
@@ -271,9 +277,16 @@ def _execute_coverage(
         if not sa_lines or sa_lines.featureCount() == 0:
             raise RuntimeError(f"Service area jaringan jalan {thresh}m menghasilkan 0 segmen.")
 
+        lines_source = sa_lines
+        if dissolve_network_lines:
+            lines_source = processing.run(
+                "native:dissolve",
+                {"INPUT": sa_lines, "OUTPUT": "memory:"},
+            )["OUTPUT"]
+
         line_geoms: list[QgsGeometry] = []
         road_len_m = 0.0
-        for f in sa_lines.getFeatures():
+        for f in lines_source.getFeatures():
             g = f.geometry()
             if g is None or g.isNull() or g.isEmpty():
                 continue
@@ -285,9 +298,9 @@ def _execute_coverage(
         if not line_geoms:
             raise RuntimeError(f"Service area jaringan jalan {thresh}m tidak memiliki segmen garis valid.")
 
-        print(f"Threshold {thresh}m: {len(line_geoms)} segmen jaringan jalan ditemukan.", flush=True)
+        print(f"Threshold {thresh}m ({len(station_list)} pos): {len(line_geoms)} segmen jaringan jalan ditemukan.", flush=True)
         road_len_km = round(road_len_m / 1000.0, 2)
-        if thresh == max(thresholds_m):
+        if capture_lines_5km and thresh == max(thresholds_m):
             clean_lines_lyr = QgsVectorLayer("MultiLineString?crs=EPSG:32647", "network_lines_5km_utm", "memory")
             cl_prov = clean_lines_lyr.dataProvider()
             cl_prov.addAttributes([QgsField("threshold_m", QMetaType.Type.Int)])
@@ -334,23 +347,25 @@ def _execute_coverage(
         )
         n_prov.addFeatures([nf])
 
-        summary_by_threshold.append(
-            {
-                "threshold_meters": int(thresh),
-                "scenario_minutes": scen_min,
-                "assumed_speed_kmh": float(assumed_speed_kmh),
-                "euclidean_area_km2": euc_area_km2,
-                "network_area_km2": net_area_km2,
-                "network_road_length_km": road_len_km,
-                "network_vs_euclidean_ratio": round(net_area_km2 / euc_area_km2, 4) if euc_area_km2 > 0 else 0.0,
-            }
-        )
+        comp_row: dict[str, Any] = {
+            "threshold_meters": int(thresh),
+            "scenario_minutes": scen_min,
+            "assumed_speed_kmh": float(assumed_speed_kmh),
+            "euclidean_area_km2": euc_area_km2,
+            "network_area_km2": net_area_km2,
+            "network_road_length_km": road_len_km,
+            "network_vs_euclidean_ratio": round(net_area_km2 / euc_area_km2, 4) if euc_area_km2 > 0 else 0.0,
+        }
+        if baseline_by_thresh and thresh in baseline_by_thresh:
+            base_row = baseline_by_thresh[thresh]
+            comp_row["delta_euclidean_area_km2"] = round(euc_area_km2 - float(base_row["euclidean_area_km2"]), 4)
+            comp_row["delta_network_area_km2"] = round(net_area_km2 - float(base_row["network_area_km2"]), 4)
+        summary_by_threshold.append(comp_row)
 
     euc_layer_utm.updateExtents()
     net_layer_utm.updateExtents()
 
-    # C. Statistik cakupan per 21 kecamatan
-    mako_pt_utm = next(mako_utm.getFeatures()).geometry()
+    pts_utm_list = [(str(f["station_code"]), f.geometry()) for f in pts_utm.getFeatures()]
     district_cov_layer = QgsVectorLayer("MultiPolygon?crs=EPSG:32647", "district_coverage_21_utm", "memory")
     dc_prov = district_cov_layer.dataProvider()
     dc_prov.addAttributes(
@@ -373,6 +388,8 @@ def _execute_coverage(
     net5_geom = net_geom_by_thresh[5000]
     euc5_geom = euc_geom_by_thresh[5000]
 
+    mako_geom = next((g for sc, g in pts_utm_list if sc == "MAKO-00"), pts_utm_list[0][1])
+
     for feat in districts_utm.getFeatures():
         d_geom = feat.geometry()
         code = str(feat["area_code"])
@@ -381,7 +398,12 @@ def _execute_coverage(
         net3_km2 = d_geom.intersection(net3_geom).area() / 1_000_000.0
         net5_km2 = d_geom.intersection(net5_geom).area() / 1_000_000.0
         euc5_km2 = d_geom.intersection(euc5_geom).area() / 1_000_000.0
-        centroid_dist_m = d_geom.centroid().distance(mako_pt_utm)
+        centroid_geom = d_geom.centroid()
+        mako_dist_m = centroid_geom.distance(mako_geom)
+        nearest_code, nearest_dist_m = min(
+            ((sc, centroid_geom.distance(pg)) for sc, pg in pts_utm_list),
+            key=lambda item: item[1],
+        )
 
         row = compute_district_coverage_row(
             area_code=code,
@@ -390,8 +412,17 @@ def _execute_coverage(
             network_3km_km2=net3_km2,
             network_5km_km2=net5_km2,
             euclidean_5km_km2=euc5_km2,
-            centroid_distance_m=centroid_dist_m,
+            centroid_distance_m=mako_dist_m,
         )
+        if baseline_dist_by_code is not None:
+            row["nearest_station_code"] = nearest_code
+            row["nearest_station_distance_m"] = round(float(nearest_dist_m), 1)
+            base_d = baseline_dist_by_code.get(code)
+            if base_d is not None:
+                row["delta_network_5km_pct"] = round(
+                    float(row["network_5km_coverage_pct"]) - float(base_d["network_5km_coverage_pct"]),
+                    2,
+                )
         district_rows.append(row)
 
         df = QgsFeature(district_cov_layer.fields())
@@ -416,19 +447,190 @@ def _execute_coverage(
     district_cov_layer.updateExtents()
     district_rows.sort(key=lambda r: r["area_code"])
 
-    # D. Simpan seluruh layer kerja ke GeoPackage EPSG:32647
+    return {
+        "euc_layer_utm": euc_layer_utm,
+        "net_layer_utm": net_layer_utm,
+        "district_cov_layer": district_cov_layer,
+        "net_lines_5km_layer": net_lines_5km_layer,
+        "summary_by_threshold": summary_by_threshold,
+        "district_rows": district_rows,
+    }
+
+
+def _execute_coverage(
+    summary_path: Path,
+    boundary_path: Path,
+    roads_gpkg_path: Path,
+    roads_meta_path: Path,
+    out_json_path: Path,
+    out_gpkg_path: Path,
+    candidates_path: Path | None = None,
+    thresholds_m: tuple[int, ...] = DEFAULT_THRESHOLDS_METERS,
+    assumed_speed_kmh: float = DEFAULT_ASSUMED_SPEED_KMH,
+) -> dict[str, Any]:
+    from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorFileWriter, QgsVectorLayer
+    import processing
+
+    summary_data = json.loads(summary_path.read_text(encoding="utf-8"))
+    boundary_geojson = json.loads(boundary_path.read_text(encoding="utf-8"))
+    roads_meta = json.loads(roads_meta_path.read_text(encoding="utf-8"))
+    resolved_candidates_path = candidates_path or (_SCRIPT_DIR / "public_station_candidates.json")
+
+    raw_stations = summary_data.get("verified_stations") or []
+    station_val = validate_station_records(raw_stations, boundary_geojson)
+    accepted_stations = station_val["accepted"]
+    if not accepted_stations:
+        raise RuntimeError(
+            "Tidak ada pos Damkarmat terverifikasi di dalam batas Kota Medan. "
+            f"Ringkasan: {json.dumps(station_val['summary'], ensure_ascii=False)}"
+        )
+
+    wgs84_crs = QgsCoordinateReferenceSystem(REQUIRED_OUTPUT_CRS)
+    utm_crs = QgsCoordinateReferenceSystem(REQUIRED_WORKING_CRS)
+
+    mako_utm = _build_points_layer_utm(accepted_stations, "mako_verified", utm_crs)
+
+    boundary_wgs = QgsVectorLayer(str(boundary_path), "districts", "ogr")
+    roads_layer = QgsVectorLayer(f"{roads_gpkg_path}|layername=medan_roads_utm", "roads_utm", "ogr")
+    if not boundary_wgs.isValid() or not roads_layer.isValid():
+        raise RuntimeError("Layer boundary atau jaringan jalan gagal dibuka oleh QGIS.")
+
+    districts_utm_raw = processing.run(
+        "native:reprojectlayer",
+        {"INPUT": boundary_wgs, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
+    )["OUTPUT"]
+    districts_utm = processing.run(
+        "native:fixgeometries",
+        {"INPUT": districts_utm_raw, "OUTPUT": "memory:"},
+    )["OUTPUT"]
+
+    city_dissolved = processing.run(
+        "native:dissolve",
+        {"INPUT": districts_utm, "OUTPUT": "memory:"},
+    )["OUTPUT"]
+    city_geom = None
+    for feat in city_dissolved.getFeatures():
+        g = feat.geometry()
+        city_geom = g if city_geom is None else city_geom.combine(g)
+    if city_geom is None or city_geom.isEmpty():
+        raise RuntimeError("Geometri batas gabungan Kota Medan kosong.")
+
+    # 1. Baseline Resmi/Provisional (Hanya pos verified: Mako 0.0 -> menjaga Priority Planner tetap konsisten)
+    baseline_res = _compute_coverage_for_points(
+        station_list=accepted_stations,
+        pts_utm=mako_utm,
+        roads_layer=roads_layer,
+        districts_utm=districts_utm,
+        city_geom=city_geom,
+        thresholds_m=thresholds_m,
+        assumed_speed_kmh=assumed_speed_kmh,
+        dissolve_network_lines=False,
+        capture_lines_5km=True,
+    )
+
+    euc_web_fc = _to_web_feature_collection(baseline_res["euc_layer_utm"], wgs84_crs, "PROVISIONAL", simplify_deg=0.0)
+    net_web_fc = _to_web_feature_collection(baseline_res["net_layer_utm"], wgs84_crs, "PROVISIONAL", simplify_deg=0.00015)
+
+    # 2. Katalog Kandidat Publik (Terpisah) & Skenario Sensitivitas Eksploratif
+    if not resolved_candidates_path.exists():
+        raise RuntimeError(f"Berkas katalog kandidat publik tidak ditemukan: {resolved_candidates_path}")
+    cand_doc = json.loads(resolved_candidates_path.read_text(encoding="utf-8"))
+    cand_meta = cand_doc.get("metadata") or {}
+    cand_val = validate_candidate_station_records(
+        cand_doc.get("candidates") or [],
+        boundary_geojson,
+        verified_codes={s["station_code"] for s in accepted_stations},
+    )
+    if cand_val["rejected"]:
+        raise RuntimeError(
+            "Katalog kandidat publik memiliki entri tidak valid: "
+            + json.dumps(cand_val["rejected"], ensure_ascii=False)
+        )
+    accepted_candidates = cand_val["accepted"]
+    geolocated_candidates = cand_val["geolocated"]
+    district_only_candidates = cand_val["district_only"]
+
+    layers_to_save: list[tuple[str, Any]] = [
+        ("mako_verified", mako_utm),
+        ("euclidean_buffers_utm", baseline_res["euc_layer_utm"]),
+        ("network_service_areas_utm", baseline_res["net_layer_utm"]),
+        ("district_coverage_21_utm", baseline_res["district_cov_layer"]),
+    ]
+    if baseline_res["net_lines_5km_layer"] is not None:
+        layers_to_save.append(("network_lines_5km_utm", baseline_res["net_lines_5km_layer"]))
+
+    city_total_km2 = round(sum(r["district_area_km2"] for r in baseline_res["district_rows"]), 4)
+    total_net5_km2 = round(sum(r["network_5km_covered_km2"] for r in baseline_res["district_rows"]), 4)
+
+    candidate_scenario_payload = None
+    if geolocated_candidates:
+        scenario_points = accepted_stations + geolocated_candidates
+        scenario_pts_utm = _build_points_layer_utm(scenario_points, "candidate_stations", utm_crs)
+        baseline_by_thresh = {r["threshold_meters"]: r for r in baseline_res["summary_by_threshold"]}
+        baseline_dist_by_code = {r["area_code"]: r for r in baseline_res["district_rows"]}
+
+        scen_res = _compute_coverage_for_points(
+            station_list=scenario_points,
+            pts_utm=scenario_pts_utm,
+            roads_layer=roads_layer,
+            districts_utm=districts_utm,
+            city_geom=city_geom,
+            thresholds_m=thresholds_m,
+            assumed_speed_kmh=assumed_speed_kmh,
+            dissolve_network_lines=True,
+            capture_lines_5km=False,
+            baseline_by_thresh=baseline_by_thresh,
+            baseline_dist_by_code=baseline_dist_by_code,
+        )
+        scen_euc_fc = _to_web_feature_collection(
+            scen_res["euc_layer_utm"],
+            wgs84_crs,
+            CANDIDATE_SCENARIO_LABEL,
+            simplify_deg=0.0,
+            extra_props={"is_official_coverage": False},
+        )
+        scen_net_fc = _to_web_feature_collection(
+            scen_res["net_layer_utm"],
+            wgs84_crs,
+            CANDIDATE_SCENARIO_LABEL,
+            simplify_deg=0.00018,
+            extra_props={"is_official_coverage": False},
+        )
+        scen_net5_km2 = round(sum(r["network_5km_covered_km2"] for r in scen_res["district_rows"]), 4)
+        candidate_scenario_payload = {
+            "isDemo": False,
+            "is_official_coverage": False,
+            "dataLabel": CANDIDATE_SCENARIO_LABEL,
+            "title": "Skenario Sensitivitas Kandidat Publik (1 Terverifikasi + 4 Titik Perkiraan OSM, Non-Resmi)",
+            "working_crs": REQUIRED_WORKING_CRS,
+            "output_crs": REQUIRED_OUTPUT_CRS,
+            "assumed_speed_kmh": float(assumed_speed_kmh),
+            "included_station_codes": [s["station_code"] for s in scenario_points],
+            "excluded_unlocated_codes": [s["station_code"] for s in district_only_candidates],
+            "city_area_km2": city_total_km2,
+            "network_5km_city_coverage_pct": round((scen_net5_km2 / city_total_km2) * 100.0, 2) if city_total_km2 > 0 else 0.0,
+            "disclaimer": (
+                "Skenario eksploratif ini menggabungkan 1 pos terverifikasi (MAKO-00) dengan 4 titik perkiraan "
+                "ruas/landmark OSM kandidat UPT (UPT-01, UPT-02, UPT-05, UPT-06) dan tidak memasukkan UPT-03 serta UPT-04 "
+                "karena belum memiliki koordinat terpetakan (geom = null). Hasil ini BUKAN cakupan layanan resmi Damkarmat, "
+                "tidak menggantikan baseline terverifikasi untuk Priority Planner, dan estimasi menit tempuh bersifat teoretis."
+            ),
+            "threshold_comparison": scen_res["summary_by_threshold"],
+            "euclidean_buffers": scen_euc_fc,
+            "network_service_areas": scen_net_fc,
+            "district_coverage": scen_res["district_rows"],
+        }
+        layers_to_save.extend(
+            [
+                ("candidate_stations_utm", scenario_pts_utm),
+                ("candidate_euclidean_buffers_utm", scen_res["euc_layer_utm"]),
+                ("candidate_network_service_areas_utm", scen_res["net_layer_utm"]),
+            ]
+        )
+
     out_gpkg_path.parent.mkdir(parents=True, exist_ok=True)
     if out_gpkg_path.exists():
         out_gpkg_path.unlink()
-
-    layers_to_save = [
-        ("mako_verified", mako_utm),
-        ("euclidean_buffers_utm", euc_layer_utm),
-        ("network_service_areas_utm", net_layer_utm),
-        ("district_coverage_21_utm", district_cov_layer),
-    ]
-    if net_lines_5km_layer is not None:
-        layers_to_save.append(("network_lines_5km_utm", net_lines_5km_layer))
 
     ctx = QgsProject.instance().transformContext()
     for idx, (layer_name, mem_layer) in enumerate(layers_to_save):
@@ -436,50 +638,14 @@ def _execute_coverage(
         opts.driverName = "GPKG"
         opts.layerName = layer_name
         opts.fileEncoding = "UTF-8"
-        if idx > 0:
-            opts.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
-        else:
-            opts.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+        opts.actionOnExistingFile = (
+            QgsVectorFileWriter.CreateOrOverwriteLayer if idx > 0 else QgsVectorFileWriter.CreateOrOverwriteFile
+        )
         err, msg, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(mem_layer, str(out_gpkg_path), ctx, opts)
         if err != QgsVectorFileWriter.NoError:
             raise RuntimeError(f"Gagal menulis layer {layer_name} ke GPKG: {msg}")
 
-    # E. Reproyeksi poligon tampilan ke EPSG:4326 dan sederhanakan ringan untuk web JSON
-    def _to_web_feature_collection(mem_layer: QgsVectorLayer, simplify_deg: float = 0.0) -> dict[str, Any]:
-        reproj = processing.run(
-            "native:reprojectlayer",
-            {"INPUT": mem_layer, "TARGET_CRS": wgs84_crs, "OUTPUT": "memory:"},
-        )["OUTPUT"]
-        if simplify_deg > 0:
-            reproj = processing.run(
-                "native:simplifygeometries",
-                {"INPUT": reproj, "METHOD": 0, "TOLERANCE": simplify_deg, "OUTPUT": "memory:"},
-            )["OUTPUT"]
-        field_names = [f.name() for f in reproj.fields()]
-        feats = []
-        for f in reproj.getFeatures():
-            props = {k: f[k] for k in field_names}
-            props["isDemo"] = False
-            props["dataLabel"] = "PROVISIONAL"
-            feats.append(
-                {
-                    "type": "Feature",
-                    "properties": props,
-                    "geometry": json.loads(f.geometry().asJson()),
-                }
-            )
-        return {
-            "type": "FeatureCollection",
-            "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
-            "features": feats,
-        }
-
-    euc_web_fc = _to_web_feature_collection(euc_layer_utm, simplify_deg=0.0)
-    net_web_fc = _to_web_feature_collection(net_layer_utm, simplify_deg=0.00015)
-
-    city_total_km2 = round(sum(r["district_area_km2"] for r in district_rows), 4)
-    total_net5_km2 = round(sum(r["network_5km_covered_km2"] for r in district_rows), 4)
-
+    osm_audit = cand_meta.get("osm_overpass_audit") or {}
     output_payload = {
         "isDemo": False,
         "dataLabel": "PROVISIONAL",
@@ -487,13 +653,15 @@ def _execute_coverage(
         "owner": "Adriel",
         "generated_at": date.today().isoformat(),
         "notice": (
-            "ANALISIS JANGKAUAN PROVISIONAL (1 STASIUN TERVERIFIKASI): menggunakan jaringan jalan "
-            "OpenStreetMap nyata dari Mako 0.0 (Jl. Candi Borobudur No. 2). Pos UPT Damkarmat lainnya "
-            "belum terverifikasi karena pembatasan akses p2k.medan.go.id sehingga cakupan belum mewakili seluruh armada."
+            "ANALISIS JANGKAUAN PROVISIONAL (1 POS TERVERIFIKASI + 6 KANDIDAT PUBLIK TERPISAH): "
+            "perhitungan baseline resmi menggunakan jaringan jalan OpenStreetMap nyata hanya dari Mako 0.0 "
+            "(Jl. Candi Borobudur No. 2) agar skor Priority Planner tidak tercampur data belum terverifikasi. "
+            "Enam pos UPT wilayah I-VI tersedia terpisah sebagai kandidat perlu review (4 titik perkiraan OSM, "
+            "2 belum berkoordinat)."
         ),
         "analysis": {
             "title": "Evaluasi Jangkauan Layanan Mako 0.0 Damkarmat Medan (Euclidean vs Jaringan Jalan OSM)",
-            "status": "provisional_single_station",
+            "status": "provisional_single_station_with_public_candidates",
             "method_type": "euclidean_vs_network_service_area",
             "working_crs": REQUIRED_WORKING_CRS,
             "output_crs": REQUIRED_OUTPUT_CRS,
@@ -501,13 +669,26 @@ def _execute_coverage(
             "assumed_speed_kmh": float(assumed_speed_kmh),
             "station_count_verified": len(accepted_stations),
             "upt_verified_count": 0,
+            "candidate_station_count": len(accepted_candidates),
+            "candidate_geolocated_count": len(geolocated_candidates),
+            "candidate_district_only_count": len(district_only_candidates),
             "city_area_km2": city_total_km2,
             "network_5km_city_coverage_pct": round((total_net5_km2 / city_total_km2) * 100.0, 2) if city_total_km2 > 0 else 0.0,
             "disclaimer": (
                 "Estimasi waktu tempuh (menit) dihitung secara teoretis dari jarak jaringan jalan pada kecepatan "
                 f"asumsi {int(assumed_speed_kmh)} km/jam (bukan waktu respons operasional aktual Damkarmat). "
-                "Analisis baru mencakup 1 pos terverifikasi (Mako 0.0) dan belum mencakup pos UPT lainnya."
+                "Baseline terverifikasi baru mencakup 1 pos (Mako 0.0), sedangkan skenario kandidat UPT dipisahkan "
+                "secara eksplisit sebagai evaluasi sensitivitas non-resmi."
             ),
+        },
+        "station_inventory_summary": {
+            "verified_count": len(accepted_stations),
+            "candidate_total_count": len(accepted_candidates),
+            "candidate_geolocated_count": len(geolocated_candidates),
+            "candidate_district_only_count": len(district_only_candidates),
+            "retrieved_at": cand_meta.get("retrieved_at") or date.today().isoformat(),
+            "osm_fire_station_audit": osm_audit,
+            "source_blockers": cand_meta.get("source_blockers") or [],
         },
         "road_network": {
             "source_name": roads_meta["source_name"],
@@ -522,10 +703,12 @@ def _execute_coverage(
             "oneway_breakdown": roads_meta["oneway_breakdown"],
         },
         "stations": accepted_stations,
-        "threshold_comparison": summary_by_threshold,
+        "candidate_stations": accepted_candidates,
+        "threshold_comparison": baseline_res["summary_by_threshold"],
         "euclidean_buffers": euc_web_fc,
         "network_service_areas": net_web_fc,
-        "district_coverage": district_rows,
+        "district_coverage": baseline_res["district_rows"],
+        "candidate_coverage_scenario": candidate_scenario_payload,
     }
 
     contract_check = validate_station_coverage_output(output_payload)
@@ -535,10 +718,12 @@ def _execute_coverage(
         )
 
     out_json_path.parent.mkdir(parents=True, exist_ok=True)
-    out_json_path.write_text(json.dumps(output_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_json_path.write_text(json.dumps(output_payload, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     print(
         f"Selesai station-coverage: {len(accepted_stations)} stasiun terverifikasi, "
-        f"21 kecamatan dihitung, GPKG={out_gpkg_path.name}, JSON={out_json_path.name}."
+        f"{len(accepted_candidates)} kandidat publik ({len(geolocated_candidates)} titik perkiraan OSM, "
+        f"{len(district_only_candidates)} district_only), 21 kecamatan dihitung, "
+        f"GPKG={out_gpkg_path.name}, JSON={out_json_path.name}."
     )
     return output_payload
 

@@ -34,6 +34,8 @@ ALLOWED_DRIVABLE_HIGHWAYS = (
     "service",
 )
 EXPECTED_AREA_CODES = tuple(f"12.71.{idx:02d}" for idx in range(1, 22))
+ALLOWED_CANDIDATE_ACCURACIES = ("approximate", "district_only")
+CANDIDATE_SCENARIO_LABEL = "SKENARIO_KANDIDAT_BELUM_TERVERIFIKASI"
 
 
 def _is_finite_number(value: Any) -> bool:
@@ -365,6 +367,196 @@ def compute_district_coverage_row(
     }
 
 
+def validate_candidate_station_records(
+    candidates: Any,
+    boundary_geojson: Any,
+    verified_codes: set[str] | None = None,
+) -> dict[str, Any]:
+    """Memvalidasi daftar kandidat pos UPT publik tanpa mencampurkannya ke pos verified."""
+    boundary_check = validate_boundary_geojson(boundary_geojson)
+    if not boundary_check["valid"]:
+        raise ValueError("Boundary Kota Medan tidak valid: " + "; ".join(boundary_check["errors"]))
+
+    candidate_list = list(candidates or []) if isinstance(candidates, Iterable) and not isinstance(candidates, (str, bytes, dict)) else ([] if candidates is None else [candidates])
+    known_verified = {str(c).strip() for c in (verified_codes or set()) if str(c).strip()}
+    seen_codes: set[str] = set()
+    accepted: list[dict[str, Any]] = []
+    geolocated: list[dict[str, Any]] = []
+    district_only: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+    reason_counts: dict[str, int] = {}
+
+    def _add_reason(reasons: list[str], code: str) -> None:
+        if code not in reasons:
+            reasons.append(code)
+            reason_counts[code] = reason_counts.get(code, 0) + 1
+
+    for idx, item in enumerate(candidate_list):
+        reasons: list[str] = []
+        if not isinstance(item, dict):
+            _add_reason(reasons, "invalid_candidate_object")
+            rejected.append({"index": idx, "station_code": None, "reasons": reasons})
+            continue
+
+        code = str(item.get("station_code") or "").strip()
+        if not code:
+            _add_reason(reasons, "missing_station_code")
+        elif code in known_verified:
+            _add_reason(reasons, "duplicate_verified_station_code")
+        elif code in seen_codes:
+            _add_reason(reasons, "duplicate_station_code")
+        else:
+            seen_codes.add(code)
+
+        if is_demo_station_record(item):
+            _add_reason(reasons, "demo_station_rejected")
+
+        status = str(item.get("verification_status") or "").strip().lower()
+        if status != "needs_review":
+            _add_reason(reasons, "must_remain_needs_review")
+
+        acc = str(item.get("location_accuracy") or "").strip().lower()
+        if acc not in ALLOWED_CANDIDATE_ACCURACIES:
+            _add_reason(reasons, "invalid_location_accuracy")
+
+        source_url = str(item.get("source_url") or "").strip()
+        if not source_url.startswith("https://"):
+            _add_reason(reasons, "invalid_source_url")
+
+        if (
+            not str(item.get("source_name") or "").strip()
+            or not str(item.get("retrieved_at") or "").strip()
+            or not str(item.get("limitation_note") or "").strip()
+        ):
+            _add_reason(reasons, "missing_provenance_fields")
+
+        lat = item.get("lat")
+        lon = item.get("lon")
+        geom = item.get("geom")
+
+        if acc == "approximate":
+            if not _is_valid_wgs84_pair(lon, lat):
+                _add_reason(reasons, "invalid_coordinates")
+            else:
+                lon_f, lat_f = float(lon), float(lat)
+                if (
+                    not isinstance(geom, dict)
+                    or geom.get("type") != "Point"
+                    or not isinstance(geom.get("coordinates"), (list, tuple))
+                    or len(geom["coordinates"]) < 2
+                    or abs(float(geom["coordinates"][0]) - lon_f) > 1e-6
+                    or abs(float(geom["coordinates"][1]) - lat_f) > 1e-6
+                ):
+                    _add_reason(reasons, "invalid_point_geom")
+                elif not point_in_geojson(lon_f, lat_f, boundary_geojson):
+                    _add_reason(reasons, "outside_medan_boundary")
+            if not str(item.get("osm_ref") or "").strip():
+                _add_reason(reasons, "missing_osm_ref")
+        elif acc == "district_only":
+            if lat is not None or lon is not None or geom is not None:
+                _add_reason(reasons, "district_only_must_have_null_geom")
+
+        if reasons:
+            rejected.append({"index": idx, "station_code": code or None, "reasons": reasons})
+            continue
+
+        evidence_urls = [str(u).strip() for u in (item.get("evidence_urls") or []) if str(u).strip().startswith("https://")]
+        if source_url not in evidence_urls:
+            evidence_urls.insert(0, source_url)
+
+        normalized = {
+            "station_code": code,
+            "name": str(item.get("name") or code).strip(),
+            "station_type": str(item.get("station_type") or "upt").strip(),
+            "address": str(item.get("address") or "-").strip(),
+            "district_name": str(item.get("district_name") or "").strip(),
+            "area_code": str(item.get("area_code") or "").strip() or None,
+            "lat": float(lat) if acc == "approximate" else None,
+            "lon": float(lon) if acc == "approximate" else None,
+            "geom": {"type": "Point", "coordinates": [float(lon), float(lat)]} if acc == "approximate" else None,
+            "location_accuracy": acc,
+            "validity_category": str(item.get("validity_category") or ("kandidat_publik_ruas_osm" if acc == "approximate" else "kandidat_publik_kecamatan_saja")).strip(),
+            "verification_status": "needs_review",
+            "osm_ref": str(item.get("osm_ref")).strip() if item.get("osm_ref") else None,
+            "source_name": str(item.get("source_name")).strip(),
+            "source_url": source_url,
+            "evidence_urls": evidence_urls,
+            "retrieved_at": str(item.get("retrieved_at")).strip(),
+            "limitation_note": str(item.get("limitation_note")).strip(),
+            "isDemo": False,
+        }
+        accepted.append(normalized)
+        if acc == "approximate":
+            geolocated.append(normalized)
+        else:
+            district_only.append(normalized)
+
+    return {
+        "accepted": accepted,
+        "geolocated": geolocated,
+        "district_only": district_only,
+        "rejected": rejected,
+        "summary": {
+            "total_input": len(candidate_list),
+            "accepted_count": len(accepted),
+            "geolocated_count": len(geolocated),
+            "district_only_count": len(district_only),
+            "rejected_count": len(rejected),
+            "rejection_reasons": reason_counts,
+        },
+    }
+
+
+def validate_candidate_coverage_scenario(scenario: Any) -> dict[str, Any]:
+    """Memvalidasi blok skenario sensitivitas kandidat agar tidak pernah menyamar sebagai cakupan resmi."""
+    errors: list[str] = []
+    if not isinstance(scenario, dict):
+        return {"valid": False, "errors": ["candidate_coverage_scenario harus berupa objek JSON."]}
+
+    if scenario.get("isDemo") is not False:
+        errors.append("candidate_coverage_scenario wajib memiliki isDemo === false.")
+    if scenario.get("is_official_coverage") is not False:
+        errors.append("candidate_coverage_scenario wajib memiliki is_official_coverage === false.")
+
+    label = str(scenario.get("dataLabel") or "").strip()
+    norm_label = _normalize_label(label)
+    if not norm_label or "DEMO" in norm_label or "KANDIDAT" not in norm_label:
+        errors.append("dataLabel skenario kandidat wajib menyebut KANDIDAT dan bukan DEMO.")
+
+    if not str(scenario.get("disclaimer") or "").strip():
+        errors.append("Disclaimer skenario kandidat wajib tersedia.")
+
+    crs_check = validate_crs_config(scenario.get("working_crs", ""), scenario.get("output_crs", ""))
+    errors.extend(crs_check["errors"])
+
+    if not _is_finite_number(scenario.get("assumed_speed_kmh")) or float(scenario["assumed_speed_kmh"]) <= 0:
+        errors.append("assumed_speed_kmh skenario kandidat wajib angka positif.")
+
+    included = scenario.get("included_station_codes")
+    if not isinstance(included, list) or len(included) < 2:
+        errors.append("included_station_codes skenario kandidat minimal memuat 2 kode pos.")
+
+    comp = scenario.get("threshold_comparison")
+    if not isinstance(comp, list) or len(comp) == 0:
+        errors.append("threshold_comparison skenario kandidat wajib non-kosong.")
+
+    for layer_key in ("euclidean_buffers", "network_service_areas"):
+        fc = scenario.get(layer_key)
+        check = validate_boundary_geojson(fc)
+        if not check["valid"]:
+            errors.append(f"Layer skenario {layer_key} tidak valid: {'; '.join(check['errors'])}")
+
+    dc = scenario.get("district_coverage")
+    if not isinstance(dc, list) or len(dc) != 21:
+        errors.append("district_coverage skenario kandidat wajib memuat tepat 21 kecamatan.")
+    else:
+        codes = {row.get("area_code") for row in dc if isinstance(row, dict)}
+        if codes != set(EXPECTED_AREA_CODES):
+            errors.append("Kode area district_coverage skenario kandidat tidak lengkap (12.71.01..12.71.21).")
+
+    return {"valid": len(errors) == 0, "errors": errors}
+
+
 def validate_station_coverage_output(payload: Any) -> dict[str, Any]:
     errors: list[str] = []
     if not isinstance(payload, dict):
@@ -390,6 +582,7 @@ def validate_station_coverage_output(payload: Any) -> dict[str, Any]:
     road_meta_check = validate_road_network_metadata(payload.get("road_network"))
     errors.extend(road_meta_check["errors"])
 
+    verified_codes: set[str] = set()
     stations = payload.get("stations")
     if not isinstance(stations, list) or len(stations) == 0:
         errors.append("Minimal satu stasiun terverifikasi wajib tersedia.")
@@ -397,8 +590,10 @@ def validate_station_coverage_output(payload: Any) -> dict[str, Any]:
         for st in stations:
             if is_demo_station_record(st) or st.get("verification_status") != "verified":
                 errors.append(f"Stasiun tidak terverifikasi/DEMO terdeteksi di output: {st.get('station_code')}")
+            elif st.get("station_code"):
+                verified_codes.add(str(st["station_code"]).strip())
 
-    for layer_key in ("euclidean_buffers", "network_service_areas"):
+    for layer_key in ["euclidean_buffers", "network_service_areas"]:
         fc = payload.get(layer_key)
         check = validate_boundary_geojson(fc)
         if not check["valid"]:
@@ -411,5 +606,23 @@ def validate_station_coverage_output(payload: Any) -> dict[str, Any]:
         codes = {row.get("area_code") for row in dc if isinstance(row, dict)}
         if codes != set(EXPECTED_AREA_CODES):
             errors.append("Kode area district_coverage tidak lengkap (12.71.01..12.71.21).")
+
+    if payload.get("candidate_stations") is not None:
+        raw_cands = payload.get("candidate_stations")
+        if not isinstance(raw_cands, list):
+            errors.append("candidate_stations wajib berupa array jika tersedia.")
+        else:
+            medan_bbox_geojson = {
+                "type": "Polygon",
+                "coordinates": [[[98.55, 3.45], [98.78, 3.45], [98.78, 3.85], [98.55, 3.85], [98.55, 3.45]]],
+            }
+            cand_val = validate_candidate_station_records(raw_cands, medan_bbox_geojson, verified_codes=verified_codes)
+            if cand_val["rejected"]:
+                errors.append("Terdapat kandidat pos yang gagal validasi pada candidate_stations.")
+
+    if payload.get("candidate_coverage_scenario") is not None:
+        scen_check = validate_candidate_coverage_scenario(payload.get("candidate_coverage_scenario"))
+        if not scen_check["valid"]:
+            errors.extend(scen_check["errors"])
 
     return {"valid": len(errors) == 0, "errors": errors}

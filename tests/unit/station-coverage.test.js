@@ -29,8 +29,11 @@ import {
   RUNTIME_DEMO_FIXTURE_URL,
   computeScenarioMinutes,
   filterDistrictCoverage,
+  formatCoverageDelta,
   isDemoStationRecord,
   loadStationCoverageData,
+  validateCandidateCoverageScenario,
+  validateCandidateStationRecords,
   validateCoverageCrs,
   validateRoadNetworkMetadata,
   validateStationCoverageOutput,
@@ -43,6 +46,9 @@ const OSM_BOUNDARY = JSON.parse(
 );
 const SUMMARY = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), "public/data/fire_incidents_summary.json"), "utf-8")
+);
+const CURATED_CANDIDATES = JSON.parse(
+  fs.readFileSync(path.resolve(process.cwd(), "qgis/station-coverage/public_station_candidates.json"), "utf-8")
 );
 
 describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road network, dan lifecycle", () => {
@@ -181,13 +187,162 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
     expect(demoFallback.dataLabel).toBe("DEMO");
     expect(demoFallback.fixturePath).not.toBe(PROVISIONAL_COVERAGE_URL);
     expect(demoFallback.stations.some((s) => s.station_code === "DEMO-UPT-1" && s.isDemoStation)).toBe(true);
+    expect(demoFallback.candidateStations).toEqual([]);
+    expect(demoFallback.candidateCoverageScenario).toBeNull();
     expect(RUNTIME_DEMO_FIXTURE_URL).toContain("station-coverage.demo.json");
+  });
+
+  it("memvalidasi 6 kandidat publik UPT dan menolak DEMO, verified palsu, koordinat luar Medan, serta district_only berkoordinat", () => {
+    const validRes = validateCandidateStationRecords(
+      CURATED_CANDIDATES.candidates,
+      OSM_BOUNDARY,
+      new Set(["MAKO-00"])
+    );
+    expect(validRes.rejected).toEqual([]);
+    expect(validRes.summary.acceptedCount).toBe(6);
+    expect(validRes.summary.geolocatedCount).toBe(4);
+    expect(validRes.summary.districtOnlyCount).toBe(2);
+    expect(validRes.geolocated.map((s) => s.station_code)).toEqual(["UPT-01", "UPT-02", "UPT-05", "UPT-06"]);
+    expect(validRes.districtOnly.map((s) => s.station_code)).toEqual(["UPT-03", "UPT-04"]);
+
+    const invalidCases = [
+      { ...CURATED_CANDIDATES.candidates[0], station_code: "MAKO-00" },
+      { ...CURATED_CANDIDATES.candidates[0], station_code: "DEMO-UPT-2", isDemo: true },
+      { ...CURATED_CANDIDATES.candidates[0], station_code: "UPT-FAKE-VER", verification_status: "verified" },
+      {
+        ...CURATED_CANDIDATES.candidates[0],
+        station_code: "UPT-OUT-KIM",
+        lat: 3.6720893,
+        lon: 98.6819896,
+        geom: { type: "Point", coordinates: [98.6819896, 3.6720893] }
+      },
+      {
+        ...CURATED_CANDIDATES.candidates[3],
+        station_code: "UPT-BAD-NULL",
+        lat: 3.7767,
+        lon: 98.6841,
+        geom: { type: "Point", coordinates: [98.6841, 3.7767] }
+      }
+    ];
+    const invalidRes = validateCandidateStationRecords(invalidCases, OSM_BOUNDARY, new Set(["MAKO-00"]));
+    expect(invalidRes.accepted).toEqual([]);
+    expect(invalidRes.summary.rejectedCount).toBe(5);
+    expect(invalidRes.summary.rejectionReasons.duplicate_verified_station_code).toBe(1);
+    expect(invalidRes.summary.rejectionReasons.demo_station_rejected).toBe(1);
+    expect(invalidRes.summary.rejectionReasons.must_remain_needs_review).toBe(1);
+    expect(invalidRes.summary.rejectionReasons.outside_medan_boundary).toBe(1);
+    expect(invalidRes.summary.rejectionReasons.district_only_must_have_null_geom).toBe(1);
+  });
+
+  it("menolak skenario kandidat yang mengaku resmi dan mendukung fallback kandidat dari fire_incidents_summary.json", async () => {
+    const fakeOfficialScenario = {
+      isDemo: false,
+      is_official_coverage: true,
+      dataLabel: "SKENARIO_KANDIDAT_BELUM_TERVERIFIKASI",
+      working_crs: "EPSG:32647",
+      output_crs: "EPSG:4326",
+      assumed_speed_kmh: 35,
+      disclaimer: "Disclaimer",
+      included_station_codes: ["MAKO-00", "UPT-05"],
+      threshold_comparison: [{ threshold_meters: 5000, scenario_minutes: 8.57, euclidean_area_km2: 10, network_area_km2: 8 }],
+      euclidean_buffers: {
+        type: "FeatureCollection",
+        features: [{ type: "Feature", properties: { threshold_m: 5000 }, geometry: { type: "Polygon", coordinates: [[[98.65, 3.57], [98.69, 3.57], [98.69, 3.60], [98.65, 3.57]]] } }]
+      },
+      network_service_areas: {
+        type: "FeatureCollection",
+        features: [{ type: "Feature", properties: { threshold_m: 5000 }, geometry: { type: "Polygon", coordinates: [[[98.65, 3.57], [98.69, 3.57], [98.69, 3.60], [98.65, 3.57]]] } }]
+      },
+      district_coverage: Array.from({ length: 21 }, (_, idx) => ({
+        area_code: `12.71.${String(idx + 1).padStart(2, "0")}`,
+        district_name: `Kecamatan ${idx + 1}`,
+        district_area_km2: 10,
+        network_3km_coverage_pct: 20,
+        network_5km_coverage_pct: 40,
+        network_5km_gap_ratio: 0.6,
+        euclidean_5km_coverage_pct: 60,
+        centroid_distance_m_mako: 2000
+      }))
+    };
+    const scenCheck = validateCandidateCoverageScenario(fakeOfficialScenario);
+    expect(scenCheck.valid).toBe(false);
+
+    const legacyProv = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "public/data/station-coverage.provisional.json"), "utf-8")
+    );
+    delete legacyProv.candidate_stations;
+    delete legacyProv.candidate_coverage_scenario;
+
+    const loaded = await loadStationCoverageData({
+      dataStatus: {
+        getManifest: vi.fn(async () => ({ ok: true, manifest: { verified_outputs: { "station-coverage": { available: true } } } })),
+        fetchJson: vi.fn(async (p) => {
+          if (p === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (p === "station-coverage.provisional.json") return legacyProv;
+          if (p === "fire_incidents_summary.json") return SUMMARY;
+          return null;
+        })
+      }
+    });
+    expect(loaded.verifiedStations).toHaveLength(1);
+    expect(loaded.candidateStations).toHaveLength(6);
+    expect(loaded.candidateStations.every((s) => s.verification_status === "needs_review")).toBe(true);
+    expect(loaded.candidateCoverageScenario).toBeNull();
+  });
+
+  it("memformat delta cakupan secara jujur untuk positif, negatif, nol, dan null", () => {
+    expect(formatCoverageDelta(37.84, { decimals: 1, unit: "%" })).toEqual({
+      text: "+37.8%",
+      className: "coverage-delta-pos",
+      sign: "positive"
+    });
+    expect(formatCoverageDelta(37.84, { decimals: 2, unit: " poin %" })).toEqual({
+      text: "+37.84 poin %",
+      className: "coverage-delta-pos",
+      sign: "positive"
+    });
+    expect(formatCoverageDelta(-4.25, { decimals: 1, unit: "%" })).toEqual({
+      text: "-4.3%",
+      className: "coverage-delta-neg",
+      sign: "negative"
+    });
+    expect(formatCoverageDelta(-4.25, { decimals: 2, unit: " poin %" })).toEqual({
+      text: "-4.25 poin %",
+      className: "coverage-delta-neg",
+      sign: "negative"
+    });
+    expect(formatCoverageDelta(0, { decimals: 1, unit: "%" })).toEqual({
+      text: "0.0%",
+      className: "coverage-delta-zero",
+      sign: "neutral"
+    });
+    expect(formatCoverageDelta(-0, { decimals: 2, unit: " poin %" })).toEqual({
+      text: "0.00 poin %",
+      className: "coverage-delta-zero",
+      sign: "neutral"
+    });
+    expect(formatCoverageDelta(0.001, { decimals: 1, unit: "%" })).toEqual({
+      text: "0.0%",
+      className: "coverage-delta-zero",
+      sign: "neutral"
+    });
+    expect(formatCoverageDelta(null)).toEqual({
+      text: "-",
+      className: "coverage-delta-zero",
+      sign: "neutral"
+    });
+    expect(formatCoverageDelta(Number.NaN)).toEqual({
+      text: "-",
+      className: "coverage-delta-zero",
+      sign: "neutral"
+    });
   });
 
   it("membersihkan map dan chart saat unmount station-coverage", async () => {
     const mapDestroy = vi.fn();
     const chartDestroy = vi.fn();
     const ids = [
+      "#coverage-scenario-select",
       "#coverage-threshold-select",
       "#coverage-band-select",
       "#coverage-search-input",
@@ -195,6 +350,14 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
       "#coverage-toggle-network",
       "#coverage-toggle-euclidean",
       "#coverage-toggle-districts",
+      "#coverage-toggle-candidates",
+      "#coverage-candidate-scenario-banner",
+      "#coverage-kpi-net5",
+      "#coverage-kpi-net5-sub",
+      "#coverage-map-title",
+      "#coverage-chart-title",
+      "#coverage-table-title",
+      "#coverage-stations-table-wrap",
       "#coverage-district-detail",
       "#coverage-chart-empty",
       "#coverage-chart-frame",
