@@ -121,6 +121,56 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.click("#coverage-reset-btn");
     await expect(page.locator("#coverage-table-count")).toHaveText("21 dari 21 kecamatan");
 
+    // Verified vs candidate counts & provenance table remain clearly separated
+    await expect(page.locator("#coverage-kpi-verified")).toHaveText("1 Pos");
+    await expect(page.locator("#coverage-kpi-candidates")).toHaveText("6 UPT");
+    await expect(page.locator("#coverage-candidate-count-badge")).toContainText("6 KANDIDAT PUBLIK");
+    await expect(page.locator("#coverage-stations-section")).toContainText("MAKO-00");
+    await expect(page.locator("#coverage-stations-section")).toContainText("UPT-01");
+    await expect(page.locator("#coverage-stations-section")).toContainText("UPT-04");
+    await expect(page.locator("#coverage-stations-section")).toContainText("geom = null (kecamatan saja)");
+    await expect(page.locator("#coverage-stations-section a[target='_blank']").first()).toHaveAttribute("target", "_blank");
+
+    await page.uncheck("#coverage-toggle-candidates");
+    await page.check("#coverage-toggle-candidates");
+
+    // Candidate sensitivity scenario is strictly opt-in and marked non-official
+    await page.selectOption("#coverage-scenario-select", "candidate_scenario");
+    await expect(page.locator("#coverage-candidate-scenario-banner")).toBeVisible();
+    await expect(page.locator("#coverage-candidate-scenario-banner")).toContainText("BUKAN CAKUPAN RESMI");
+    await expect(page.locator("#coverage-kpi-net5-sub")).toContainText("Skenario non-resmi");
+
+    // Zero delta stays neutral without '+' prefix, positive delta shows '+', table & controls do not clip at 1440px
+    const deliDeltaCell = page.locator("#coverage-table-wrap tr[data-area-code='12.71.06'] td.coverage-delta-zero");
+    await expect(deliDeltaCell).toHaveText("0.0%");
+    await expect(page.locator("#coverage-table-wrap tr[data-area-code='12.71.06'] td.coverage-delta-pos")).toHaveCount(0);
+    await page.locator("#coverage-table-wrap tr[data-area-code='12.71.06']").click();
+    await expect(page.locator("#coverage-district-detail dd.coverage-delta-zero")).toHaveText("0.00 poin %");
+    await expect(page.locator("#coverage-table-wrap tr[data-area-code='12.71.07'] td.coverage-delta-pos")).toHaveText("+68.9%");
+
+    const desktopCoverageGeometry = await page.evaluate(() => {
+      const invScroll = document.querySelector("#coverage-stations-table-wrap .table-scroll");
+      const scenarioSelect = document.querySelector("#coverage-scenario-select");
+      const searchInput = document.querySelector("#coverage-search-input");
+      const invHeaderOverflow = Array.from(
+        document.querySelectorAll("#coverage-stations-table-wrap thead th")
+      ).some((th) => th.scrollWidth > th.clientWidth + 1);
+      return {
+        invOverflowPx: invScroll ? invScroll.scrollWidth - invScroll.clientWidth : -1,
+        invHeaderOverflow,
+        scenarioWidth: scenarioSelect ? Math.round(scenarioSelect.getBoundingClientRect().width) : 0,
+        searchWidth: searchInput ? Math.round(searchInput.getBoundingClientRect().width) : 0
+      };
+    });
+    expect(desktopCoverageGeometry.invOverflowPx).toBeLessThanOrEqual(1);
+    expect(desktopCoverageGeometry.invHeaderOverflow).toBe(false);
+    expect(desktopCoverageGeometry.scenarioWidth).toBeGreaterThanOrEqual(450);
+    expect(desktopCoverageGeometry.searchWidth).toBeGreaterThanOrEqual(350);
+
+    await page.click("#coverage-reset-btn");
+    await expect(page.locator("#coverage-candidate-scenario-banner")).toBeHidden();
+    await expect(page.locator("#coverage-table-count")).toHaveText("21 dari 21 kecamatan");
+
     for (const vp of [
       { width: 1440, height: 900 },
       { width: 768, height: 1024 },

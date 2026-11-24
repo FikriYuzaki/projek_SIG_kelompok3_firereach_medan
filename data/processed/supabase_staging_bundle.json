@@ -4857,8 +4857,8 @@
         "snapshot_key": "station_coverage_provisional",
         "dataset_status": "provisional",
         "public_file_path": "public/data/station-coverage.provisional.json",
-        "content_sha256": "24fea1fe9b387b9fc2d36c5b7d6dc6c9bcc1df4093cb1739cae0c6fa72ce3826",
-        "byte_size": 171356
+        "content_sha256": "518a847babb051c53e4b7c206fd8bcd48d17945ee58cb76961a0971956808723",
+        "byte_size": 701382
       },
       {
         "snapshot_key": "priority_planner_provisional",
