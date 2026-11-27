@@ -4990,15 +4990,15 @@
         "snapshot_key": "manifest",
         "dataset_status": "verified",
         "public_file_path": "public/data/manifest.json",
-        "content_sha256": "36f1aeb528f214b6bd8a5dab878d6261b6cdc4de081e175c5a635d34c30f31c0",
+        "content_sha256": "79d3e3c900140dc3051d8a078d03c77364566c340d8117e958430d80a6e258ab",
         "byte_size": 14354
       },
       {
         "snapshot_key": "fire_incidents_summary",
         "dataset_status": "verified",
         "public_file_path": "public/data/fire_incidents_summary.json",
-        "content_sha256": "72e54658053bbca5650186fd6022e9306268e3ef7b13ba82e432c0dec6dd6d2a",
-        "byte_size": 277378
+        "content_sha256": "8551ee3b0cbfb2e51fd9d0d8abefe89a0d7efeb445a5ef9e45f756ccc2e9b9e0",
+        "byte_size": 280495
       },
       {
         "snapshot_key": "medan_districts_osm",

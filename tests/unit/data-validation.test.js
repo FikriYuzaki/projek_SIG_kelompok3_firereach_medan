@@ -163,6 +163,15 @@ describe("processed data & DEMO fixture integrity", () => {
       expect(rec.verification_status).toBe("needs_review");
       expect(rec.kde_eligible).toBe(false);
       expect(["approximate", "district_only"]).toContain(rec.location_accuracy);
+      expect(rec.area_code).toMatch(/^12\.71\.\d{2}$/);
+      expect(["exact_minute", "approximate_window", "date_only_unknown_time"]).toContain(
+        rec.occurred_time_precision
+      );
+      if (rec.occurred_time_wib === null) {
+        expect(rec.occurred_time_precision).toBe("date_only_unknown_time");
+      } else {
+        expect(rec.occurred_time_precision).toBe("exact_minute");
+      }
       expect(rec.source_url).toMatch(/^https:\/\//);
       expect(rec.occurred_time_wib).not.toBe("00:00");
       if (rec.occurred_at !== null) {
@@ -196,6 +205,21 @@ describe("processed data & DEMO fixture integrity", () => {
     for (const st of stCand.stations) {
       expect(st.verification_status).toBe("needs_review");
     }
+    const ptsGeojson = readJson("data/processed/public_incidents_points.geojson");
+    expect(ptsGeojson.features).toHaveLength(22);
+    for (const feat of ptsGeojson.features) {
+      expect(feat.properties.area_code).toMatch(/^12\.71\.\d{2}$/);
+      expect(["exact_minute", "approximate_window", "date_only_unknown_time"]).toContain(
+        feat.properties.occurred_time_precision
+      );
+    }
+    const kelByCode = Object.fromEntries(stCand.stations.map((s) => [s.station_code, s.kelurahan]));
+    expect(kelByCode["UPT-01"]).toBe("Lau Cih");
+    expect(kelByCode["UPT-02"]).toBe("Timbang Deli");
+    expect(kelByCode["UPT-04"]).toBe("Belawan II");
+    expect(kelByCode["UPT-03"]).toBeNull();
+    expect(kelByCode["UPT-05"]).toBeNull();
+    expect(kelByCode["UPT-06"]).toBeNull();
     expect(stCand.stations.filter((s) => s.geom !== null).map((s) => s.station_code)).toEqual([
       "UPT-01",
       "UPT-02",
