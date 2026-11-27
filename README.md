@@ -104,7 +104,6 @@ Jika lingkungan lokal memiliki QGIS Desktop 3.44.13 LTR terpasang di Windows, ve
 
 ```text
 firereach-medan/
-├── .agents/skills/             # Skill khusus repository (geospasial, modularitas, provenance, QA, antislop)
 ├── .github/workflows/          # Workflow GitHub Actions CI (lint, Vitest, Python unittest, build, Playwright)
 ├── data/
 │   ├── fixtures/demo/          # Fixture DEMO khusus kontrak pengujian unit (bukan fallback runtime produksi)
@@ -122,7 +121,6 @@ firereach-medan/
 │   └── styles/                 # Design tokens Warm Editorial, base styles, komponen, dan layout responsif
 ├── supabase/                   # Migrasi SQL skema PostGIS & kebijakan RLS
 ├── tests/                      # Pengujian unit (Vitest), pipeline GIS (Python/PyQGIS), dan E2E (Playwright)
-├── AGENTS.md                   # Aturan kerja repository, batas kepemilikan, dan aturan integritas data
 ├── DESIGN.md                   # Spesifikasi visual Warm Editorial, tipografi, kontras WCAG AA, dan aturan gerak
 └── FireReach_Medan_QGIS_Pack.zip # Paket portabel 3 proyek QGIS Desktop siap buka
 ```
@@ -137,7 +135,6 @@ firereach-medan/
 - [Laporan QA Proyek QGIS (`qgis/QA_REPORT.md`)](./qgis/QA_REPORT.md)
 
 ### Dokumen Teknis & QA Penting
-- [Aturan Global Repository (`AGENTS.md`)](./AGENTS.md)
 - [Spesifikasi Desain Visual (`DESIGN.md`)](./DESIGN.md)
 - [Panduan Tim & Kolaborasi (`docs/TEAM_GUIDE.md`)](./docs/TEAM_GUIDE.md)
 - [Arsitektur Sistem (`docs/SYSTEM_ARCHITECTURE.md`)](./docs/SYSTEM_ARCHITECTURE.md)
@@ -146,10 +143,9 @@ firereach-medan/
 - [Alur Kerja QGIS (`docs/GIS_WORKFLOW.md`)](./docs/GIS_WORKFLOW.md)
 - [Desain Database & PostGIS (`docs/DATABASE_DESIGN.md`)](./docs/DATABASE_DESIGN.md)
 - [Panduan Simulasi Respons Damkarmat (`docs/SIMULATION_GUIDE.md`)](./docs/SIMULATION_GUIDE.md)
-- [Konfigurasi Deployment Vercel (`docs/DEPLOYMENT.md`)](./docs/DEPLOYMENT.md) dan [Setup Environment Agent (`docs/AGENT_SETUP.md`)](./docs/AGENT_SETUP.md)
+- [Konfigurasi Deployment Vercel (`docs/DEPLOYMENT.md`)](./docs/DEPLOYMENT.md)
 - [Laporan QA Rilis Produksi (`docs/qa/FINAL_QA_REPORT.md`)](./docs/qa/FINAL_QA_REPORT.md)
 - [Laporan Pembersihan Data & Artefak (`docs/qa/DATA_CLEANUP_REPORT.md`)](./docs/qa/DATA_CLEANUP_REPORT.md)
-- [Catatan Smoke Test Produksi (`docs/qa/PRODUCTION_SMOKE_TEST_2026-11-24.md`)](./docs/qa/PRODUCTION_SMOKE_TEST_2026-11-24.md)
 
 ---
 
