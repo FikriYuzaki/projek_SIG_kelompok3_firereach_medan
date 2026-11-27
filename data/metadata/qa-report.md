@@ -26,26 +26,27 @@
 
 1. **Batas Administrasi (`21` Kecamatan Kota Medan):** Seluruh `21` kode `12.71.01` - `12.71.21` cocok 1:1 dengan poligon OpenStreetMap Nominatim dalam `EPSG:4326`.
 2. **Pos Terverifikasi (`1/1`):** Titik `Mako 0.0` (`3.589536437471534, 98.67144703626451`) lolos uji PIP di dalam poligon Kecamatan `Medan Petisah`.
-3. **Kandidat Kejadian Independen (`27` record):**
-   - `17/17` titik `approximate` (perkiraan ruas jalan / landmark OSM Nominatim) lolos uji PIP `build_processed_data.py` berada di dalam poligon `district_name` masing-masing.
-   - `10/10` record `district_only` tetap bernilai `geom = null` (nol titik centroid kecamatan yang dibuat-buat).
-   - Seluruh `27` record memiliki `kde_eligible = false` dan `verification_status = "needs_review"`.
+3. **Kandidat Kejadian Independen (`34` record):**
+   - `22/22` titik `approximate` (perkiraan ruas jalan / landmark OSM Nominatim, diekspor ke `data/processed/public_incidents_points.geojson` dan `qgis/hotspot-analysis/layers/public_incidents_22pts.geojson`) lolos uji PIP `build_processed_data.py` berada di dalam poligon `district_name` masing-masing.
+   - `12/12` record `district_only` tetap bernilai `geom = null` (nol titik centroid kecamatan yang dibuat-buat).
+   - Seluruh `34` record memiliki `kde_eligible = false`, `verification_status = "needs_review"`, kode kecamatan kanonis `area_code` (`12.71.01` s.d. `12.71.21`), serta `occurred_time_precision` eksplisit (`9` `exact_minute`, `25` `date_only_unknown_time`).
 4. **Kandidat Pos UPT Wilayah I - VI (`6` pos) & Audit Regulasi 2026-11-27:**
-   - `4/4` titik `approximate` (`UPT-01` Jl. Jamin Ginting / Simpang Selayang di `Medan Tuntungan`, `UPT-02` Jl. Tritura / Amplas di `Medan Amplas`, `UPT-05` Jl. Gaperta di `Medan Helvetia`, `UPT-06` Jl. Letda Sujono di `Medan Tembung`) lolos uji PIP berada di dalam poligon kecamatannya dan diharmonisasikan 1:1 antara `public_station_candidates.json`, `independent_enrichment_input.json`, dan `damkarmat_station_candidates.json`.
-   - `2/2` pos tanpa titik ruas terverifikasi (`UPT-03` KIM Mabar / Medan Deli, `UPT-04` Medan Belawan) tetap bernilai `geom = null` (`district_only`, tidak digambar sebagai marker peta).
+   - `4/4` titik `approximate` (`UPT-01` Kawasan Pasar Induk Lau Cih / Jl. Bunga Turi di `Medan Tuntungan`, `UPT-02` Kawasan Terminal Terpadu Amplas / Jl. Pertahanan di `Medan Amplas`, `UPT-05` Jl. Gaperta di `Medan Helvetia`, `UPT-06` Jl. Letda Sujono di `Medan Tembung`) lolos uji PIP berada di dalam poligon kecamatannya dan diharmonisasikan 1:1 antara `public_station_candidates.json`, `independent_enrichment_input.json`, `damkarmat_station_candidates.json`, dan `qgis/station-coverage/public_station_candidates.json`.
+   - Atribut `kelurahan` dilengkapi dari bukti alamat resmi/publik yang eksplisit untuk `UPT-01` (`Lau Cih`), `UPT-02` (`Timbang Deli`), dan `UPT-04` (`Belawan II`), sedangkan `UPT-03`, `UPT-05`, dan `UPT-06` dibiarkan `null` karena kelurahannya belum terkonfirmasi di sumber terbuka.
+   - `2/2` pos tanpa titik ruas terverifikasi (`UPT-03` KIM I Mabar / Medan Deli, `UPT-04` Komplek Kantor Camat Medan Belawan) tetap bernilai `geom = null` (`district_only`, tidak digambar sebagai marker peta).
    - **Audit dasar hukum (`legal_basis_audit`):** `Perwali Medan No. 25 Tahun 2018` (`BD.2018/ No. 25`) pada JDIH BPK RI tercatat `Berlaku` sebagai konteks historis nomenklatur lama (*Dinas P2K*), sementara `jdih.medan.go.id` HTTP 403 Cloudflare; `Perwali Medan No. 12 Tahun 2023` pada JDIH BPK RI ternyata tentang *Percepatan Penurunan Stunting* (bukan UPT Damkarmat); `Perwali No. 39 Tahun 2024` & `Perda No. 6 Tahun 2025` dicatat sebagai rujukan regulasi terkini; dan `p2k.medan.go.id` tetap HTTP 403 Cloudflare pada pemeriksaan ulang `2026-11-27`.
 
 ---
 
 ## 3. Audit Deduplikasi Media & Ketepatan Timestamp Sumber Independen
 
-- **Inventaris 35 Artikel Publik (`ANTARA Sumut` & `Detik Sumut`):**
-  - `27` kejadian unik tersimpan pada `public/data/public_incident_candidates.json` (`2024`: 8, `2025`: 12, `2026`: 7).
-  - `6` artikel duplikat/lanjutan digabungkan ke 4 kejadian terkait melalui `additional_source_urls` (`IND-2026-0127-DELI` [3 tautan duplikat], `IND-2025-0723-LABUHAN` [1], `IND-2025-1113-BELAWAN` [1], `IND-2026-0620-JOHOR` [1]).
+- **Inventaris 42 Artikel Publik (`p2k.medan.go.id`, `ANTARA Sumut`, & `Detik Sumut`):**
+  - `34` kejadian unik tersimpan pada `public/data/public_incident_candidates.json` (`2024`: 8, `2025`: 12, `2026`: 14).
+  - `6` artikel duplikat/lanjutan digabungkan ke kejadian terkait melalui `additional_source_urls` (`IND-2026-0127-DELI`, `IND-2025-0723-LABUHAN`, `IND-2025-1113-BELAWAN`, `IND-2026-0620-JOHOR`).
   - `1` artikel di luar batas Kota Medan (`https://www.detik.com/sumut/berita/d-8549491/...`, Desa Purwodadi, Kec. Sunggal, Kab. Deli Serdang) dikeluarkan dari himpunan kandidat Kota Medan.
   - `1` artikel referensi kelembagaan (`ANTARA 560100`) digunakan khusus untuk dokumentasi peresmian `UPT-05` & `UPT-06`.
-- **Audit Ketepatan Waktu & Regulasi (Pasca Audit Cleanup 2026-11-23):**
-  - **Tanpa Placeholder `00:00`:** `build_processed_data.py` menguji seluruh `station_reference_articles` dan `records` sehingga tidak ada nilai `T00:00:00+07:00` atau `00:00` palsu.
+- **Audit Ketepatan Waktu, Atribut, & Regulasi:**
+  - **Tanpa Placeholder `00:00`:** `build_processed_data.py` menguji seluruh `station_reference_articles` dan `records` sehingga tidak ada nilai `T00:00:00+07:00` atau `00:00` palsu, serta menetapkan `occurred_time_precision` (`9` `exact_minute`, `25` `date_only_unknown_time`) dan `area_code` (`34/34` insiden, `22/22` titik GeoJSON). Typo metadata `"diindekskan"` diperbaiki menjadi `"diindeks"`.
   - **ANTARA `560100`:** Tanggal peristiwa peresmian (`event_date: "2024-01-26"`) dipisahkan tegas dari timestamp publikasi artikel (`published_at: "2024-01-27T00:32:42+07:00"` sebagaimana JSON-LD sumber resmi ANTARA).
   - **JDIH BPK Perwali No. 25 Tahun 2018:** Tanggal penetapan, pengundangan, dan berlakunya diperiksa langsung pada laman JDIH BPK RI (`2018-02-14`, `BD.2018/ No. 25`), menggantikan placeholder tanggal `2018-01-01`.
 
@@ -53,7 +54,7 @@
 
 ## 4. Pemeriksaan Lanjutan, Graf Rute Jalan & Status Staging
 
-- `scripts/build_processed_data.py` menghasilkan keluaran deterministik untuk GeoJSON (`53.157` byte), `fire_incidents_summary.json` (`241.675` byte), manifest `17+2`, katalog kandidat (`45.639` + `16.124` byte), dan `supabase_staging_bundle.json` (`238.339` byte).
+- `scripts/build_processed_data.py` menghasilkan keluaran deterministik untuk GeoJSON kecamatan (`53.157` byte), GeoJSON titik insiden publik (`21.292` byte), `fire_incidents_summary.json` (`280.495` byte), manifest `17+2`, katalog kandidat (`78.707` + `19.648` byte), dan `supabase_staging_bundle.json` (`243.860` byte).
 - `scripts/build_road_routing_graph.py` menghasilkan `public/data/medan_road_graph.json` (`587.909` byte): `8.581` simpul, `9.720` ruas berarah (`1.579,7 km`) dari `medan_roads_utm.gpkg` dalam `EPSG:32647` dengan jarak snap ke 5 pos berkoordinat `14,9 m` - `142,6 m` (`MAKO-00`, `UPT-01`, `UPT-02`, `UPT-05`, `UPT-06`) yang semuanya terjangkau oleh Dijkstra berarah.
-- `scripts/import_supabase_staging.mjs --dry-run` memvalidasi `38` `data_sources`, `193` `fire_incident_aggregates`, `7` `fire_stations`, `27` `fire_incidents`, dan `5` `app_data_snapshots` dalam mode dry-run (`remote_db_modified: false`).
-- Audit kesesuaian `source-register.csv` (`38` baris) terhadap `data/raw/` memverifikasi seluruh ukuran byte dan SHA-256 cocok tanpa perbedaan.
+- `scripts/import_supabase_staging.mjs --dry-run` memvalidasi `38` `data_sources`, `193` `fire_incident_aggregates`, `7` `fire_stations`, `34` `fire_incidents`, dan `5` `app_data_snapshots` dalam mode dry-run (`remote_db_modified: false`).
+- Audit kesesuaian `source-register.csv` (`38` baris) terhadap `data/raw/` memverifikasi seluruh `31` berkas mentah lokal memiliki ukuran byte dan SHA-256 yang cocok (`7` baris sisanya berstatus portal terblokir atau indeks daring tanpa biner mentah).

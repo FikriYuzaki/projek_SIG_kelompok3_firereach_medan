@@ -2,7 +2,7 @@
 
 **Diperbarui:** 2026-11-27
 **Environment:** QGIS Desktop 3.44.13 LTR (`C:\Program Files\QGIS 3.44.13\bin\python-qgis-ltr.bat`)
-**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`22` entri, `3.096.932` byte)
+**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`22` entri, `3.097.071` byte)
 
 ---
 

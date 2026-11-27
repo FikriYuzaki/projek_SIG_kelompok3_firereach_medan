@@ -524,6 +524,7 @@ def validate_and_emit_independent_candidates(district_features: list[dict]) -> t
     raw_input_path = PROCESSED / "independent_enrichment_input.json"
     raw_ind = json.loads(raw_input_path.read_text(encoding="utf-8"))
     poly_by_name = {f["properties"]["district_name"]: f["geometry"] for f in district_features}
+    area_code_by_name = {f["properties"]["district_name"]: f["properties"]["area_code"] for f in district_features}
     valid_districts = set(poly_by_name.keys())
     allowed_types = {"rumah", "ruko", "travo_kabel", "gudang_pabrik", "kendaraan", "lahan", "fasilitas_umum", "lain_lain"}
 
@@ -589,6 +590,13 @@ def validate_and_emit_independent_candidates(district_features: list[dict]) -> t
 
         # Canonical schema fields alongside legacy compatibility fields
         rec.setdefault("incident_id", rid)
+        rec.setdefault("area_code", area_code_by_name[dname])
+        rec.setdefault(
+            "occurred_time_precision",
+            "exact_minute"
+            if (isinstance(otime, str) and re.fullmatch(r"\d{2}:\d{2}", otime.strip()))
+            else ("approximate_window" if otime else "date_only_unknown_time"),
+        )
         rec.setdefault("title", rec.get("object_summary") or f"Kebakaran di {rec.get('address_text') or dname}")
         rec.setdefault("incident_date", rec.get("occurred_on"))
         rec.setdefault("incident_time", rec.get("occurred_time_wib"))
@@ -1653,8 +1661,10 @@ def main():
                 "properties": {
                     "incident_id": r["source_record_id"],
                     "source_record_id": r["source_record_id"],
+                    "area_code": r["area_code"],
                     "incident_date": r["occurred_on"],
                     "incident_time": r["occurred_time_wib"],
+                    "occurred_time_precision": r["occurred_time_precision"],
                     "published_at": r["published_at"],
                     "address": r["address_text"],
                     "kecamatan": r["district_name"],
