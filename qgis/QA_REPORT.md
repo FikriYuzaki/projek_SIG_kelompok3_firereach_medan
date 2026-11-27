@@ -2,7 +2,7 @@
 
 **Diperbarui:** 2026-11-27
 **Environment:** QGIS Desktop 3.44.13 LTR (`C:\Program Files\QGIS 3.44.13\bin\python-qgis-ltr.bat`)
-**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`20` entri, `2.751.817` byte)
+**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`22` entri, `3.096.699` byte)
 
 ---
 
@@ -12,7 +12,7 @@ Validasi dijalankan dengan mengekstrak `FireReach_Medan_QGIS_Pack.zip` ke direkt
 
 | Proyek QGIS | CRS Proyek | Jumlah Layer | Absolute Paths | Simbologi `.qml` | Print Layout PNG | Hasil Ekspor Validasi |
 |---|---|---|---|---|---|---|
-| `hotspot-analysis/medan_hotspot_template.qgz` | `EPSG:32647` | `3` | `False` (0 path absolut) | `hotspot_kde_4kelas.qml` | `exports/peta_agregat_kebakaran_medan_2023_template_kde.png` | `PASS` (`233.457` byte @ 100 dpi) |
+| `hotspot-analysis/medan_hotspot_template.qgz` | `EPSG:32647` | `5` | `False` (0 path absolut) | `hotspot_kde_4kelas.qml` | `exports/peta_agregat_kebakaran_medan_2023_template_kde.png` | `PASS` (`259.575` byte @ 100 dpi) |
 | `station-coverage/station_coverage.qgz` | `EPSG:32647` | `6` | `False` (0 path absolut) | `network_service_area.qml`, `euclidean_buffers.qml`, `mako_station.qml`, `candidate_upt_stations.qml` | `exports/peta_jangkauan_pos_damkarmat_medan_mako00.png` | `PASS` (`313.254` byte @ 100 dpi) |
 | `priority-analysis/priority_analysis.qgz` | `EPSG:32647` | `3` | `False` (0 path absolut) | `priority_tier_4kelas.qml` | `exports/peta_prioritas_layanan_kebakaran_medan_provisional.png` | `PASS` (`216.035` byte @ 100 dpi) |
 
@@ -25,7 +25,7 @@ Catatan pemeriksaan otomatis pada setiap layer:
 
 ## 2. Pemisahan Data Terverifikasi vs Kandidat (`needs_review`)
 
-1. **Hotspot Analysis (`medan_hotspot_template.qgz`):** hanya memuat poligon agregat kebakaran resmi Damkarmat 2023 (`219` kejadian di `21` kecamatan). KDE tidak dijalankan karena `kde_eligible = 0`.
+1. **Hotspot Analysis (`medan_hotspot_template.qgz`):** memuat poligon agregat kebakaran resmi Damkarmat 2023 (`219` kejadian di `21` kecamatan, bukan KDE), titik `Mako 0.0` terverifikasi, serta dua layer eksploratif terpisah: `Titik Insiden Publik OSM (22 Lokasi Ruas)` dan `KDE Eksploratif Publik (22 Titik OSM, BW 1.500 m)`. KDE resmi dari titik individual Damkarmat tetap belum tersedia; KDE eksploratif bukan statistik resmi dan bukan prediksi.
 2. **Station Coverage (`station_coverage.qgz`):**
    - Layer terverifikasi: `Mako 0.0 Damkarmat Medan (Terverifikasi)` (`1` titik `exact_verified`), `Buffer Jarak Lurus Euclidean (2, 3, 5 km)`, dan `Service Area Jaringan Jalan OSM (2, 3, 5 km)`.
    - Layer kandidat terpisah: `Kandidat UPT Perkiraan OSM (needs_review, Terpisah)` disaring dengan ekspresi `"verification_status" = 'needs_review'` (`4` titik perkiraan OSM `UPT-01, UPT-02, UPT-05, UPT-06`). `UPT-03` dan `UPT-04` berstatus `district_only` (`geom = null`) sehingga tidak diplot.
