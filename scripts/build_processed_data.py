@@ -16,7 +16,6 @@ RAW_SATU = ROOT / "data" / "raw" / "satudata-medan"
 RAW_OSM = ROOT / "data" / "raw" / "osm-overpass"
 PROCESSED = ROOT / "data" / "processed"
 PUBLIC_DATA = ROOT / "public" / "data"
-PUBLIC_DEMO = PUBLIC_DATA / "demo"
 
 NS = {
     "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",

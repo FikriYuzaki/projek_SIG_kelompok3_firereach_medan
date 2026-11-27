@@ -1,6 +1,6 @@
 # Deployment Preparation: Vercel & Environment Variables
 
-Deployment to Vercel has **not been executed** during foundation setup because remote Vercel and Supabase credentials are intentionally excluded from the repository.
+Production deployment on Vercel is **live** at [https://firereach-medan.vercel.app](https://firereach-medan.vercel.app), synced automatically from `main` (current verified release: `2026-11-27-prod`). Local `.env` files and private credentials remain excluded from the Git repository.
 
 ## 1. Frontend Build Configuration
 

@@ -13,23 +13,23 @@ For any UI, copywriting, accessibility, responsive layout, or code-comment work 
 
 FireReach Medan (`Fire Incident Mapping & Emergency Service Coverage Analysis`) is developed in parallel by four team members:
 
-| Member | Module ID | Folder Ownership | Initial Registry Status |
+| Member | Module ID | Folder Ownership | Registry Status (`2026-11-27-prod`) |
 |---|---|---|---|
-| Fikri | `incident-explorer` (plus app shell, router, registry, shared services, docs) | `src/features/incident-explorer/`, `src/core/`, `src/router/`, `src/components/` | `in-development` |
-| Adeptri | `hotspot-analyzer` | `src/features/hotspot-analyzer/` | `coming-soon` |
-| Adriel | `station-coverage` | `src/features/station-coverage/` | `coming-soon` |
-| Olo | `priority-planner` | `src/features/priority-planner/` | `coming-soon` |
+| Fikri | `incident-explorer` (plus app shell, router, registry, shared services, docs) | `src/features/incident-explorer/`, `src/core/`, `src/router/`, `src/components/` | `active` |
+| Adeptri | `hotspot-analyzer` | `src/features/hotspot-analyzer/` | `active` |
+| Adriel | `station-coverage` | `src/features/station-coverage/` | `active` |
+| Olo | `priority-planner` | `src/features/priority-planner/` | `active` |
 
 Rules:
 - Never modify another member's module folder internals or introduce cross-module imports between `src/features/*`.
 - Never mark any module `active` in `src/core/feature-registry.js` without passing its acceptance criteria, automated tests, and integration review.
-- Keep Leaflet 2D (`src/core/map/index.js`) as the primary spatial map. Three.js is strictly bounded to small schematic object previews with a 2D fallback.
+- Keep Leaflet 2D (`src/core/map/index.js`) as the primary spatial map. Three.js has been removed from this codebase; interactive response animation uses Leaflet + Canvas 2D with an SVG 2D fallback.
 
 ## Data Honesty, Geospatial & Database Rules
 
 - **No fabricated data**: Never invent fire incident coordinates, statistics, response times, or coverage metrics. Preserve source granularity (`district_aggregate` vs `individual`).
 - **CRS discipline**: Compute metric buffers, areas, and network distances in `EPSG:32647` (WGS 84 / UTM zone 47N); store and exchange PostGIS/GeoJSON in `EPSG:4326`.
-- **DEMO separation**: Any development fixture must live in `data/fixtures/demo/`, carry `"isDemo": true` and `"dataLabel": "DEMO"`, and appear visually marked as `DEMO` in UI.
+- **DEMO separation**: Contract-testing fixtures live strictly in `data/fixtures/demo/`, carry `"isDemo": true` and `"dataLabel": "DEMO"`, and must never be used as runtime fallbacks in `public/data/` or production UI.
 - **Security & Supabase**:
   - Use only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in frontend code. Never commit `.env` or expose `service_role` keys.
   - Enable Row Level Security (RLS) on every `public` table; never ship `allow all` write policies.
@@ -38,7 +38,7 @@ Rules:
 
 ## Repository Hygiene
 
-- Never commit files inside `data/raw/`, `data/interim/`, `.env`, `node_modules/`, `dist/`, `playwright-report/`, or `test-results/`.
+- Never commit files inside `data/raw/`, `data/interim/`, `.env`, `node_modules/`, `dist/`, `.vite/`, `.vercel/`, `coverage/`, `__pycache__/`, `playwright-report/`, or `test-results/`.
 - Clean up temporary debug artifacts, screenshots, and throwaway scripts before committing.
 - Never push directly to `main`; use feature branches (`chore/*`, `feature/<member>-<module>`).
 

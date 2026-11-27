@@ -4,11 +4,11 @@ Every feature module lives under `src/features/<module-id>/` and integrates with
 
 ## 1. Registry & Feature States
 
-Allowed status values in `src/core/feature-registry.js`:
-- `coming-soon`: Module placeholder only. Router displays `Coming Soon` panel without importing module UI.
+All four modules (`incident-explorer`, `hotspot-analyzer`, `station-coverage`, `priority-planner`) are `active` in `src/core/feature-registry.js` (`2026-11-27-prod`). Allowed lifecycle status values supported by the router remain:
+- `coming-soon`: Guarded maintenance/placeholder state. Router displays `src/components/coming-soon.js` without importing module UI.
 - `in-development`: Module may be mounted for development and testing, visibly labeled as in development.
 - `ready-for-review`: Feature complete, awaiting QA and integration review.
-- `active`: Passed acceptance criteria, unit tests, browser smoke tests, and review.
+- `active`: Passed acceptance criteria, unit tests, browser smoke tests, and integration review.
 - `blocked`: Temporarily blocked with explicit blocker note.
 
 Only `in-development`, `ready-for-review`, and `active` statuses are mountable by the router.
@@ -29,7 +29,7 @@ export async function mount({ container, services, params }) {
   // Render inside container only; never create a second app root.
   // Use services.maps, services.charts, services.supabase, etc.
   return async function unmount() {
-    // Destroy every Leaflet map, Chart.js instance, Three.js renderer,
+    // Destroy every Leaflet map, Chart.js instance,
     // DOM/window event listener, ResizeObserver, and timer.
   };
 }
@@ -84,5 +84,5 @@ services = {
 2. **Adriel (`station-coverage`)**:
    - Publishes verified `fire_stations` (`geom`, `station_type`, `verification_status`) and `station_coverage_zones` polygons (`method_type`, `threshold_value`, `threshold_unit`, `assumed_speed_kmh`, `disclaimer`).
 3. **Adeptri + Adriel + BPS Population -> Olo (`priority-planner`)**:
-   - Joins district-level (kecamatan) hotspot intensity, coverage gap metrics, and BPS population/density indicators using normalized `district_name` or BPS `area_code` (`12.71.01` to `12.71.21`).
-   - Before Adeptri and Adriel finish real outputs, Olo develops against `data/fixtures/demo/priority-planner.demo.json` (`isDemo: true`, `dataLabel: "DEMO"`).
+   - Joins district-level (kecamatan) 2023 historical fire load, 5 km road-network coverage gap metrics, exploratory KDE overlay diagnostics, and BPS population/density indicators using normalized `district_name` or BPS `area_code` (`12.71.01` to `12.71.21`) in `/data/priority-planner.provisional.json` (`priority-v2.0-integrated`).
+   - `data/fixtures/demo/*.demo.json` (`isDemo: true`, `dataLabel: "DEMO"`) is retained exclusively for automated contract tests (`tests/unit/`), never as runtime fallbacks in production.
