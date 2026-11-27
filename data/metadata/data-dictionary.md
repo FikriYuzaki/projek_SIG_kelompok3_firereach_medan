@@ -1,6 +1,6 @@
-# Kamus Data & Kontrak Skema — FireReach Medan
+# Kamus Data & Kontrak Skema - FireReach Medan
 
-**Diperbarui:** 2026-11-23
+**Diperbarui:** 2026-11-27
 
 **CRS Exchange Web / PostGIS:** `EPSG:4326` (WGS 84)
 
@@ -58,12 +58,14 @@
 
 ---
 
-## 5. `public/data/damkarmat_station_candidates.json`
+## 5. `public/data/damkarmat_station_candidates.json` & `public/data/medan_road_graph.json`
 
-- **Header & Referensi:** `isDemo: false`, `dataLabel: "UNVERIFIED_CANDIDATES"`, `summary` (`total_candidates: 6`, `approximate_point_count: 2`, `district_only_count: 4`, `verified_station_count: 0`, `p2k_medan_blocked: true`), `reference_articles[]`:
+- **Header & Referensi (`damkarmat_station_candidates.json`):** `isDemo: false`, `dataLabel: "UNVERIFIED_CANDIDATES"`, `summary` (`total_candidates: 6`, `approximate_point_count: 4`, `district_only_count: 2`, `verified_station_count: 0`, `p2k_medan_blocked: true`), `legal_basis_audit`, dan `reference_articles[]`:
   - `ANTARA News Sumut (560100)`: memuat `event_date: "2024-01-26"` dan `published_at: "2024-01-27T00:32:42+07:00"` secara terpisah.
-  - `Perwali Kota Medan No. 25 Tahun 2018 (JDIH BPK RI)`: memuat presisi tanggal `published_at / enacted_on / promulgated_on / effective_on = "2018-02-14"` serta `official_gazette: "BD.2018/ No. 25"`.
-- **Skema Tiap Pos (`stations[]`):** `station_code` (`UPT-01` s.d. `UPT-06`), `name`, `station_type: "upt"`, `address`, `district_name`, `location_accuracy`, `verification_status: "needs_review"`, `operational_status`, `lat`, `lon`, `geom` (`null` pada `UPT-01..04`, `Point` perkiraan ruas pada `UPT-05..06`), `osm_ref`, `source_name`, `source_url`, `evidence_urls[]`, `conflict_notes`.
+  - `Portal Pemko Medan` (artikel peresmian UPT 1 - VI): memuat `published_at: "2024-01-26T18:00:00+07:00"`.
+  - `Perwali Kota Medan No. 25 Tahun 2018 (JDIH BPK RI)`: memuat `published_at / enacted_on / promulgated_on / effective_on = "2018-02-14"` serta `official_gazette: "BD.2018/ No. 25"`; ditandai hanya sebagai konteks pembentukan historis dengan nomenklatur lama (*Dinas P2K*), bukan bukti lokasi bangunan fisik pos.
+- **Skema Tiap Pos (`stations[]`):** `station_code` (`UPT-01` s.d. `UPT-06`), `name`, `station_type: "upt"`, `address`, `district_name`, `location_accuracy`, `verification_status: "needs_review"`, `operational_status`, `legal_basis_note`, `retrieved_at`, `limitation_note`, `lat`, `lon`, `geom` (`null` pada `UPT-03` dan `UPT-04`; `Point` perkiraan ruas OSM pada `UPT-01`, `UPT-02`, `UPT-05`, `UPT-06`), `osm_ref`, `source_name`, `source_url`, `evidence_urls[]`, `conflict_notes`.
+- **Graf Jalan Simulasi (`public/data/medan_road_graph.json`):** memuat `metadata` (`source`, `working_crs: "EPSG:32647"`, `output_crs: "EPSG:4326"`, `node_count: 8581`, `edge_count: 9720`, `total_length_km: 1579.7`, `station_snap_distances_m`), `nodes` (`[lon, lat]` berindeks), dan `edges` (`[u, v, length_m, oneway_dir, highway_code]`).
 
 ---
 

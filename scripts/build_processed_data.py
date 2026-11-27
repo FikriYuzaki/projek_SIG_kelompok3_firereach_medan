@@ -1341,11 +1341,19 @@ def main():
             "name": "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
             "station_type": "mako",
             "address": "Jl. Candi Borobudur No. 2, Kota Medan",
+            "district_name": "Medan Petisah",
             "lat": lat,
             "lon": lon,
+            "location_accuracy": "exact_verified",
             "verification_status": "verified",
+            "operational_status": "operational_verified",
             "source_name": "Satu Data Medan (Knowledge Informasi Damkarmat)",
             "source_url": "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe",
+            "evidence_urls": [
+                "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe"
+            ],
+            "retrieved_at": "2026-11-19",
+            "limitation_note": "Satu-satunya pos Damkarmat dengan koordinat resmi terverifikasi dalam dataset terbuka Satu Data Medan.",
         }
     ]
 
@@ -1626,8 +1634,15 @@ def main():
         None,
     )
 
+    st_approx_codes = [s["station_code"] for s in st_payload["stations"] if s.get("location_accuracy") == "approximate"]
+    st_dist_codes = [s["station_code"] for s in st_payload["stations"] if s.get("location_accuracy") == "district_only"]
+    st_acc_summary = (
+        f"{st_payload['summary']['approximate_point_count']} approximate ({', '.join(st_approx_codes)}) + "
+        f"{st_payload['summary']['district_only_count']} district_only ({', '.join(st_dist_codes)}, geom=null)"
+    )
+
     manifest = {
-        "generated_at": "2026-11-23",
+        "generated_at": "2026-11-27",
         "city": "Kota Medan",
         "crs_web": "EPSG:4326",
         "crs_metric": "EPSG:32647",
@@ -1839,7 +1854,7 @@ def main():
         ]
         + ([existing_roads_entry] if existing_roads_entry is not None else []),
         "independent_enrichment": {
-            "scope_note": "Kandidat dari media berita kredibel (ANTARA Sumut, Detik Sumut), JDIH BPK (Perwali 25/2018), dan geocoding ruas OSM Nominatim disimpan terpisah dari dataset resmi dan belum masuk perhitungan KDE maupun coverage terverifikasi.",
+            "scope_note": "Kandidat dari media berita kredibel (ANTARA Sumut, Detik Sumut, Metro Rakyat), portal resmi Pemko Medan, konteks historis JDIH BPK (Perwali 25/2018), dan geocoding landmark/ruas OSM Nominatim disimpan terpisah dari dataset resmi dan belum masuk perhitungan KDE maupun coverage terverifikasi.",
             "datasets": [
                 {
                     "id": "medan-fire-incident-candidates",
@@ -1855,10 +1870,10 @@ def main():
                 {
                     "id": "medan-damkarmat-upt-candidates",
                     "title": "Kandidat Pos UPT Wilayah I - VI Dinas Damkarmat Kota Medan",
-                    "publisher": "JDIH BPK (Perwali 25/2018), ANTARA Sumut, & OSM Nominatim",
+                    "publisher": "Portal Pemko Medan, Renstra DP2K, JDIH BPK (Perwali 25/2018 historis), ANTARA Sumut, & OSM",
                     "period": "2018 - 2026",
                     "record_count": st_payload["summary"]["total_candidates"],
-                    "accuracy_summary": "2 approximate (UPT-05 & UPT-06) + 4 district_only (UPT-01..04, geom=null)",
+                    "accuracy_summary": st_acc_summary,
                     "status": "needs_review",
                     "path": "/data/damkarmat_station_candidates.json",
                     "sha256": sha256_text_asset(PUBLIC_DATA / "damkarmat_station_candidates.json")[0],

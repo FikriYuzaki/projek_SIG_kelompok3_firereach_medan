@@ -3,7 +3,7 @@
   "dataLabel": "PROVISIONAL",
   "module": "station-coverage",
   "owner": "Adriel",
-  "generated_at": "2026-11-23",
+  "generated_at": "2026-11-27",
   "notice": "ANALISIS JANGKAUAN PROVISIONAL (1 POS TERVERIFIKASI + 6 KANDIDAT PUBLIK TERPISAH): perhitungan baseline resmi menggunakan jaringan jalan OpenStreetMap nyata hanya dari Mako 0.0 (Jl. Candi Borobudur No. 2) agar skor Priority Planner tidak tercampur data belum terverifikasi. Enam pos UPT wilayah I-VI tersedia terpisah sebagai kandidat perlu review (4 titik perkiraan OSM, 2 belum berkoordinat).",
   "analysis": {
     "title": "Evaluasi Jangkauan Layanan Mako 0.0 Damkarmat Medan (Euclidean vs Jaringan Jalan OSM)",
@@ -31,7 +31,7 @@
     "candidate_total_count": 6,
     "candidate_geolocated_count": 4,
     "candidate_district_only_count": 2,
-    "retrieved_at": "2026-11-23",
+    "retrieved_at": "2026-11-27",
     "osm_fire_station_audit": {
       "query_bbox": [
         3.45,
@@ -55,7 +55,13 @@
         "source": "Portal Resmi Dinas Damkarmat Kota Medan (Infografis Pos)",
         "url": "https://p2k.medan.go.id/berita/Infografis-Letak-Pos-Damkarmat-Kota-Medan.html",
         "status": "blocked_http_403_cloudflare",
-        "note": "Portal p2k.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403; tidak dilakukan bypass."
+        "note": "Portal p2k.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403 (diverifikasi ulang 2026-11-27); tidak dilakukan bypass."
+      },
+      {
+        "source": "JDIH Pemerintah Kota Medan",
+        "url": "https://jdih.medan.go.id/",
+        "status": "blocked_http_403_cloudflare",
+        "note": "Portal jdih.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403 pada 2026-11-27; tidak dilakukan bypass."
       },
       {
         "source": "Aplikasi Layanan Pak Damkar Medan",
@@ -130,7 +136,7 @@
         "https://portal.medan.go.id/storage/files/6/UNDUH/DAFTAR_OPD_KECAMATAN_KELURAHAN_DAN_ALAMAT/Daftar_OPD_dan_Kecamatan.pdf",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Bunga Melati No. 1 (Kemenangan Tani) adalah Kantor Camat Medan Tuntungan. Titik memakai landmark publik Pasar Induk Medan (node/4246973518) di Lau Cih sebagai perkiraan kawasan dan belum terverifikasi koordinat persil bangunan pos.",
       "isDemo": false
     },
@@ -164,7 +170,7 @@
         "https://portal.medan.go.id/storage/files/6/UNDUH/DAFTAR_OPD_KECAMATAN_KELURAHAN_DAN_ALAMAT/Daftar_OPD_dan_Kecamatan.pdf",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Garu III No. 111 A (Harjosari I) adalah Kantor Camat Medan Amplas. Titik memakai landmark Terminal Terpadu Amplas OSM (node/2170570714) sesuai keterangan Kadis DPKP dan belum merupakan koordinat bangunan pos resmi.",
       "isDemo": false
     },
@@ -191,7 +197,7 @@
         "https://metrorakyat.com/2026/05/medan-butuh-mobil-damkar-tangga-100-meter-wanro-malau-gedung-tinggi-kian-menjamur/",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Jl. Pulau Natuna tidak ditemukan di OSM/jaringan jalan lokal dan fitur OSM PT. Kawasan Industri Medan (way/970764126) berada di luar poligon batas Kota Medan (Kab. Deli Serdang), sehingga geom dibiarkan null dan dikeluarkan dari simulasi titik.",
       "isDemo": false
     },
@@ -218,7 +224,7 @@
         "https://sumut.antaranews.com/berita/574077/perusahaan-kelapa-sawit-terbakar-tujuh-armada-pemadam-dikerahkan",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Alamat Jl. Cimanuk No. 03 Belawan II terkonfirmasi dokumen resmi Pemko Medan, namun ruas Jl. Cimanuk dan Kantor Camat Medan Belawan belum terpetakan di OSM/Nominatim, sehingga geom dibiarkan null tanpa tebakan koordinat.",
       "isDemo": false
     },
@@ -250,7 +256,7 @@
         "https://sumut.antaranews.com/berita/560100/pemkot-medan-tingkatkan-pelayanan-pemadam-kebakaran-penyelamatan-pkp",
         "https://sumut.antaranews.com/berita/574077/perusahaan-kelapa-sawit-terbakar-tujuh-armada-pemadam-dikerahkan"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Gaperta, Kec. Medan Helvetia. Koordinat masih berupa perkiraan titik tengah ruas Jl. Gaperta pada OSM (way/94829701), bukan koordinat bangunan pos hasil survei resmi.",
       "isDemo": false
     },
@@ -282,7 +288,7 @@
         "https://sumut.antaranews.com/berita/574749/kantor-camat-medan-area-terbakar-begini-kronologisnya",
         "https://sumut.antaranews.com/berita/606278/toko-florist-di-pusat-pasar-kota-medan-terbakar-damkarmat-kerahkan-enam-unit-armada"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Letda Sujono, Kec. Medan Tembung. Koordinat masih berupa perkiraan titik tengah ruas Jl. Letda Sujono pada OSM (way/439190277), bukan koordinat bangunan pos hasil survei resmi.",
       "isDemo": false
     }

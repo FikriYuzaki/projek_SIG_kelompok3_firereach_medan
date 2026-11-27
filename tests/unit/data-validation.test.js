@@ -190,12 +190,12 @@ describe("processed data & DEMO fixture integrity", () => {
       expect(st.verification_status).toBe("needs_review");
     }
     expect(stCand.stations.filter((s) => s.geom !== null).map((s) => s.station_code)).toEqual([
+      "UPT-01",
+      "UPT-02",
       "UPT-05",
       "UPT-06"
     ]);
     expect(stCand.stations.filter((s) => s.geom === null).map((s) => s.station_code)).toEqual([
-      "UPT-01",
-      "UPT-02",
       "UPT-03",
       "UPT-04"
     ]);

@@ -1,18 +1,18 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis simplifyDrawingTol="1" simplifyLocal="1" autoRefreshMode="Disabled" simplifyMaxScale="1" minScale="100000000" styleCategories="AllStyleCategories" labelsEnabled="0" simplifyAlgorithm="0" symbologyReferenceScale="-1" version="3.44.13-Solothurn" simplifyDrawingHints="1" readOnly="0" hasScaleBasedVisibilityFlag="0" autoRefreshTime="0" maxScale="0">
+<qgis styleCategories="AllStyleCategories" symbologyReferenceScale="-1" simplifyDrawingHints="1" simplifyAlgorithm="0" simplifyLocal="1" readOnly="0" hasScaleBasedVisibilityFlag="0" autoRefreshMode="Disabled" autoRefreshTime="0" version="3.44.13-Solothurn" maxScale="0" minScale="100000000" simplifyDrawingTol="1" simplifyMaxScale="1" labelsEnabled="0">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
     <Private>0</Private>
   </flags>
-  <temporal durationField="" endField="" fixedDuration="0" accumulate="0" startExpression="" endExpression="" mode="0" limitMode="0" enabled="0" durationUnit="min" startField="">
+  <temporal durationUnit="min" startExpression="" mode="0" limitMode="0" endExpression="" endField="" accumulate="0" enabled="0" durationField="" fixedDuration="0" startField="">
     <fixedRange>
       <start></start>
       <end></end>
     </fixedRange>
   </temporal>
-  <elevation symbology="Line" zscale="1" extrusion="0" customToleranceEnabled="1" zoffset="0" clamping="Terrain" extrusionEnabled="0" type="IndividualFeatures" respectLayerSymbol="1" showMarkerSymbolInSurfacePlots="0" binding="Centroid">
+  <elevation showMarkerSymbolInSurfacePlots="0" zoffset="0" extrusionEnabled="0" symbology="Line" extrusion="0" customToleranceEnabled="1" clamping="Terrain" binding="Centroid" respectLayerSymbol="1" zscale="1" type="IndividualFeatures">
     <data-defined-properties>
       <Option type="Map">
         <Option value="" name="name" type="QString"/>
@@ -21,7 +21,7 @@
       </Option>
     </data-defined-properties>
     <profileLineSymbol>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="" type="line" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="" frame_rate="10" type="line">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -29,7 +29,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleLine" pass="0" enabled="1" locked="0" id="{dba17fd4-a8fb-4ce3-9018-bb14c2682503}">
+        <layer class="SimpleLine" locked="0" pass="0" enabled="1" id="{4278fb52-0e84-4100-b441-e34872a182c7}">
           <Option type="Map">
             <Option value="0" name="align_dash_pattern" type="QString"/>
             <Option value="square" name="capstyle" type="QString"/>
@@ -41,7 +41,7 @@
             <Option value="MM" name="dash_pattern_offset_unit" type="QString"/>
             <Option value="0" name="draw_inside_polygon" type="QString"/>
             <Option value="bevel" name="joinstyle" type="QString"/>
-            <Option value="243,166,178,255,rgb:0.9529412,0.6509804,0.6980392,1" name="line_color" type="QString"/>
+            <Option value="125,139,143,255,rgb:0.4901961,0.545098,0.5607843,1" name="line_color" type="QString"/>
             <Option value="solid" name="line_style" type="QString"/>
             <Option value="0.6" name="line_width" type="QString"/>
             <Option value="MM" name="line_width_unit" type="QString"/>
@@ -70,7 +70,7 @@
       </symbol>
     </profileLineSymbol>
     <profileFillSymbol>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="" type="fill" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="" frame_rate="10" type="fill">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -78,15 +78,15 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleFill" pass="0" enabled="1" locked="0" id="{66779c00-1649-460f-bd4b-48fc0bced0d2}">
+        <layer class="SimpleFill" locked="0" pass="0" enabled="1" id="{9c84f3a3-9e4c-4cec-ad82-67f468742a24}">
           <Option type="Map">
             <Option value="3x:0,0,0,0,0,0" name="border_width_map_unit_scale" type="QString"/>
-            <Option value="243,166,178,255,rgb:0.9529412,0.6509804,0.6980392,1" name="color" type="QString"/>
+            <Option value="125,139,143,255,rgb:0.4901961,0.545098,0.5607843,1" name="color" type="QString"/>
             <Option value="bevel" name="joinstyle" type="QString"/>
             <Option value="0,0" name="offset" type="QString"/>
             <Option value="3x:0,0,0,0,0,0" name="offset_map_unit_scale" type="QString"/>
             <Option value="MM" name="offset_unit" type="QString"/>
-            <Option value="174,119,127,255,rgb:0.6806592,0.4649729,0.4985885,1" name="outline_color" type="QString"/>
+            <Option value="89,99,102,255,rgb:0.3501335,0.3893492,0.4005493,1" name="outline_color" type="QString"/>
             <Option value="solid" name="outline_style" type="QString"/>
             <Option value="0.2" name="outline_width" type="QString"/>
             <Option value="MM" name="outline_width_unit" type="QString"/>
@@ -103,7 +103,7 @@
       </symbol>
     </profileFillSymbol>
     <profileMarkerSymbol>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="" type="marker" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="" frame_rate="10" type="marker">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -111,18 +111,18 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" pass="0" enabled="1" locked="0" id="{a79636eb-45e4-4e42-87f1-c73c55895b67}">
+        <layer class="SimpleMarker" locked="0" pass="0" enabled="1" id="{c8788193-e0f2-42f6-bde7-88d03bf698dc}">
           <Option type="Map">
             <Option value="0" name="angle" type="QString"/>
             <Option value="square" name="cap_style" type="QString"/>
-            <Option value="243,166,178,255,rgb:0.9529412,0.6509804,0.6980392,1" name="color" type="QString"/>
+            <Option value="125,139,143,255,rgb:0.4901961,0.545098,0.5607843,1" name="color" type="QString"/>
             <Option value="1" name="horizontal_anchor_point" type="QString"/>
             <Option value="bevel" name="joinstyle" type="QString"/>
             <Option value="diamond" name="name" type="QString"/>
             <Option value="0,0" name="offset" type="QString"/>
             <Option value="3x:0,0,0,0,0,0" name="offset_map_unit_scale" type="QString"/>
             <Option value="MM" name="offset_unit" type="QString"/>
-            <Option value="174,119,127,255,rgb:0.6806592,0.4649729,0.4985885,1" name="outline_color" type="QString"/>
+            <Option value="89,99,102,255,rgb:0.3501335,0.3893492,0.4005493,1" name="outline_color" type="QString"/>
             <Option value="solid" name="outline_style" type="QString"/>
             <Option value="0.2" name="outline_width" type="QString"/>
             <Option value="3x:0,0,0,0,0,0" name="outline_width_map_unit_scale" type="QString"/>
@@ -144,14 +144,14 @@
       </symbol>
     </profileMarkerSymbol>
   </elevation>
-  <renderer-v2 symbollevels="0" attr="threshold_m" forceraster="0" enableorderby="0" type="categorizedSymbol" referencescale="-1">
+  <renderer-v2 attr="threshold_m" referencescale="-1" symbollevels="0" forceraster="0" enableorderby="0" type="categorizedSymbol">
     <categories>
-      <category render="true" symbol="0" value="2000" label="Jaringan Jalan &lt;= 2 km (~3.4 mnt @ 35 km/j)" type="long" uuid="{ef59b4a1-8f49-4c10-b1ee-cb63fa0f0cee}"/>
-      <category render="true" symbol="1" value="3000" label="Jaringan Jalan &lt;= 3 km (~5.1 mnt @ 35 km/j)" type="long" uuid="{8a75699c-1888-49a2-95cd-5ee236f3633e}"/>
-      <category render="true" symbol="2" value="5000" label="Jaringan Jalan &lt;= 5 km (~8.6 mnt @ 35 km/j)" type="long" uuid="{2739eef4-09e6-4685-8856-e40ea2a02fee}"/>
+      <category symbol="0" label="Jaringan Jalan &lt;= 2 km (~3.4 mnt @ 35 km/j)" uuid="{b2920638-8fda-431d-8e15-c536ff5af91e}" value="2000" render="true" type="long"/>
+      <category symbol="1" label="Jaringan Jalan &lt;= 3 km (~5.1 mnt @ 35 km/j)" uuid="{d41693bf-bcad-4341-951c-d7076855104b}" value="3000" render="true" type="long"/>
+      <category symbol="2" label="Jaringan Jalan &lt;= 5 km (~8.6 mnt @ 35 km/j)" uuid="{7569b48b-4475-453b-9d0c-a91ddc569f7a}" value="5000" render="true" type="long"/>
     </categories>
     <symbols>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="0" type="fill" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="0" frame_rate="10" type="fill">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -159,7 +159,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleFill" pass="0" enabled="1" locked="0" id="{3bb684b5-c9db-48d3-9c01-c813706d87e7}">
+        <layer class="SimpleFill" locked="0" pass="0" enabled="1" id="{92e67e8b-4bce-40db-9dd1-c36e83aef0c7}">
           <Option type="Map">
             <Option value="3x:0,0,0,0,0,0" name="border_width_map_unit_scale" type="QString"/>
             <Option value="53,96,103,185,rgb:0.2078431,0.3764706,0.4039216,0.7254902" name="color" type="QString"/>
@@ -182,7 +182,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="1" type="fill" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="1" frame_rate="10" type="fill">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -190,7 +190,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleFill" pass="0" enabled="1" locked="0" id="{82d43baf-06bf-4f8d-afea-e29681fcd49f}">
+        <layer class="SimpleFill" locked="0" pass="0" enabled="1" id="{4b89cac3-9d91-4f6f-8548-ec066b00becb}">
           <Option type="Map">
             <Option value="3x:0,0,0,0,0,0" name="border_width_map_unit_scale" type="QString"/>
             <Option value="71,122,130,135,rgb:0.2784314,0.4784314,0.5098039,0.5294118" name="color" type="QString"/>
@@ -213,7 +213,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol frame_rate="10" clip_to_extent="1" alpha="1" force_rhr="0" name="2" type="fill" is_animated="0">
+      <symbol force_rhr="0" is_animated="0" clip_to_extent="1" alpha="1" name="2" frame_rate="10" type="fill">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -221,7 +221,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleFill" pass="0" enabled="1" locked="0" id="{d833dfdc-6b9b-4c01-b35d-757962e5aed8}">
+        <layer class="SimpleFill" locked="0" pass="0" enabled="1" id="{211d495f-8151-4369-98c0-2f92825c5c07}">
           <Option type="Map">
             <Option value="3x:0,0,0,0,0,0" name="border_width_map_unit_scale" type="QString"/>
             <Option value="213,138,67,105,rgb:0.8352941,0.5411765,0.2627451,0.4117647" name="color" type="QString"/>
@@ -264,7 +264,7 @@
   <blendMode>0</blendMode>
   <featureBlendMode>0</featureBlendMode>
   <layerOpacity>1</layerOpacity>
-  <geometryOptions geometryPrecision="0" removeDuplicateNodes="0">
+  <geometryOptions removeDuplicateNodes="0" geometryPrecision="0">
     <activeChecks type="StringList">
       <Option value="" type="QString"/>
     </activeChecks>
@@ -348,41 +348,41 @@
     <alias field="area_km2" index="8" name=""/>
   </aliases>
   <defaults>
-    <default applyOnUpdate="0" field="fid" expression=""/>
-    <default applyOnUpdate="0" field="station_code" expression=""/>
-    <default applyOnUpdate="0" field="method_type" expression=""/>
-    <default applyOnUpdate="0" field="threshold_m" expression=""/>
-    <default applyOnUpdate="0" field="assumed_speed_kmh" expression=""/>
-    <default applyOnUpdate="0" field="scenario_minutes" expression=""/>
-    <default applyOnUpdate="0" field="coverage_tier" expression=""/>
-    <default applyOnUpdate="0" field="road_length_km" expression=""/>
-    <default applyOnUpdate="0" field="area_km2" expression=""/>
+    <default field="fid" expression="" applyOnUpdate="0"/>
+    <default field="station_code" expression="" applyOnUpdate="0"/>
+    <default field="method_type" expression="" applyOnUpdate="0"/>
+    <default field="threshold_m" expression="" applyOnUpdate="0"/>
+    <default field="assumed_speed_kmh" expression="" applyOnUpdate="0"/>
+    <default field="scenario_minutes" expression="" applyOnUpdate="0"/>
+    <default field="coverage_tier" expression="" applyOnUpdate="0"/>
+    <default field="road_length_km" expression="" applyOnUpdate="0"/>
+    <default field="area_km2" expression="" applyOnUpdate="0"/>
   </defaults>
   <constraints>
-    <constraint constraints="3" field="fid" notnull_strength="1" exp_strength="0" unique_strength="1"/>
-    <constraint constraints="0" field="station_code" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="method_type" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="threshold_m" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="assumed_speed_kmh" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="scenario_minutes" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="coverage_tier" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="road_length_km" notnull_strength="0" exp_strength="0" unique_strength="0"/>
-    <constraint constraints="0" field="area_km2" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint field="fid" unique_strength="1" constraints="3" exp_strength="0" notnull_strength="1"/>
+    <constraint field="station_code" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="method_type" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="threshold_m" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="assumed_speed_kmh" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="scenario_minutes" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="coverage_tier" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="road_length_km" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint field="area_km2" unique_strength="0" constraints="0" exp_strength="0" notnull_strength="0"/>
   </constraints>
   <constraintExpressions>
-    <constraint desc="" field="fid" exp=""/>
-    <constraint desc="" field="station_code" exp=""/>
-    <constraint desc="" field="method_type" exp=""/>
-    <constraint desc="" field="threshold_m" exp=""/>
-    <constraint desc="" field="assumed_speed_kmh" exp=""/>
-    <constraint desc="" field="scenario_minutes" exp=""/>
-    <constraint desc="" field="coverage_tier" exp=""/>
-    <constraint desc="" field="road_length_km" exp=""/>
-    <constraint desc="" field="area_km2" exp=""/>
+    <constraint field="fid" desc="" exp=""/>
+    <constraint field="station_code" desc="" exp=""/>
+    <constraint field="method_type" desc="" exp=""/>
+    <constraint field="threshold_m" desc="" exp=""/>
+    <constraint field="assumed_speed_kmh" desc="" exp=""/>
+    <constraint field="scenario_minutes" desc="" exp=""/>
+    <constraint field="coverage_tier" desc="" exp=""/>
+    <constraint field="road_length_km" desc="" exp=""/>
+    <constraint field="area_km2" desc="" exp=""/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions/>
-  <attributetableconfig sortExpression="" sortOrder="0" actionWidgetStyle="dropDown">
+  <attributetableconfig actionWidgetStyle="dropDown" sortExpression="" sortOrder="0">
     <columns/>
   </attributetableconfig>
   <conditionalstyles>

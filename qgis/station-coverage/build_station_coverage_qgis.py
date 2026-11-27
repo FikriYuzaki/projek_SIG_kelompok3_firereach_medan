@@ -121,6 +121,30 @@ def _style_mako(layer: QgsVectorLayer) -> None:
     layer.setLabelsEnabled(True)
 
 
+def _style_candidate_upt(layer: QgsVectorLayer) -> None:
+    sym = QgsMarkerSymbol.createSimple(
+        {"name": "diamond", "color": "#D58A43", "outline_color": "#202A2D", "outline_width": "0.55", "size": "3.2"}
+    )
+    layer.renderer().setSymbol(sym)
+
+    lbl_settings = QgsPalLayerSettings()
+    lbl_settings.fieldName = "concat(\"station_code\", ' (needs_review)')"
+    lbl_settings.isExpression = True
+    lbl_settings.dist = 2.0
+    fmt = QgsTextFormat()
+    fmt.setFont(_make_font("Sans Serif", 6.8, bold=False))
+    fmt.setSize(6.8)
+    fmt.setColor(QColor("#8A5218"))
+    buf = QgsTextBufferSettings()
+    buf.setEnabled(True)
+    buf.setSize(0.8)
+    buf.setColor(QColor("#FFFFFF"))
+    fmt.setBuffer(buf)
+    lbl_settings.setFormat(fmt)
+    layer.setLabeling(QgsVectorLayerSimpleLabeling(lbl_settings))
+    layer.setLabelsEnabled(True)
+
+
 def _add_rect(layout, x, y, w, h, fill_hex, stroke_hex=None, stroke_w=0.3):
     s = QgsLayoutItemShape(layout)
     s.setShapeType(QgsLayoutItemShape.Rectangle)
@@ -182,16 +206,19 @@ def build_project() -> None:
         project.setTitle("FireReach Medan - Station Coverage Analysis (Provisional Mako 0.0)")
 
         mako_lyr = QgsVectorLayer("./layers/station_coverage_analysis.gpkg|layername=mako_verified", "Mako 0.0 Damkarmat Medan (Terverifikasi)", "ogr")
+        cand_lyr = QgsVectorLayer("./layers/station_coverage_analysis.gpkg|layername=candidate_stations_utm", "Kandidat UPT Perkiraan OSM (needs_review, Terpisah)", "ogr")
+        cand_lyr.setSubsetString("\"verification_status\" = 'needs_review'")
         net_lyr = QgsVectorLayer("./layers/station_coverage_analysis.gpkg|layername=network_service_areas_utm", "Service Area Jaringan Jalan OSM (2, 3, 5 km)", "ogr")
         euc_lyr = QgsVectorLayer("./layers/station_coverage_analysis.gpkg|layername=euclidean_buffers_utm", "Buffer Jarak Lurus Euclidean (2, 3, 5 km)", "ogr")
         roads_lyr = QgsVectorLayer("./layers/medan_main_roads_utm.gpkg|layername=medan_main_roads_utm", "Jaringan Jalan Utama Medan (OSM)", "ogr")
-        dist_lyr = QgsVectorLayer("../../public/data/medan_districts_osm.geojson", "Batas 21 Kecamatan Medan (Fallback OSM)", "ogr")
+        dist_lyr = QgsVectorLayer("./layers/medan_districts_osm.geojson", "Batas 21 Kecamatan Medan (Fallback OSM)", "ogr")
 
-        for lyr, label in ((mako_lyr, "mako"), (net_lyr, "network"), (euc_lyr, "euclidean"), (roads_lyr, "roads"), (dist_lyr, "districts")):
+        for lyr, label in ((mako_lyr, "mako"), (cand_lyr, "candidates"), (net_lyr, "network"), (euc_lyr, "euclidean"), (roads_lyr, "roads"), (dist_lyr, "districts")):
             if not lyr.isValid():
                 raise RuntimeError(f"Layer QGIS gagal dimuat: {label}")
 
         _style_mako(mako_lyr)
+        _style_candidate_upt(cand_lyr)
         _style_network_areas(net_lyr)
         _style_euclidean_buffers(euc_lyr)
         _style_main_roads(roads_lyr)
@@ -200,12 +227,13 @@ def build_project() -> None:
         net_lyr.saveNamedStyle(str(STYLES_DIR / "network_service_area.qml"))
         euc_lyr.saveNamedStyle(str(STYLES_DIR / "euclidean_buffers.qml"))
         mako_lyr.saveNamedStyle(str(STYLES_DIR / "mako_station.qml"))
+        cand_lyr.saveNamedStyle(str(STYLES_DIR / "candidate_upt_stations.qml"))
 
-        for lyr in (mako_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr):
+        for lyr in (mako_lyr, cand_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr):
             project.addMapLayer(lyr, False)
 
         root = project.layerTreeRoot()
-        for lyr in (mako_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr):
+        for lyr in (mako_lyr, cand_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr):
             root.addLayer(lyr)
 
         layout = QgsPrintLayout(project)
@@ -227,7 +255,7 @@ def build_project() -> None:
         map_item.attemptMove(QgsLayoutPoint(10.0, 31.0, QgsUnitTypes.LayoutMillimeters))
         map_item.attemptResize(QgsLayoutSize(183.0, 160.0, QgsUnitTypes.LayoutMillimeters))
         map_item.setCrs(utm_crs)
-        map_item.setLayers([mako_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr])
+        map_item.setLayers([mako_lyr, cand_lyr, euc_lyr, net_lyr, roads_lyr, dist_lyr])
         map_item.zoomToExtent(utm_extent)
         map_item.setBackgroundEnabled(True)
         map_item.setBackgroundColor(QColor("#FFFFFF"))
@@ -290,7 +318,7 @@ def build_project() -> None:
         _add_label(
             layout,
             "CATATAN METODE & KETERBATASAN DATA\n"
-            "1. Baru mencakup 1 pos terverifikasi (Mako 0.0). Lokasi pos UPT dari p2k.medan.go.id belum dapat diakses (HTTP 403) sehingga cakupan bersifat PROVISIONAL.\n"
+            "1. Baseline resmi/provisional hanya memakai Mako 0.0 (verified). Empat kandidat UPT approximate (UPT-01,02,05,06) berstatus needs_review dipisahkan; UPT-03 & 04 (district_only, geom=null) tidak diplot.\n"
             "2. Jaringan jalan dari Geofabrik Sumatra OSM PBF (2026-11-21) disaring untuk kelas jalan kendaraan & oneway.\n"
             "3. Estimasi menit memakai kecepatan skenario 35 km/jam, bukan waktu respons operasional aktual Damkarmat.\n"
             "4. CRS analisis: EPSG:32647 | Batas: OpenStreetMap Nominatim (ODbL, © OpenStreetMap contributors).",
@@ -298,7 +326,7 @@ def build_project() -> None:
             127.0,
             79.0,
             59.0,
-            6.5,
+            6.2,
         )
 
         _add_label(

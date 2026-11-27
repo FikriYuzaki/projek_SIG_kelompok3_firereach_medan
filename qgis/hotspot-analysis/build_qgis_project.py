@@ -53,7 +53,7 @@ from qgis.PyQt.QtGui import QColor, QFont, QPolygonF
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
-BOUNDARY_PATH = REPO_ROOT / "public" / "data" / "medan_districts_osm.geojson"
+BOUNDARY_PATH = SCRIPT_DIR / "layers" / "medan_districts_osm.geojson"
 MAKO_PATH = SCRIPT_DIR / "layers" / "mako_damkarmat_verified.geojson"
 KDE_QML_PATH = SCRIPT_DIR / "styles" / "hotspot_kde_4kelas.qml"
 QGZ_PATH = SCRIPT_DIR / "medan_hotspot_template.qgz"
@@ -271,12 +271,12 @@ def build_project() -> None:
 
         # Gunakan path relatif agar proyek dan Print Layout sepenuhnya portabel lintas komputer
         agg_layer = QgsVectorLayer(
-            "../../public/data/medan_districts_osm.geojson",
+            "./layers/medan_districts_osm.geojson",
             "Agregat Kebakaran 2023 per Kecamatan (Bukan KDE)",
             "ogr",
         )
         boundary_layer = QgsVectorLayer(
-            "../../public/data/medan_districts_osm.geojson",
+            "./layers/medan_districts_osm.geojson",
             "Batas 21 Kecamatan Medan (Fallback OSM)",
             "ogr",
         )
@@ -438,7 +438,7 @@ def build_project() -> None:
             layout,
             "CATATAN KEJUJURAN & METODOLOGI DATA\n"
             "1. Peta ini adalah peta agregat 2023 (219 kejadian, 21 kecamatan), BUKAN hasil KDE titik individual.\n"
-            "2. Titik kejadian kebakaran individual terverifikasi (exact_verified / address_geocoded_verified) belum dirilis, sehingga raster KDE belum dijalankan.\n"
+            "2. Output KDE resmi belum tersedia karena titik kejadian kebakaran individual terverifikasi (exact_verified / address_geocoded_verified) belum dirilis; peta konsentrasi historis bukan prediksi kebakaran.\n"
             "3. Parameter Template KDE siap pakai:\n"
             "   CRS: EPSG:32647 -> EPSG:4326 | Kernel: Quartic\n"
             "   Bandwidth: 1.000 m | Piksel: 100 m | Quantile 4 kelas\n"
@@ -450,7 +450,7 @@ def build_project() -> None:
             126.0,
             79.0,
             60.0,
-            font_size=6.8,
+            font_size=6.5,
             color_hex="#202A2D",
         )
 
