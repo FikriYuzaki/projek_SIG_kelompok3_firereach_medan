@@ -112,6 +112,9 @@ class TestPriorityPlannerCore(unittest.TestCase):
         res = validate_priority_output(payload)
         self.assertTrue(res["valid"], f"Provisional priority contract errors: {res['errors']}")
         self.assertEqual(len(payload["zones"]), 21)
+        self.assertEqual(payload["analysis"]["method_version"], "priority-v2.0-integrated")
+        self.assertEqual(len(payload.get("zones_multi_station") or []), 21)
+        self.assertTrue(any((z.get("kde_exploratory_coverage_pct") or 0) > 0 for z in payload["zones"]))
 
 
 if __name__ == "__main__":

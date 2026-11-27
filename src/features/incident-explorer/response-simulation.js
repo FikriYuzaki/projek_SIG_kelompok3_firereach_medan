@@ -791,24 +791,28 @@ export function mountFireResponseSimulation({ container, services, summary, dist
 
   async function ensureRoadGraphLoaded() {
     if (state.graph && state.adj) return true;
-    if (state.graphLoading) return false;
+    if (state.graphPromise) return state.graphPromise;
     state.graphLoading = true;
     state.graphError = null;
     setPhase("loading", "Memuat graf jaringan jalan OSM Kota Medan untuk perhitungan rute...");
-    try {
-      const graph = await services.dataStatus.fetchJson("medan_road_graph.json");
-      if (state.destroyed) return false;
-      state.graph = graph;
-      state.adj = buildAdjacencyList(graph);
-      state.graphLoading = false;
-      return true;
-    } catch (err) {
-      if (state.destroyed) return false;
-      state.graphLoading = false;
-      state.graphError = err?.message || "Gagal memuat graf jaringan jalan OSM.";
-      setPhase("error", `Gagal memuat graf jalan OSM: ${state.graphError}`);
-      return false;
-    }
+    state.graphPromise = (async () => {
+      try {
+        const graph = await services.dataStatus.fetchJson("medan_road_graph.json");
+        if (state.destroyed) return false;
+        state.graph = graph;
+        state.adj = buildAdjacencyList(graph);
+        return true;
+      } catch (err) {
+        if (state.destroyed) return false;
+        state.graphError = err?.message || "Gagal memuat graf jaringan jalan OSM.";
+        setPhase("error", `Gagal memuat graf jalan OSM: ${state.graphError}`);
+        return false;
+      } finally {
+        state.graphLoading = false;
+        state.graphPromise = null;
+      }
+    })();
+    return state.graphPromise;
   }
 
   async function selectFireTarget(lat, lon) {

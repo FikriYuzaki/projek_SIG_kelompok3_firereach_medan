@@ -69,21 +69,25 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
 
     const ac = new AbortController();
     const analysis = dataset.analysis || {};
-    const isDemo = dataset.isDemo === true;
     const baseWeights = analysis.weights || DEFAULT_PRIORITY_WEIGHTS;
+    const multiZones = Array.isArray(dataset.zonesMultiStation) && dataset.zonesMultiStation.length === 21
+      ? dataset.zonesMultiStation
+      : null;
 
     const state = {
       tier: "semua",
       search: "",
+      scenarioMode: "baseline",
       activeWeights: { ...baseWeights },
       isSimulation: false,
       activeZones: [...(dataset.zones || [])],
       selectedCode: dataset.zones?.[0]?.area_code || null
     };
 
-    const statusBadgeClass = isDemo ? "status-badge--demo" : "status-badge--dev";
-    const statusBadgeText = isDemo ? "[!] DATA DEMO" : "[!] PROVISIONAL (21 KECAMATAN)";
-    const noticeClass = isDemo ? "notice-banner notice-banner--demo" : "notice-banner notice-banner--warn";
+    const indAvail = analysis.indicator_availability || {};
+    const statusBadgeClass = "status-badge--active";
+    const statusBadgeText = `${dataset.dataLabel} (21 Kecamatan | ${escapeHtml(analysis.method_version || "priority-v2.0")})`;
+    const noticeClass = "notice-banner";
 
     container.innerHTML = `
       <div class="priority-workspace">
@@ -91,29 +95,18 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
           <div>
             <h1>${escapeHtml(manifest.title)}</h1>
             <p class="page-lead">
-              Indeks komposit tiga faktor untuk memprioritaskan peningkatan layanan pemadam kebakaran pada 21 kecamatan Kota Medan (<code class="mono">12.71.01</code> hingga <code class="mono">12.71.21</code>).
+              Indeks komposit terpadu (21 kecamatan <code class="mono">12.71.01</code> - <code class="mono">12.71.21</code>) yang mengintegrasikan beban kebakaran resmi 2023, overlap zona KDE eksploratif, gap layanan jaringan jalan 5 km, dan paparan penduduk BPS 2025.
             </p>
           </div>
           <div class="priority-header-badges">
-            <span class="status-badge status-badge--dev">[~] Dalam Pengembangan</span>
-            <span class="status-badge ${statusBadgeClass}" id="priority-status-badge" data-status-mode="${isDemo ? "demo" : "provisional"}">${escapeHtml(statusBadgeText)}</span>
-            <span class="status-badge status-badge--active" id="priority-sim-badge" hidden>[~] Simulasi What-If Aktif</span>
+            <span class="status-badge ${statusBadgeClass}" id="priority-status-badge" data-status-mode="provisional">${escapeHtml(statusBadgeText)}</span>
+            <span class="status-badge status-badge--dev" id="priority-sim-badge" hidden>Simulasi What-If Aktif</span>
           </div>
         </section>
 
         <div class="${noticeClass}" id="priority-notice-banner" role="region" aria-label="Status data prioritas layanan">
-          <strong>STATUS DATA (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
+          <strong>ANALISIS PRIORITAS TERINTEGRASI (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
         </div>
-
-        ${
-          dataset.provisionalLoadStatus === "rejected"
-            ? `<div class="notice-banner notice-banner--warn" id="priority-provisional-rejected" role="alert">
-                <strong>Output provisional ditolak:</strong> Berkas <code>/data/priority-planner.provisional.json</code> gagal memenuhi validasi kontrak (${escapeHtml(
-                  (dataset.provisionalValidationErrors || []).slice(0, 3).join("; ")
-                )}). Menampilkan fixture DEMO.
-              </div>`
-            : ""
-        }
 
         <section class="priority-metrics" aria-label="Ringkasan indikator prioritas wilayah">
           <div class="metric-box">
@@ -136,6 +129,13 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
 
         <section class="panel" aria-label="Filter dan simulasi bobot what-if">
           <div class="priority-filter-bar">
+            <div class="field">
+              <label for="priority-scenario-select">Basis Gap Jangkauan (5 km)</label>
+              <select id="priority-scenario-select" ${multiZones ? "" : "disabled"}>
+                <option value="baseline">Baseline Resmi (1 Pos: Mako 0.0)</option>
+                ${multiZones ? `<option value="multi_station">Skenario 5 Pos Berkoordinat OSM (Eksploratif)</option>` : ""}
+              </select>
+            </div>
             <div class="field">
               <label for="priority-tier-select">Filter Tier Prioritas</label>
               <select id="priority-tier-select">
@@ -222,6 +222,14 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
                 <dt>Normalisasi</dt><dd>${escapeHtml(analysis.normalization_method || "-")}</dd>
                 <dt>Periode Data</dt><dd>${escapeHtml(analysis.period_label || "-")}</dd>
                 <dt>Status Data</dt><dd>${escapeHtml(analysis.data_status || dataset.dataLabel)}</dd>
+                <dt>Ketersediaan Indikator</dt>
+                <dd style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                  <span class="status-badge ${indAvail.official_fire_2023 !== false ? "status-badge--active" : "status-badge--warn"}">Kebakaran 2023</span>
+                  <span class="status-badge ${indAvail.exploratory_kde_public ? "status-badge--dev" : "status-badge--soon"}">KDE Publik 22 Titik</span>
+                  <span class="status-badge ${indAvail.verified_station_coverage_5km ? "status-badge--active" : "status-badge--warn"}">Gap 5 km Mako</span>
+                  <span class="status-badge ${indAvail.multi_station_coverage_5km ? "status-badge--dev" : "status-badge--soon"}">Gap 5 km 5 Pos</span>
+                  <span class="status-badge ${indAvail.bps_population_2025 !== false ? "status-badge--active" : "status-badge--warn"}">BPS 2025</span>
+                </dd>
               </dl>
               <div style="font-size: var(--text-xs); color: var(--color-ink-muted);">
                 <strong>Batasan &amp; Catatan Sumber:</strong>
@@ -253,6 +261,7 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
       </div>
     `;
 
+    const scenarioSel = container.querySelector("#priority-scenario-select");
     const tierSel = container.querySelector("#priority-tier-select");
     const searchInput = container.querySelector("#priority-search-input");
     const resetFilterBtn = container.querySelector("#priority-filter-reset");
@@ -285,12 +294,15 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
         return;
       }
       const tierMeta = getTierMeta(zone.priority_tier);
+      const kdePct = typeof zone.kde_exploratory_coverage_pct === "number" ? zone.kde_exploratory_coverage_pct.toFixed(1) : "0.0";
+      const kdeRank = Number(zone.kde_exploratory_max_rank || 0);
       detailEl.innerHTML = `
         <dt>Kecamatan</dt><dd><strong>${escapeHtml(zone.area_name)}</strong> (${escapeHtml(zone.area_code)})</dd>
         <dt>Peringkat &amp; Tier</dt><dd>#${escapeHtml(zone.priority_rank ?? "-")} <span class="priority-tier-pill" style="--tier-color: ${tierMeta.fillColor};">${escapeHtml(zone.priority_tier)}</span></dd>
         <dt>Skor Komposit</dt><dd class="mono tabular">${zone.composite_score !== null ? Number(zone.composite_score).toFixed(3) : "Parsial"}</dd>
         <dt>Skor Beban Kebakaran (2023)</dt><dd class="mono tabular">${Number(zone.hotspot_score).toFixed(3)} (${services.format.number(zone.incidents_2023)} kejadian)</dd>
-        <dt>Skor Gap Jangkauan (5 km)</dt><dd class="mono tabular">${zone.coverage_gap_score !== null ? Number(zone.coverage_gap_score).toFixed(3) : "Tidak tersedia"}</dd>
+        <dt>Overlay KDE Eksploratif (22 Titik)</dt><dd class="mono tabular">${kdePct}% wilayah (${kdeRank > 0 ? `maks kelas ${kdeRank}/4` : "di luar poligon KDE"})</dd>
+        <dt>Skor Gap Jangkauan (5 km)</dt><dd class="mono tabular">${zone.coverage_gap_score !== null ? Number(zone.coverage_gap_score).toFixed(3) : "Tidak tersedia"} (${Number(zone.network_5km_coverage_pct ?? 0).toFixed(1)}% terjangkau)</dd>
         <dt>Skor Paparan Penduduk (2025)</dt><dd class="mono tabular">${Number(zone.population_exposure_score).toFixed(3)} (${services.format.number(zone.density_km2_2025)} /km²)</dd>
       `;
       reasonEl.innerHTML = `<strong>Alasan Prioritas:</strong> ${escapeHtml(zone.priority_reason)}`;
@@ -442,7 +454,8 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
                 <th>Tier Prioritas</th>
                 <th>Skor Komposit</th>
                 <th>Kebakaran 2023</th>
-                <th>Gap Jaringan</th>
+                <th>Overlay KDE Eksploratif</th>
+                <th>Gap Jaringan 5 km</th>
                 <th>Paparan Penduduk</th>
               </tr>
             </thead>
@@ -450,6 +463,9 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
               ${filteredZones
                 .map((z) => {
                   const meta = getTierMeta(z.priority_tier);
+                  const kdePctText = typeof z.kde_exploratory_coverage_pct === "number"
+                    ? `${z.kde_exploratory_coverage_pct.toFixed(1)}%`
+                    : "0.0%";
                   return `
                 <tr data-interactive="true" data-area-code="${escapeHtml(z.area_code)}" tabindex="0" class="${state.selectedCode === z.area_code ? "is-selected" : ""}">
                   <td class="mono tabular"><strong>#${escapeHtml(z.priority_rank ?? "-")}</strong></td>
@@ -458,6 +474,7 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
                   <td><span class="priority-tier-pill" style="--tier-color: ${meta.fillColor};">${escapeHtml(z.priority_tier)}</span></td>
                   <td class="mono tabular"><strong>${z.composite_score !== null ? Number(z.composite_score).toFixed(3) : "Parsial"}</strong></td>
                   <td class="mono tabular">${Number(z.hotspot_score).toFixed(3)} (${services.format.number(z.incidents_2023)})</td>
+                  <td class="mono tabular">${kdePctText}${Number(z.kde_exploratory_max_rank || 0) > 0 ? ` (K${z.kde_exploratory_max_rank})` : ""}</td>
                   <td class="mono tabular">${z.coverage_gap_score !== null ? Number(z.coverage_gap_score).toFixed(3) : "-"}</td>
                   <td class="mono tabular">${Number(z.population_exposure_score).toFixed(3)}</td>
                 </tr>
@@ -507,6 +524,10 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
       updateDetail(selected);
     }
 
+    function getBaseScenarioZones() {
+      return state.scenarioMode === "multi_station" && multiZones ? multiZones : dataset.zones || [];
+    }
+
     function applyWhatIfWeights() {
       const candidate = {
         hotspot_intensity: Number(wHotspotInput.value) / 100,
@@ -516,7 +537,7 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
       try {
         const valid = validateWeights(candidate);
         state.activeWeights = valid;
-        state.activeZones = recalculatePriorityScores(dataset.zones, valid);
+        state.activeZones = recalculatePriorityScores(getBaseScenarioZones(), valid);
         state.isSimulation =
           Math.abs(valid.hotspot_intensity - baseWeights.hotspot_intensity) > 1e-4 ||
           Math.abs(valid.coverage_gap - baseWeights.coverage_gap) > 1e-4 ||
@@ -537,7 +558,7 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
       wGapInput.value = String(Math.round(baseWeights.coverage_gap * 100));
       wPopInput.value = String(Math.round(baseWeights.population_exposure * 100));
       state.activeWeights = { ...baseWeights };
-      state.activeZones = [...(dataset.zones || [])];
+      state.activeZones = [...getBaseScenarioZones()];
       state.isSimulation = false;
       weightFeedbackEl.style.color = "var(--color-ink-muted)";
       weightFeedbackEl.textContent = "Bobot dikembalikan ke standar metode (40% / 35% / 25%).";
@@ -545,13 +566,25 @@ export async function renderPriorityPlanner({ container, services, manifest }) {
     }
 
     function resetFilters() {
+      state.scenarioMode = "baseline";
       state.tier = "semua";
       state.search = "";
+      if (scenarioSel) scenarioSel.value = "baseline";
       tierSel.value = "semua";
       searchInput.value = "";
+      state.activeZones = recalculatePriorityScores(getBaseScenarioZones(), state.activeWeights);
       syncView(true);
     }
 
+    if (scenarioSel) {
+      scenarioSel.addEventListener("change", () => {
+        state.scenarioMode = scenarioSel.value === "multi_station" && multiZones ? "multi_station" : "baseline";
+        state.activeZones = state.isSimulation
+          ? recalculatePriorityScores(getBaseScenarioZones(), state.activeWeights)
+          : [...getBaseScenarioZones()];
+        syncView(false);
+      }, { signal: ac.signal });
+    }
     tierSel.addEventListener("change", () => {
       state.tier = tierSel.value;
       syncView(false);

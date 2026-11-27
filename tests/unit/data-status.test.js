@@ -170,8 +170,14 @@ describe("data status Supabase snapshots with local fallback", () => {
       manifest: { payload: createCompleteManifestSnapshot(), dataset_status: "verified" },
       fire_incidents_summary: { payload: createCompleteSummarySnapshot(), dataset_status: "verified" },
       medan_districts_osm: { payload: { type: "FeatureCollection", features: [] }, dataset_status: "fallback_osm" },
-      station_coverage_provisional: { payload: { dataLabel: "PROVISIONAL" }, dataset_status: "provisional" },
-      priority_planner_provisional: { payload: { dataLabel: "PROVISIONAL" }, dataset_status: "provisional" }
+      station_coverage_provisional: {
+        payload: readPublicJson("station-coverage.provisional.json"),
+        dataset_status: "provisional"
+      },
+      priority_planner_provisional: {
+        payload: readPublicJson("priority-planner.provisional.json"),
+        dataset_status: "provisional"
+      }
     };
     const supabase = createSnapshotBackedSupabaseClient(snapshots);
     const fetchMock = vi.fn();
@@ -237,30 +243,29 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps all DEMO fixtures local and never queries the public snapshot table", async () => {
+  it("keeps non-snapshot exploratory/geo paths local and never queries the public snapshot table", async () => {
     const { service } = createSupabaseService({ data: null, error: null });
-    const demoPaths = [
-      "demo/incident-explorer-sample.demo.json",
-      "demo/hotspot-analyzer.demo.json",
-      "demo/station-coverage.demo.json",
-      "demo/priority-planner.demo.json"
+    const localOnlyPaths = [
+      "hotspot-analyzer.exploratory.geojson",
+      "public_incident_candidates.json",
+      "damkarmat_station_candidates.json"
     ];
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ isDemo: true, dataLabel: "DEMO" })
+      json: async () => ({ isDemo: false, dataLabel: "EKSPLORATIF" })
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const dataStatus = createDataStatusService("/data", service);
-    for (const demoPath of demoPaths) {
-      const result = await dataStatus.fetchJson(demoPath);
-      expect(result).toEqual({ isDemo: true, dataLabel: "DEMO" });
+    for (const relPath of localOnlyPaths) {
+      const result = await dataStatus.fetchJson(relPath);
+      expect(result).toEqual({ isDemo: false, dataLabel: "EKSPLORATIF" });
     }
 
     expect(service.client.from).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(demoPaths.length);
-    for (const demoPath of demoPaths) {
-      expect(fetchMock).toHaveBeenCalledWith(`/data/${demoPath}`, {
+    expect(fetchMock).toHaveBeenCalledTimes(localOnlyPaths.length);
+    for (const relPath of localOnlyPaths) {
+      expect(fetchMock).toHaveBeenCalledWith(`/data/${relPath}`, {
         headers: { Accept: "application/json" }
       });
     }
@@ -276,7 +281,7 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it("integrates all 4 modules with Supabase snapshots while keeping Hotspot Analyzer in honest pending/DEMO mode", async () => {
+  it("integrates all 4 modules with Supabase snapshots while keeping Hotspot Analyzer in honest exploratory mode", async () => {
     const snapshots = {
       manifest: { payload: readPublicJson("manifest.json"), dataset_status: "verified" },
       fire_incidents_summary: {
@@ -297,13 +302,13 @@ describe("data status Supabase snapshots with local fallback", () => {
       }
     };
     const supabase = createSnapshotBackedSupabaseClient(snapshots, []);
-    const hotspotDemo = readPublicJson("demo/hotspot-analyzer.demo.json");
+    const hotspotExploratory = readPublicJson("hotspot-analyzer.exploratory.geojson");
 
     const fetchMock = vi.fn(async (url) => {
-      if (url === "/data/demo/hotspot-analyzer.demo.json") {
-        return { ok: true, json: async () => hotspotDemo };
+      if (url === "/data/hotspot-analyzer.exploratory.geojson") {
+        return { ok: true, json: async () => hotspotExploratory };
       }
-      throw new Error(`Unexpected local fetch for non-DEMO asset: ${url}`);
+      throw new Error(`Unexpected local fetch: ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -317,13 +322,12 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(explorer.supabaseStatus.records).toEqual([]);
 
     const hotspot = await loadHotspotZones(services);
-    expect(hotspot.isDemo).toBe(true);
-    expect(hotspot.dataLabel).toBe("DEMO");
-    expect(hotspot.sourceMode).toBe("demo");
-    expect(hotspot.verifiedLoadStatus).toBe("unavailable");
+    expect(hotspot.isDemo).toBe(false);
+    expect(hotspot.sourceMode).toBe("exploratory");
     expect(hotspot.boundaryValid).toBe(true);
+    expect(hotspot.analysis.incident_count_used).toBe(22);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("/data/demo/hotspot-analyzer.demo.json", {
+    expect(fetchMock).toHaveBeenCalledWith("/data/hotspot-analyzer.exploratory.geojson", {
       headers: { Accept: "application/json" }
     });
 
@@ -426,15 +430,15 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(dataStatus.getLastError()).toBeNull();
   });
 
-  it("keeps DEMO fixtures strictly local without clearing a prior Supabase fallback error", async () => {
+  it("keeps local-only assets strictly local without clearing a prior Supabase fallback error", async () => {
     const localManifest = { city: "Kota Medan", source: "local-manifest" };
-    const demoPayload = { isDemo: true, dataLabel: "DEMO" };
+    const exploratoryPayload = { type: "FeatureCollection", features: [] };
     const fetchMock = vi.fn(async (url) => {
       if (url === "/data/manifest.json") {
         return { ok: true, json: async () => localManifest };
       }
-      if (url === "/data/demo/hotspot-analyzer.demo.json") {
-        return { ok: true, json: async () => demoPayload };
+      if (url === "/data/hotspot-analyzer.exploratory.geojson") {
+        return { ok: true, json: async () => exploratoryPayload };
       }
       throw new Error(`Unexpected URL: ${url}`);
     });
@@ -449,8 +453,8 @@ describe("data status Supabase snapshots with local fallback", () => {
     await dataStatus.getManifest();
     expect(dataStatus.getLastError()).toBe("snapshot query timed out");
 
-    const demoResult = await dataStatus.fetchJson("demo/hotspot-analyzer.demo.json");
-    expect(demoResult).toEqual(demoPayload);
+    const expResult = await dataStatus.fetchJson("hotspot-analyzer.exploratory.geojson");
+    expect(expResult).toEqual(exploratoryPayload);
     expect(service.client.from).toHaveBeenCalledTimes(1);
     expect(dataStatus.getLastError()).toBe("snapshot query timed out");
   });
@@ -549,14 +553,14 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(dashContainer.innerHTML).toContain("100% (target 100%)");
     expect(dashContainer.innerHTML).toContain("13.10 mnt (target 15.00 mnt)");
     expect(dashContainer.innerHTML).toContain("2.218");
-    expect(dashContainer.innerHTML).toContain("27 (17 titik ruas)");
+    expect(dashContainer.innerHTML).toContain("34 (22 titik ruas)");
     expect(dataStatus.getSnapshotStatus().mode).toBe("local_fallback_stale");
     expect(dataStatus.getSnapshotStatus().isStaleFallback).toBe(true);
     expect(Object.values(dataStatus.getSnapshotStatus().snapshotSources).every((v) => v === "local")).toBe(true);
 
     const aboutContainer = makeStubContainer();
     await renderAbout({ container: aboutContainer, services, navigate: vi.fn() });
-    expect(aboutContainer.innerHTML).toContain("Pengayaan Kandidat Independen (Belum Terverifikasi)");
+    expect(aboutContainer.innerHTML).toContain("Pengayaan Terdokumentasi Publik (Terpisah dari Rekap Resmi)");
     expect(aboutContainer.innerHTML).toContain("BPBD Rekapitulasi Bencana Tahun 2021");
 
     const explorer = await loadExplorerDatasets(services);
@@ -564,7 +568,7 @@ describe("data status Supabase snapshots with local fallback", () => {
     expect(explorer.summary.bpbd_comparison.monthly_2023).toHaveLength(12);
     expect(explorer.summary.damkarmat_spm).toHaveLength(2);
     expect(explorer.summary.non_fire_rescues.combined_total).toBe(2218);
-    expect(explorer.summary.independent_incident_candidates.records).toHaveLength(27);
+    expect(explorer.summary.independent_incident_candidates.records).toHaveLength(34);
     expect(explorer.summary.candidate_stations.stations).toHaveLength(6);
   });
 
@@ -662,7 +666,7 @@ describe("data status Supabase snapshots with local fallback", () => {
 
     const aboutContainer = makeStubContainer();
     await renderAbout({ container: aboutContainer, services, navigate: vi.fn() });
-    expect(aboutContainer.innerHTML).toContain("Pengayaan Kandidat Independen (Belum Terverifikasi)");
+    expect(aboutContainer.innerHTML).toContain("Pengayaan Terdokumentasi Publik (Terpisah dari Rekap Resmi)");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(dataStatus.getSnapshotStatus().mode).toBe("supabase");
   });

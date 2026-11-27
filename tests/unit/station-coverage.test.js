@@ -26,7 +26,6 @@ vi.mock("leaflet", () => ({
 
 import {
   PROVISIONAL_COVERAGE_URL,
-  RUNTIME_DEMO_FIXTURE_URL,
   computeScenarioMinutes,
   filterDistrictCoverage,
   formatCoverageDelta,
@@ -176,20 +175,15 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
     expect(loaded.verifiedStations).toHaveLength(1);
     expect(filterDistrictCoverage(loaded.districtCoverage, { coverageBand: "terjangkau" })).toHaveLength(1);
 
-    const demoFallback = await loadStationCoverageData({
-      dataStatus: {
-        fetchJson: vi.fn(async () => {
-          throw new Error("offline");
-        })
-      }
-    });
-    expect(demoFallback.isDemo).toBe(true);
-    expect(demoFallback.dataLabel).toBe("DEMO");
-    expect(demoFallback.fixturePath).not.toBe(PROVISIONAL_COVERAGE_URL);
-    expect(demoFallback.stations.some((s) => s.station_code === "DEMO-UPT-1" && s.isDemoStation)).toBe(true);
-    expect(demoFallback.candidateStations).toEqual([]);
-    expect(demoFallback.candidateCoverageScenario).toBeNull();
-    expect(RUNTIME_DEMO_FIXTURE_URL).toContain("station-coverage.demo.json");
+    await expect(
+      loadStationCoverageData({
+        dataStatus: {
+          fetchJson: vi.fn(async () => {
+            throw new Error("offline");
+          })
+        }
+      })
+    ).rejects.toThrow(/offline/);
   });
 
   it("memvalidasi 6 kandidat publik UPT dan menolak DEMO, verified palsu, koordinat luar Medan, serta district_only berkoordinat", () => {
@@ -343,6 +337,7 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
     const chartDestroy = vi.fn();
     const ids = [
       "#coverage-scenario-select",
+      "#coverage-station-select",
       "#coverage-threshold-select",
       "#coverage-band-select",
       "#coverage-search-input",
@@ -351,7 +346,9 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
       "#coverage-toggle-euclidean",
       "#coverage-toggle-districts",
       "#coverage-toggle-candidates",
+      "#coverage-toggle-partition",
       "#coverage-candidate-scenario-banner",
+      "#coverage-selected-station-note",
       "#coverage-kpi-net5",
       "#coverage-kpi-net5-sub",
       "#coverage-map-title",
@@ -382,6 +379,9 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
       ])
     );
 
+    const realCoverage = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "public/data/station-coverage.provisional.json"), "utf-8")
+    );
     const unmount = await renderStationCoverage({
       container: {
         innerHTML: "",
@@ -394,7 +394,13 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
         maps: { createMap: vi.fn(() => ({ map: {}, destroy: mapDestroy })), fitBounds: vi.fn() },
         charts: { createChart: vi.fn(() => ({ destroy: chartDestroy })) },
         dataStatus: {
-          fetchJson: vi.fn(async () => {
+          getManifest: vi.fn(async () => ({
+            ok: true,
+            manifest: { verified_outputs: { "station-coverage": { available: true } } }
+          })),
+          fetchJson: vi.fn(async (p) => {
+            if (p === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+            if (p === "station-coverage.provisional.json") return realCoverage;
             throw new Error("offline");
           })
         }
@@ -404,6 +410,6 @@ describe("station-coverage Phase 6: validasi Mako, penolakan DEMO-UPT, CRS, road
 
     await unmount();
     expect(mapDestroy).toHaveBeenCalledTimes(1);
-    expect(chartDestroy).toHaveBeenCalledTimes(0);
+    expect(chartDestroy).toHaveBeenCalledTimes(1);
   });
 });

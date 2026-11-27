@@ -16,7 +16,9 @@ import re
 from typing import Any, Iterable
 
 STRICT_KDE_ACCURACIES = ("exact_verified", "address_geocoded_verified")
+EXPLORATORY_KDE_ACCURACIES = ("exact_verified", "address_geocoded_verified", "approximate")
 ALLOWED_VERIFICATION_STATUS = "verified"
+EXPLORATORY_VERIFICATION_STATUSES = ("verified", "needs_review")
 
 DENSITY_TIERS = {
     1: {"rank": 1, "tier": "low", "label": "Rendah"},
@@ -359,19 +361,27 @@ def _extract_props_and_geom(raw_record: Any) -> tuple[dict[str, Any], Any]:
     return dict(raw_record), geom
 
 
-def validate_kde_input_features(features: Iterable[Any], boundary_geojson: Any) -> dict[str, Any]:
+def validate_kde_input_features(
+    features: Iterable[Any],
+    boundary_geojson: Any,
+    mode: str = "strict",
+) -> dict[str, Any]:
     """
     Memvalidasi seluruh record input sebelum KDE secara eksplisit tanpa mengubah data mentah.
 
-    Syarat wajib:
-    - boundary_geojson valid (jika tidak valid, melempar ValueError eksplisit).
-    - incident_id tidak kosong dan unik.
-    - incident_date tanggal kalender valid.
-    - verification_status == "verified".
-    - location_accuracy hanya "exact_verified" atau "address_geocoded_verified".
-    - isDemo bukan True dan dataLabel (dinormalisasi) bukan "DEMO".
-    - geometry merupakan GeoJSON Point valid dengan koordinat finite dalam batas Kota Medan.
+    Mode 'strict' (resmi):
+    - verification_status == "verified"
+    - location_accuracy hanya "exact_verified" atau "address_geocoded_verified"
+
+    Mode 'exploratory' (analisis publik terdokumentasi):
+    - mengizinkan status "verified" atau "needs_review" serta akurasi "approximate" (ruas/landmark OSM)
+    - tetap menolak "district_only", "unknown", geom null, DEMO, duplikat, dan koordinat luar Medan
     """
+    if mode not in ("strict", "exploratory"):
+        raise ValueError(f"Mode validasi KDE tidak dikenal: {mode}")
+    allowed_statuses = (ALLOWED_VERIFICATION_STATUS,) if mode == "strict" else EXPLORATORY_VERIFICATION_STATUSES
+    allowed_accuracies = STRICT_KDE_ACCURACIES if mode == "strict" else EXPLORATORY_KDE_ACCURACIES
+
     boundary_check = validate_boundary_geojson(boundary_geojson)
     if not boundary_check["valid"]:
         raise ValueError(
@@ -421,11 +431,11 @@ def validate_kde_input_features(features: Iterable[Any], boundary_geojson: Any) 
             _add_reason(reasons, "demo_data_label")
 
         verification_status = str(props.get("verification_status") or "").strip()
-        if verification_status != ALLOWED_VERIFICATION_STATUS:
+        if verification_status not in allowed_statuses:
             _add_reason(reasons, "invalid_verification_status")
 
         location_accuracy = str(props.get("location_accuracy") or "").strip()
-        if location_accuracy not in STRICT_KDE_ACCURACIES:
+        if location_accuracy not in allowed_accuracies:
             _add_reason(reasons, "disallowed_location_accuracy")
 
         lon, lat, geom_err = extract_geojson_point(geom)

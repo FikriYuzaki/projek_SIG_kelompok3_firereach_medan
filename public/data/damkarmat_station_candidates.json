@@ -82,7 +82,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Konteks historis pembentukan UPT Wilayah I pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); dokumen regulasi tidak membuktikan koordinat bangunan aktual.",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Bunga Melati No. 1 (Kemenangan Tani) adalah Kantor Camat Medan Tuntungan. Titik memakai landmark publik Pasar Induk Medan (node/4246973518) di Lau Cih sebagai perkiraan kawasan dan belum terverifikasi koordinat persil bangunan pos.",
-      "conflict_notes": "Konflik alamat antar sumber sekunder (Kemenangan Tani vs kawasan Pasar Induk Lau Cih); titik memakai landmark OSM Pasar Induk Medan (node/4246973518) sebagai perkiraan kawasan dan tetap berstatus needs_review."
+      "conflict_notes": "Konflik alamat antar sumber sekunder (Kemenangan Tani vs kawasan Pasar Induk Lau Cih); titik memakai landmark OSM Pasar Induk Medan (node/4246973518) sebagai perkiraan kawasan dan tetap berstatus needs_review.",
+      "station_id": "UPT-01",
+      "station_name": "Kandidat Pos UPT Wilayah I (Medan Tuntungan - Kawasan Pasar Induk Lau Cih)",
+      "official_address": "Kawasan Pasar Induk Lau Cih, Jl. Bunga Turi, Kel. Lau Cih, Kec. Medan Tuntungan",
+      "kecamatan": "Medan Tuntungan",
+      "kelurahan": null,
+      "latitude": 3.5134446,
+      "longitude": 98.6214724,
+      "coordinate_source": "node/4246973518",
+      "address_source": "Portal Resmi Pemko Medan (Diklat Damkarmat), Metro Rakyat (Kadis DPKP Wandro Malau, Mei 2026), & OSM (Pasar Induk Medan)",
+      "last_verified_at": "2026-11-27"
     },
     {
       "station_code": "UPT-02",
@@ -118,7 +128,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Konteks historis pembentukan UPT Wilayah II pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); bukti pengerahan armada tercatat pada ANTARA 574077 & 574749.",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Garu III No. 111 A (Harjosari I) adalah Kantor Camat Medan Amplas. Titik memakai landmark Terminal Terpadu Amplas OSM (node/2170570714) sesuai keterangan Kadis DPKP dan belum merupakan koordinat bangunan pos resmi.",
-      "conflict_notes": "Daftar_OPD_dan_Kecamatan.pdf membedakan Kantor Camat (Jl. Garu III No. 111 A) dari kawasan Terminal Terpadu Amplas; titik OSM node/2170570714 bersifat perkiraan kawasan dan berstatus needs_review."
+      "conflict_notes": "Daftar_OPD_dan_Kecamatan.pdf membedakan Kantor Camat (Jl. Garu III No. 111 A) dari kawasan Terminal Terpadu Amplas; titik OSM node/2170570714 bersifat perkiraan kawasan dan berstatus needs_review.",
+      "station_id": "UPT-02",
+      "station_name": "Kandidat Pos UPT Wilayah II (Medan Amplas - Kawasan Terminal Terpadu Amplas)",
+      "official_address": "Kawasan Terminal Terpadu Amplas / Jl. Pertahanan, Kel. Timbang Deli, Kec. Medan Amplas",
+      "kecamatan": "Medan Amplas",
+      "kelurahan": null,
+      "latitude": 3.5391556,
+      "longitude": 98.7182474,
+      "coordinate_source": "node/2170570714",
+      "address_source": "Portal Resmi Pemko Medan (HUT Damkar ke-102), ANTARA Sumut, Metro Rakyat, & OSM (Terminal Terpadu Amplas)",
+      "last_verified_at": "2026-11-27"
     },
     {
       "station_code": "UPT-03",
@@ -147,7 +167,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Konteks historis pembentukan UPT Wilayah III pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); Renstra DP2K 2021-2026 dan ANTARA 574077 membuktikan operasional pengerahan.",
       "limitation_note": "Jl. Pulau Natuna tidak ditemukan di OSM/jaringan jalan lokal dan fitur OSM PT. Kawasan Industri Medan (way/970764126) berada di luar poligon batas Kota Medan (Kab. Deli Serdang), sehingga geom dibiarkan null dan dikeluarkan dari simulasi titik.",
-      "conflict_notes": "Dikonfirmasi aktif dalam pengerahan armada ANTARA 574077 dan Renstra DP2K; ruas Jl. Pulau Natuna tidak ditemukan di OSM Kota Medan (NO_MATCH) sehingga geom dibiarkan null."
+      "conflict_notes": "Dikonfirmasi aktif dalam pengerahan armada ANTARA 574077 dan Renstra DP2K; ruas Jl. Pulau Natuna tidak ditemukan di OSM Kota Medan (NO_MATCH) sehingga geom dibiarkan null.",
+      "station_id": "UPT-03",
+      "station_name": "Kandidat Pos UPT Wilayah III (Medan Deli - Kawasan Industri Medan I Mabar)",
+      "official_address": "Kawasan Industri Medan (KIM) I Mabar / Jl. Pulau Natuna, Kec. Medan Deli",
+      "kecamatan": "Medan Deli",
+      "kelurahan": null,
+      "latitude": null,
+      "longitude": null,
+      "coordinate_source": "Belum tersedia (perlu verifikasi lapangan)",
+      "address_source": "Portal Resmi Pemko Medan, Renstra DP2K 2021-2026, ANTARA Sumut, & Metro Rakyat",
+      "last_verified_at": "2026-11-27"
     },
     {
       "station_code": "UPT-04",
@@ -176,7 +206,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Konteks historis pembentukan UPT Wilayah IV pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); Renstra DP2K 2021-2026 dan ANTARA 574077 membuktikan operasional pengerahan.",
       "limitation_note": "Alamat Jl. Cimanuk No. 03 Belawan II terkonfirmasi dokumen resmi Pemko Medan, namun ruas Jl. Cimanuk dan Kantor Camat Medan Belawan belum terpetakan di OSM/Nominatim, sehingga geom dibiarkan null tanpa tebakan koordinat.",
-      "conflict_notes": "Dikonfirmasi aktif dalam pengerahan armada ANTARA 574077 dan dokumen Pemko Medan, namun OSM Nominatim belum memiliki titik Jl. Cimanuk / pos Belawan terverifikasi sehingga geom dibiarkan null."
+      "conflict_notes": "Dikonfirmasi aktif dalam pengerahan armada ANTARA 574077 dan dokumen Pemko Medan, namun OSM Nominatim belum memiliki titik Jl. Cimanuk / pos Belawan terverifikasi sehingga geom dibiarkan null.",
+      "station_id": "UPT-04",
+      "station_name": "Kandidat Pos UPT Wilayah IV (Medan Belawan - Komplek Kantor Camat Belawan)",
+      "official_address": "Komplek Kantor Camat Medan Belawan, Jl. Cimanuk No. 03, Kel. Belawan II, Kec. Medan Belawan",
+      "kecamatan": "Medan Belawan",
+      "kelurahan": null,
+      "latitude": null,
+      "longitude": null,
+      "coordinate_source": "Belum tersedia (perlu verifikasi lapangan)",
+      "address_source": "Situs Resmi Kec. Medan Belawan, Daftar OPD & Kecamatan Pemko Medan, Renstra DP2K 2021-2026, & ANTARA Sumut",
+      "last_verified_at": "2026-11-27"
     },
     {
       "station_code": "UPT-05",
@@ -210,7 +250,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Diresmikan resmi oleh Wali Kota Medan pada 26 Januari 2024 (Portal Pemko Medan __read4146 & ANTARA 560100); bukan bagian dari Perwali 25/2018.",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Gaperta, Kec. Medan Helvetia. Koordinat masih berupa perkiraan titik tengah ruas Jl. Gaperta pada OSM (way/94829701), bukan koordinat bangunan pos hasil survei resmi.",
-      "conflict_notes": "Diresmikan 26 Januari 2024 di Jl. Gaperta dan aktif dikerahkan pada Juni 2024. Koordinat merupakan perkiraan ruas Jl. Gaperta dari OSM (way/94829701), bukan koordinat bangunan pos resmi."
+      "conflict_notes": "Diresmikan 26 Januari 2024 di Jl. Gaperta dan aktif dikerahkan pada Juni 2024. Koordinat merupakan perkiraan ruas Jl. Gaperta dari OSM (way/94829701), bukan koordinat bangunan pos resmi.",
+      "station_id": "UPT-05",
+      "station_name": "Kandidat Pos UPT Wilayah V (Medan Helvetia - Ruas Jl. Gaperta)",
+      "official_address": "Ruas Jalan Gaperta, Kec. Medan Helvetia (perkiraan ruas jalan; bangunan pos belum terverifikasi survei)",
+      "kecamatan": "Medan Helvetia",
+      "kelurahan": null,
+      "latitude": 3.60493,
+      "longitude": 98.636467,
+      "coordinate_source": "way/94829701",
+      "address_source": "Portal Resmi Pemko Medan (Peresmian UPT V & VI 26 Jan 2024), ANTARA Sumut, & OSM Nominatim",
+      "last_verified_at": "2026-11-27"
     },
     {
       "station_code": "UPT-06",
@@ -244,7 +294,17 @@
       "retrieved_at": "2026-11-27",
       "legal_basis_note": "Diresmikan resmi oleh Wali Kota Medan pada 26 Januari 2024 (Portal Pemko Medan __read4146 & ANTARA 560100); bukan bagian dari Perwali 25/2018.",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Letda Sujono, Kec. Medan Tembung. Koordinat masih berupa perkiraan titik tengah ruas Jl. Letda Sujono pada OSM (way/439190277), bukan koordinat bangunan pos hasil survei resmi.",
-      "conflict_notes": "Diresmikan 26 Januari 2024 di Jl. Letda Sujono dan aktif dalam pengerahan armada 2024. Koordinat merupakan perkiraan ruas Jl. Letda Sujono dari OSM (way/439190277), bukan koordinat bangunan pos resmi."
+      "conflict_notes": "Diresmikan 26 Januari 2024 di Jl. Letda Sujono dan aktif dalam pengerahan armada 2024. Koordinat merupakan perkiraan ruas Jl. Letda Sujono dari OSM (way/439190277), bukan koordinat bangunan pos resmi.",
+      "station_id": "UPT-06",
+      "station_name": "Kandidat Pos UPT Wilayah VI (Medan Tembung - Ruas Jl. Letda Sujono)",
+      "official_address": "Ruas Jalan Letda Sujono, Kec. Medan Tembung (perkiraan ruas jalan; bangunan pos belum terverifikasi survei)",
+      "kecamatan": "Medan Tembung",
+      "kelurahan": null,
+      "latitude": 3.597557,
+      "longitude": 98.719149,
+      "coordinate_source": "way/439190277",
+      "address_source": "Portal Resmi Pemko Medan (Peresmian UPT V & VI 26 Jan 2024), ANTARA Sumut, & OSM Nominatim",
+      "last_verified_at": "2026-11-27"
     }
   ]
 }

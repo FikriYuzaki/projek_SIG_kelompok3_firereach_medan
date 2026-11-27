@@ -18,6 +18,17 @@ function resolveDatasetLicense(ds) {
   return "Portal Satu Data Medan Open Data";
 }
 
+function renderBadgeDot(variant) {
+  const color = variant === "active" ? "currentColor" : "currentColor";
+  if (variant === "active" || variant === "[+]") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.4 6.4 11.6 12.8 4.8" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  if (variant === "warn" || variant === "[!]") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 14.2 13.4H1.8L8 2.2Zm0 4.3v3.2m0 1.8h.01" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4.5" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+
 export async function renderAbout({ container, services, navigate }) {
   const manifestResp = await services.dataStatus.getManifest();
   if (!manifestResp.ok) {
@@ -55,7 +66,7 @@ export async function renderAbout({ container, services, navigate }) {
       </div>
       <div class="header-status-group">
         <span class="status-badge ${services.supabase.isConfigured ? "status-badge--active" : "status-badge--local"}">
-          <span aria-hidden="true">${services.supabase.isConfigured ? "[+]" : "[o]"}</span>
+          ${renderBadgeDot(services.supabase.isConfigured ? "active" : "local")}
           <span>Koneksi: ${escapeHtml(services.supabase.statusLabel)}</span>
         </span>
         <span
@@ -63,7 +74,7 @@ export async function renderAbout({ container, services, navigate }) {
           id="about-data-source-badge"
           title="${escapeHtml(sourceMeta.title)}"
         >
-          <span aria-hidden="true" data-role="marker">${sourceMeta.marker}</span>
+          <span data-role="marker" aria-hidden="true">${renderBadgeDot(sourceMeta.marker)}</span>
           <span data-role="label">${escapeHtml(sourceMeta.label)}</span>
         </span>
       </div>
@@ -90,7 +101,7 @@ export async function renderAbout({ container, services, navigate }) {
                     <td>${escapeHtml(feat.title)}</td>
                     <td>
                       <span class="status-badge ${meta.badgeClass}">
-                        <span aria-hidden="true">${meta.marker}</span>
+                        ${renderBadgeDot(meta.marker)}
                         <span>${escapeHtml(meta.label)}</span>
                       </span>
                     </td>
@@ -117,7 +128,7 @@ export async function renderAbout({ container, services, navigate }) {
           <strong>Atribusi &amp; Lisensi Peta:</strong> Batas kecamatan dan jaringan jalan OpenStreetMap berada di bawah lisensi <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">ODbL 1.0</a> (<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">&copy; OpenStreetMap contributors</a>).
         </p>
         <p style="font-size: var(--text-sm); margin-bottom: 0;">
-          <strong>Prinsip integritas spasial:</strong> Data agregat kecamatan atau bulanan tidak pernah diubah menjadi titik koordinat palsu, tidak ada scraping atau penyimpanan koordinat Google Maps, dan fixture pengembangan selalu ditandai eksplisit sebagai <code class="mono">DEMO</code>.
+          <strong>Prinsip integritas spasial:</strong> Data agregat kecamatan atau bulanan tidak pernah diubah menjadi titik koordinat palsu, tidak ada scraping atau penyimpanan koordinat Google Maps, dan seluruh lapisan analitik memisahkan data resmi Damkarmat dari pengayaan terdokumentasi publik.
         </p>
       </section>
     </div>
@@ -157,7 +168,7 @@ export async function renderAbout({ container, services, navigate }) {
                 <td class="mono tabular">${services.format.number(ds.record_count)}</td>
                   <td>
                     <span class="status-badge ${ds.status === "verified" ? "status-badge--active" : "status-badge--dev"}">
-                      <span aria-hidden="true">${ds.status === "verified" ? "[+]" : "[~]"}</span>
+                      ${renderBadgeDot(ds.status === "verified" ? "active" : "dev")}
                       <span>${ds.status === "verified" ? "Terverifikasi" : "Fallback OSM"}</span>
                     </span>
                   </td>
@@ -175,8 +186,8 @@ export async function renderAbout({ container, services, navigate }) {
         ? `
       <section class="panel">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2);">
-          <h2>Pengayaan Kandidat Independen (Belum Terverifikasi)</h2>
-          <span class="status-badge status-badge--dev">[~] needs_review (Terpisah dari Statistik Resmi)</span>
+          <h2>Pengayaan Terdokumentasi Publik (Terpisah dari Rekap Resmi)</h2>
+          <span class="status-badge status-badge--dev">${renderBadgeDot("dev")}<span>needs_review (Katalog Publik)</span></span>
         </div>
         <p style="font-size: var(--text-sm); color: var(--color-ink-muted);">
           ${escapeHtml(manifest.independent_enrichment.scope_note)}
@@ -210,7 +221,7 @@ export async function renderAbout({ container, services, navigate }) {
                   <td>${escapeHtml(item.period)}</td>
                   <td class="mono tabular">${services.format.number(item.record_count)}</td>
                   <td><code class="mono">${escapeHtml(item.accuracy_summary)}</code></td>
-                  <td><span class="status-badge status-badge--dev">[~] ${escapeHtml(item.status)}</span></td>
+                  <td><span class="status-badge status-badge--dev">${renderBadgeDot("dev")}<span>${escapeHtml(item.status)}</span></span></td>
                 </tr>
               `
                 )
@@ -265,7 +276,7 @@ export async function renderAbout({ container, services, navigate }) {
             badgeEl.className = `status-badge ${nextMeta.badgeClass}`;
             badgeEl.title = nextMeta.title;
           }
-          if (markerEl) markerEl.textContent = nextMeta.marker;
+          if (markerEl) markerEl.innerHTML = renderBadgeDot(nextMeta.marker);
           if (labelEl) labelEl.textContent = nextMeta.label;
           if (noteEl) {
             const reasonText =

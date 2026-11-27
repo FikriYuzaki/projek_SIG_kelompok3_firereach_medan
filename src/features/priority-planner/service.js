@@ -11,7 +11,6 @@ export const DEFAULT_PRIORITY_WEIGHTS = Object.freeze({
 });
 
 export const PROVISIONAL_PRIORITY_URL = "/data/priority-planner.provisional.json";
-export const RUNTIME_DEMO_FIXTURE_URL = "/data/demo/priority-planner.demo.json";
 
 export const PRIORITY_TIER_CONFIG = Object.freeze({
   Rendah: Object.freeze({ rank: 1, label: "Rendah", fillColor: "#E9C46A", strokeColor: "#9E7E2E" }),
@@ -19,77 +18,6 @@ export const PRIORITY_TIER_CONFIG = Object.freeze({
   Tinggi: Object.freeze({ rank: 3, label: "Tinggi", fillColor: "#C8523B", strokeColor: "#852D1C" }),
   "Sangat Tinggi": Object.freeze({ rank: 4, label: "Sangat Tinggi", fillColor: "#7F1D1D", strokeColor: "#450A0A" })
 });
-
-const FALLBACK_DEMO_FIXTURE = {
-  isDemo: true,
-  dataLabel: "DEMO",
-  module: "priority-planner",
-  owner: "Olo",
-  notice:
-    "DATA DEMO UNTUK PENGEMBANGAN UI: skor hotspot dan coverage_gap adalah placeholder sebelum output analisis tersedia.",
-  analysis: {
-    title: "Demo Indeks Prioritas Wilayah Kecamatan (Fixture Kontrak)",
-    method_version: "demo-v0.1",
-    data_status: "demo_fixture",
-    period_label: "DEMO Baseline",
-    analysis_unit: "kecamatan",
-    weights: { hotspot_intensity: 0.4, coverage_gap: 0.35, population_exposure: 0.25 },
-    normalization_method: "Min-Max (DEMO)",
-    composite_formula: "0.40 * hotspot_score + 0.35 * coverage_gap_score + 0.25 * population_exposure_score",
-    sources: ["Fixture Kontrak Pengembangan UI (DEMO)"],
-    limitations: ["Hanya digunakan saat output analisis belum tersedia."]
-  },
-  zones: [
-    {
-      area_code: "12.71.08",
-      area_name: "Medan Belawan",
-      incidents_2023: 21,
-      population_2025: 110979,
-      density_km2_2025: 3336,
-      hotspot_score: 0.85,
-      coverage_gap_score: 0.78,
-      population_exposure_score: 0.42,
-      composite_score: 0.718,
-      priority_rank: 1,
-      priority_tier: "Sangat Tinggi",
-      priority_reason: "Contoh kontrak: kejadian tinggi dan jarak pos jauh (DEMO)",
-      isDemo: true,
-      dataLabel: "DEMO"
-    },
-    {
-      area_code: "12.71.04",
-      area_name: "Medan Denai",
-      incidents_2023: 14,
-      population_2025: 173256,
-      density_km2_2025: 18491,
-      hotspot_score: 0.72,
-      coverage_gap_score: 0.55,
-      population_exposure_score: 0.81,
-      composite_score: 0.683,
-      priority_rank: 2,
-      priority_tier: "Tinggi",
-      priority_reason: "Contoh kontrak: kepadatan penduduk tinggi dan beban kejadian menengah-tinggi (DEMO)",
-      isDemo: true,
-      dataLabel: "DEMO"
-    },
-    {
-      area_code: "12.71.15",
-      area_name: "Medan Maimun",
-      incidents_2023: 6,
-      population_2025: 49982,
-      density_km2_2025: 16550,
-      hotspot_score: 0.45,
-      coverage_gap_score: 0.2,
-      population_exposure_score: 0.52,
-      composite_score: 0.38,
-      priority_rank: 3,
-      priority_tier: "Rendah",
-      priority_reason: "Contoh kontrak: dekat dengan Mako 0.0 (DEMO)",
-      isDemo: true,
-      dataLabel: "DEMO"
-    }
-  ]
-};
 
 function isFiniteNumber(val) {
   return typeof val === "number" && Number.isFinite(val);
@@ -363,37 +291,15 @@ export function validatePriorityOutput(payload) {
   return { valid: errors.length === 0, errors };
 }
 
-function buildDemoDataset(payload, usedFallback) {
-  const rawZones = Array.isArray(payload?.zones) ? payload.zones : FALLBACK_DEMO_FIXTURE.zones;
-  const zones = rawZones.map((z, idx) => ({
-    incidents_2023: z.incidents_2023 ?? 0,
-    population_2025: z.population_2025 ?? 0,
-    density_km2_2025: z.density_km2_2025 ?? 0,
-    priority_rank: z.priority_rank ?? idx + 1,
-    ...z,
-    isDemo: true,
-    dataLabel: "DEMO"
-  }));
-  return {
-    isDemo: true,
-    dataLabel: "DEMO",
-    sourceMode: "demo",
-    usedFallback,
-    fixturePath: usedFallback ? "fallback:inline-demo-fixture" : RUNTIME_DEMO_FIXTURE_URL,
-    notice: String(payload?.notice || FALLBACK_DEMO_FIXTURE.notice),
-    analysis: {
-      ...FALLBACK_DEMO_FIXTURE.analysis,
-      ...(payload?.analysis || {})
-    },
-    zones
-  };
-}
-
 export async function loadPriorityPlannerData(services, options = {}) {
+  if (!services?.dataStatus?.fetchJson) {
+    throw new Error("Layanan data Fire Service Priority Planner tidak tersedia.");
+  }
+
   let districtsGeoJson = null;
   let shouldCheckProvisional = true;
 
-  if (services?.dataStatus?.getManifest && options.forceProvisionalFetch !== true) {
+  if (services.dataStatus.getManifest && options.forceProvisionalFetch !== true) {
     try {
       const resp = await services.dataStatus.getManifest();
       const meta = resp?.manifest?.verified_outputs?.["priority-planner"];
@@ -405,65 +311,36 @@ export async function loadPriorityPlannerData(services, options = {}) {
     }
   }
 
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
-    } catch {
-      districtsGeoJson = null;
-    }
+  if (!shouldCheckProvisional) {
+    throw new Error("Output prioritas layanan 21 kecamatan belum ditandai tersedia di manifest.");
   }
 
-  let provisionalLoadStatus = "unavailable";
-  let provisionalValidationErrors = [];
-
-  if (shouldCheckProvisional && services?.dataStatus?.fetchJson) {
-    try {
-      const provPayload = await services.dataStatus.fetchJson("priority-planner.provisional.json");
-      const check = validatePriorityOutput(provPayload);
-      if (check.valid) {
-        return {
-          isDemo: false,
-          dataLabel: String(provPayload.dataLabel),
-          sourceMode: "provisional",
-          provisionalLoadStatus: "loaded",
-          provisionalValidationErrors: [],
-          usedFallback: false,
-          fixturePath: PROVISIONAL_PRIORITY_URL,
-          notice: String(provPayload.notice),
-          analysis: provPayload.analysis,
-          zones: provPayload.zones,
-          districtsGeoJson
-        };
-      }
-      provisionalLoadStatus = "rejected";
-      provisionalValidationErrors = check.errors;
-    } catch {
-      provisionalLoadStatus = "unavailable";
-    }
+  try {
+    districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
+  } catch {
+    districtsGeoJson = null;
   }
 
-  let demoPayload = null;
-  let usedFallback = false;
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      demoPayload = await services.dataStatus.fetchJson("demo/priority-planner.demo.json");
-      if (!demoPayload || typeof demoPayload !== "object") {
-        demoPayload = FALLBACK_DEMO_FIXTURE;
-        usedFallback = true;
-      }
-    } catch {
-      demoPayload = FALLBACK_DEMO_FIXTURE;
-      usedFallback = true;
-    }
-  } else {
-    demoPayload = FALLBACK_DEMO_FIXTURE;
-    usedFallback = true;
+  const provPayload = await services.dataStatus.fetchJson("priority-planner.provisional.json");
+  const check = validatePriorityOutput(provPayload);
+  if (!check.valid) {
+    throw new Error(
+      `Berkas /data/priority-planner.provisional.json gagal validasi kontrak (${check.errors.slice(0, 3).join("; ")}).`
+    );
   }
 
   return {
-    ...buildDemoDataset(demoPayload, usedFallback),
-    provisionalLoadStatus,
-    provisionalValidationErrors,
+    isDemo: false,
+    dataLabel: String(provPayload.dataLabel),
+    sourceMode: "provisional",
+    provisionalLoadStatus: "loaded",
+    provisionalValidationErrors: [],
+    usedFallback: false,
+    fixturePath: PROVISIONAL_PRIORITY_URL,
+    notice: String(provPayload.notice),
+    analysis: provPayload.analysis,
+    zones: provPayload.zones,
+    zonesMultiStation: Array.isArray(provPayload.zones_multi_station) ? provPayload.zones_multi_station : null,
     districtsGeoJson
   };
 }

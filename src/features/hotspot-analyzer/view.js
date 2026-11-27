@@ -17,12 +17,12 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function getStatusBadgeClass(isDemo, dataLabel) {
+function getStatusBadgeClass(sourceMode, dataLabel) {
   const normalizedLabel = String(dataLabel ?? "").trim().toUpperCase();
-  if (isDemo || normalizedLabel === "DEMO") {
-    return "status-badge--demo";
+  if (sourceMode === "verified" || normalizedLabel === "TERVERIFIKASI") {
+    return "status-badge--active";
   }
-  return "status-badge--active";
+  return "status-badge--dev";
 }
 
 function formatQuantileSummary(classificationDetails) {
@@ -79,21 +79,23 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
     };
 
     const totalAreaKm2 = dataset.zones.reduce((sum, z) => sum + Number(z.area_km2 || 0), 0);
-    const datasetBadgeClass = getStatusBadgeClass(dataset.isDemo, dataset.dataLabel);
-    const statusMode = dataset.isDemo ? "demo" : "verified";
-    const statusBadgeText = dataset.isDemo
-      ? `[!] DATA ${dataset.dataLabel}`
-      : `[+] ${dataset.dataLabel}`;
-    const moduleBadgeText = dataset.isDemo
-      ? "[~] Dalam Pengembangan (Fixture DEMO)"
-      : "[+] Output KDE Terverifikasi";
-    const moduleBadgeClass = dataset.isDemo ? "status-badge--dev" : "status-badge--active";
-    const noticeBannerClass = dataset.isDemo
-      ? "notice-banner notice-banner--demo"
-      : "notice-banner";
+    const isVerified = dataset.sourceMode === "verified";
+    const datasetBadgeClass = getStatusBadgeClass(dataset.sourceMode, dataset.dataLabel);
+    const statusMode = isVerified ? "verified" : "exploratory";
+    const statusBadgeText = isVerified
+      ? `${dataset.dataLabel} (Data Resmi)`
+      : `EKSPLORATIF (${services.format.number(analysis.incident_count_used || 22)} Titik OSM)`;
+    const moduleBadgeText = isVerified
+      ? "Output KDE Terverifikasi"
+      : "Mode Eksploratif Aktif (Titik Resmi: 0)";
+    const moduleBadgeClass = isVerified ? "status-badge--active" : "status-badge--dev";
+    const noticeBannerClass = isVerified
+      ? "notice-banner"
+      : "notice-banner notice-banner--warn";
     const invalidCount = Array.isArray(dataset.invalidZones) ? dataset.invalidZones.length : 0;
     const rejectedOfficial = dataset.verifiedLoadStatus === "rejected";
     const quantileSummary = formatQuantileSummary(analysis.classification_details);
+    const excludedCount = Number(analysis.excluded_count || 0);
 
     container.innerHTML = `
       <div class="hotspot-workspace">
@@ -101,7 +103,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
           <div>
             <h1>${escapeHtml(manifest.title)}</h1>
             <p class="page-lead">
-              Analisis konsentrasi spasial historis kejadian kebakaran Kota Medan menggunakan metode <strong>Kernel Density Estimation (KDE)</strong>. Hasil ini merepresentasikan pola historis kejadian masa lalu, <strong>bukan prediksi</strong> kejadian di masa depan.
+              Analisis konsentrasi spasial historis kejadian kebakaran Kota Medan menggunakan metode <strong>Kernel Density Estimation (KDE)</strong> pada CRS <code class="mono">EPSG:32647</code>. Memisahkan secara tegas <strong>Analisis Resmi Damkarmat (0 titik individual)</strong> dari <strong>Analisis Eksploratif Publik</strong>.
             </p>
           </div>
           <div class="hotspot-header-badges">
@@ -111,15 +113,28 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         </section>
 
         <div class="${noticeBannerClass}" id="hotspot-data-notice" role="region" aria-label="Pemberitahuan status data KDE">
-          <strong>STATUS DATA (${escapeHtml(dataset.dataLabel)}):</strong> ${escapeHtml(dataset.notice)}
+          <strong>${isVerified ? "ANALISIS RESMI:" : "ANALISIS EKSPLORATIF PUBLIK (BUKAN DATA RESMI):"}</strong> ${escapeHtml(dataset.notice)}
+          ${
+            !isVerified && excludedCount > 0
+              ? ` Sebanyak <strong>${services.format.number(excludedCount)}</strong> catatan insiden bergranularitas kecamatan (<code class="mono">district_only</code>) dikeluarkan secara eksplisit dari perhitungan KDE agar tidak menghasilkan titik buatan.`
+              : ""
+          }
         </div>
+
+        ${
+          !isVerified
+            ? `<div class="notice-banner" role="note">
+                <strong>Analisis Utama (Data Resmi Damkarmat):</strong> Jumlah titik individual terverifikasi resmi saat ini <strong class="mono">0 titik</strong> (arsip resmi tersedia dalam format agregat 21 kecamatan/bulanan). Peta di bawah menampilkan KDE eksploratif dari ${services.format.number(analysis.incident_count_used || 22)} lokasi ruas OSM terdokumentasi publik.
+              </div>`
+            : ""
+        }
 
         ${
           rejectedOfficial
             ? `<div class="notice-banner notice-banner--warn" id="hotspot-verified-rejected-banner" data-verified-rejected="true" role="alert">
                 <strong>Output resmi ditolak:</strong> Berkas <code>/data/hotspot-analyzer.verified.geojson</code> gagal memenuhi validasi kontrak (${escapeHtml(
                   (dataset.verifiedValidationErrors || []).slice(0, 3).join("; ")
-                )}). Menampilkan fixture DEMO sebagai pengganti yang aman.
+                )}). Menampilkan layer eksploratif yang tervalidasi.
               </div>`
             : ""
         }
@@ -215,19 +230,20 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
               <h3 style="margin-bottom: var(--space-2);">Metadata &amp; Parameter KDE</h3>
               <dl class="detail-kv" id="hotspot-metadata-kv">
                 <dt>Judul Analisis</dt><dd>${escapeHtml(analysis.title || "-")}</dd>
-                <dt>Sumber Data</dt><dd>${escapeHtml(analysis.source || (dataset.isDemo ? "Fixture Kontrak DEMO" : "-"))}</dd>
+                <dt>Sumber Data</dt><dd>${escapeHtml(analysis.source || "-")}</dd>
                 <dt>Periode Data</dt><dd class="mono">${escapeHtml(analysis.period_label || "-")}</dd>
                 <dt>Metode &amp; Kernel</dt><dd class="mono">KDE (${escapeHtml(analysis.kernel_method || "Quartic")})</dd>
-                <dt>Bandwidth</dt><dd class="mono">${services.format.number(analysis.bandwidth_meters || 1000)} meter</dd>
+                <dt>Bandwidth</dt><dd class="mono">${services.format.number(analysis.bandwidth_meters || 1500)} meter</dd>
                 <dt>Resolusi Piksel</dt><dd class="mono">${services.format.number(analysis.pixel_size_meters || 100)} meter</dd>
                 <dt>CRS Pengolahan</dt><dd class="mono">${escapeHtml(analysis.working_crs || "EPSG:32647")} ke EPSG:4326</dd>
                 <dt>Metode Klasifikasi</dt><dd>${escapeHtml(analysis.classification_method || "Quantile (4 kelas)")}</dd>
                 ${quantileSummary ? `<dt>Ambang Quantile</dt><dd class="mono">${escapeHtml(quantileSummary)}</dd>` : ""}
                 <dt>Titik Digunakan</dt><dd class="mono">${services.format.number(analysis.incident_count_used || 0)} titik</dd>
+                ${excludedCount > 0 ? `<dt>Dikecualikan (district_only)</dt><dd class="mono">${services.format.number(excludedCount)} kejadian</dd>` : ""}
                 <dt>Batas Wilayah</dt><dd>${escapeHtml(boundaryProv.source)} (bukan batas resmi Pemko Medan)</dd>
               </dl>
               <div class="detail-qa-note">
-                <strong>Aturan Kualitas Data:</strong> Perhitungan KDE hanya mengizinkan titik terverifikasi dengan akurasi <code>exact_verified</code> atau <code>address_geocoded_verified</code> di dalam poligon Kota Medan. Data <code>approximate</code>, <code>district_only</code>, <code>unknown</code>, dan <code>DEMO</code> ditolak.
+                <strong>Aturan Kualitas Data:</strong> Analisis resmi hanya menerima titik terverifikasi Damkarmat (<code class="mono">exact_verified</code> / <code class="mono">address_geocoded_verified</code>). Pada mode eksploratif publik, hanya titik berkoordinat ruas OSM di dalam poligon Kota Medan yang diproses, sedangkan insiden <code class="mono">district_only</code> tetap dipisahkan.
               </div>
             </section>
           </aside>
@@ -293,7 +309,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
         detailEl.innerHTML = `<dt>Status</dt><dd>Tidak ada zona terpilih</dd>`;
         return;
       }
-      const badgeClass = getStatusBadgeClass(zone.isDemo, zone.dataLabel);
+      const badgeClass = getStatusBadgeClass(dataset.sourceMode, zone.dataLabel);
       detailEl.innerHTML = `
         <dt>ID Zona</dt><dd class="mono">${escapeHtml(zone.zone_id)}</dd>
         <dt>Kelas Kepadatan</dt><dd><span class="hotspot-tier-pill" style="--tier-color: ${zone.tierMeta.fillColor};">${escapeHtml(zone.tierMeta.label)}</span> (${escapeHtml(zone.density_class)})</dd>
@@ -450,7 +466,7 @@ export async function renderHotspotAnalyzer({ container, services, manifest }) {
             <tbody>
               ${filteredZones
                 .map((z) => {
-                  const rowBadgeClass = getStatusBadgeClass(z.isDemo, z.dataLabel);
+                  const rowBadgeClass = getStatusBadgeClass(dataset.sourceMode, z.dataLabel);
                   return `
                 <tr data-interactive="true" data-zone-id="${escapeHtml(z.zone_id)}" tabindex="0" class="${state.selectedZoneId === z.zone_id ? "is-selected" : ""}">
                   <td class="mono"><strong>${escapeHtml(z.zone_id)}</strong></td>

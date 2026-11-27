@@ -1,14 +1,15 @@
 {
+  "release_version": "2026-11-27-prod",
   "generated_at": "2026-11-27",
   "city": "Kota Medan",
   "crs_web": "EPSG:4326",
   "crs_metric": "EPSG:32647",
   "verified_outputs": {
     "hotspot-analyzer": {
-      "available": false,
-      "path": "/data/hotspot-analyzer.verified.geojson",
-      "status": "pending_verified_points",
-      "reason": "Dataset titik kebakaran individual terverifikasi (exact_verified / address_geocoded_verified) belum tersedia; UI menggunakan fixture DEMO."
+      "available": true,
+      "status": "exploratory_public",
+      "path": "/data/hotspot-analyzer.exploratory.geojson",
+      "note": "KDE eksploratif dari 22 insiden terdokumentasi publik berkoordinat jalan OSM (12 insiden kecamatan-saja dikecualikan)."
     },
     "station-coverage": {
       "available": true,
@@ -246,14 +247,14 @@
     "datasets": [
       {
         "id": "medan-fire-incident-candidates",
-        "title": "Kandidat Kejadian Kebakaran Kota Medan (Media Independen 2024 - 2026)",
-        "publisher": "ANTARA News Sumut & Detik Sumut (+ OSM Nominatim)",
-        "period": "Januari 2024 - Juli 2026",
-        "record_count": 27,
-        "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
+        "title": "Insiden Kebakaran Terdokumentasi Publik (Kota Medan 2024 - 2026)",
+        "publisher": "Portal Resmi Damkarmat Medan (p2k.medan.go.id), ANTARA Sumut, & Detik Sumut (+ OSM)",
+        "period": "Januari 2024 - November 2026",
+        "record_count": 34,
+        "accuracy_summary": "22 approximate (ruas/landmark OSM) + 12 district_only (geom=null)",
         "status": "needs_review",
         "path": "/data/public_incident_candidates.json",
-        "sha256": "e1a8b43addf3cea1ec3463d1361d113423ffc302b96246e69f4e75a5651befa8"
+        "sha256": "11ca600d7a95e01e873735d1708c705ac5f08683c24d91dd3a669351f18f701a"
       },
       {
         "id": "medan-damkarmat-upt-candidates",
@@ -264,7 +265,7 @@
         "accuracy_summary": "4 approximate (UPT-01, UPT-02, UPT-05, UPT-06) + 2 district_only (UPT-03, UPT-04, geom=null)",
         "status": "needs_review",
         "path": "/data/damkarmat_station_candidates.json",
-        "sha256": "2519d989c8ebfd5b0e96e3f07e124246f14b35c6b0e9e216770df3cd1f0b89c7"
+        "sha256": "36737ac979381180da2b305ecfa63562a51d6b3fd924da57e8892c274a072c35"
       }
     ]
   },

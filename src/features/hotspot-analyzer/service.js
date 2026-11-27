@@ -1,6 +1,4 @@
 // Service & aturan metodologi SIG untuk modul Fire Hotspot Analyzer (Adeptri)
-// Catatan fixture: public/data/demo/hotspot-analyzer.demo.json adalah salinan runtime identik
-// dari data/fixtures/demo/hotspot-analyzer.demo.json karena dataStatusService memuat dari base URL /data.
 
 export const STRICT_KDE_ACCURACIES = Object.freeze([
   "exact_verified",
@@ -17,7 +15,7 @@ export const MEDAN_BOUNDS = Object.freeze({
 
 export const BOUNDARY_DATA_URL = "/data/medan_districts_osm.geojson";
 export const VERIFIED_HOTSPOT_OUTPUT_URL = "/data/hotspot-analyzer.verified.geojson";
-export const RUNTIME_DEMO_FIXTURE_URL = "/data/demo/hotspot-analyzer.demo.json";
+export const EXPLORATORY_HOTSPOT_OUTPUT_URL = "/data/hotspot-analyzer.exploratory.geojson";
 
 export const BOUNDARY_PROVENANCE = Object.freeze({
   source: "OpenStreetMap Nominatim (Fallback Geoportal Medan)",
@@ -70,78 +68,6 @@ export const UNKNOWN_HOTSPOT_TIER = Object.freeze({
   hasConflict: false,
   validationNote: "Kelas kepadatan tidak dikenali."
 });
-
-const FALLBACK_DEMO_FIXTURE = {
-  isDemo: true,
-  dataLabel: "DEMO",
-  module: "hotspot-analyzer",
-  owner: "Adeptri",
-  notice:
-    "DATA DEMO UNTUK PENGEMBANGAN UI: bukan hasil KDE resmi. Menunggu input titik kebakaran terverifikasi (exact_verified / address_geocoded_verified).",
-  analysis: {
-    title: "Demo KDE Kebakaran Kota Medan (Fixture Kontrak)",
-    source: "Fixture Kontrak Pengembangan UI (DEMO)",
-    period_label: "DEMO 2024-2025",
-    kernel_method: "Quartic",
-    bandwidth_meters: 1000,
-    pixel_size_meters: 100,
-    working_crs: "EPSG:32647",
-    classification_method: "Quantile (4 kelas)",
-    incident_count_used: 0
-  },
-  zones: {
-    type: "FeatureCollection",
-    crs: { type: "name", properties: { name: "EPSG:4326" } },
-    features: [
-      {
-        type: "Feature",
-        properties: {
-          isDemo: true,
-          dataLabel: "DEMO",
-          zone_id: "demo-hotspot-1",
-          density_class: "Tinggi (DEMO)",
-          density_rank: 3,
-          area_km2: 2.4
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [98.665, 3.582],
-              [98.685, 3.582],
-              [98.685, 3.598],
-              [98.665, 3.598],
-              [98.665, 3.582]
-            ]
-          ]
-        }
-      },
-      {
-        type: "Feature",
-        properties: {
-          isDemo: true,
-          dataLabel: "DEMO",
-          zone_id: "demo-hotspot-2",
-          density_class: "Sedang (DEMO)",
-          density_rank: 2,
-          area_km2: 3.1
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [98.69, 3.555],
-              [98.712, 3.555],
-              [98.712, 3.573],
-              [98.69, 3.573],
-              [98.69, 3.555]
-            ]
-          ]
-        }
-      }
-    ]
-  }
-};
 
 function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -892,84 +818,47 @@ export function validateVerifiedHotspotOutput(payload) {
   };
 }
 
-function buildDemoZones(payload, usedFallback) {
-  const zonesGeoJson = payload?.zones || { type: "FeatureCollection", features: [] };
-  const allZones = (Array.isArray(zonesGeoJson.features) ? zonesGeoJson.features : []).map(
-    (feature, index) => {
-      const props = feature?.properties || {};
-      const tierMeta = getHotspotTierMeta(props.density_rank, props.density_class);
-      return {
-        zone_id: String(props.zone_id || `demo-zone-${index + 1}`),
-        density_class: String(props.density_class || `${tierMeta.label} (DEMO)`),
-        density_rank: tierMeta.rank ?? Number(props.density_rank || 0),
-        area_km2: Number(props.area_km2 || 0),
-        isDemo: true,
-        dataLabel: "DEMO",
-        tierMeta,
-        feature
-      };
-    }
-  );
-
-  const validZones = allZones.filter((z) => z.tierMeta.isValid);
-  const invalidZones = allZones.filter((z) => !z.tierMeta.isValid);
-  return {
-    isDemo: true,
-    dataLabel: "DEMO",
-    sourceMode: "demo",
-    usedFallback,
-    fixturePath: usedFallback ? "fallback:inline-demo-fixture" : RUNTIME_DEMO_FIXTURE_URL,
-    notice: String(payload?.notice || FALLBACK_DEMO_FIXTURE.notice),
-    analysis: {
-      source: "Fixture Kontrak Pengembangan UI (DEMO)",
-      ...(payload?.analysis || FALLBACK_DEMO_FIXTURE.analysis)
-    },
-    zones: validZones,
-    invalidZones,
-    zonesGeoJson: {
-      type: "FeatureCollection",
-      crs: zonesGeoJson.crs,
-      features: validZones.map((z) => z.feature)
-    }
-  };
-}
-
 export async function loadHotspotZones(services, options = {}) {
+  if (!services?.dataStatus?.fetchJson) {
+    throw new Error("Layanan data Fire Hotspot Analyzer tidak tersedia.");
+  }
+
   let districtsGeoJson = null;
   let boundaryValid = false;
   let boundaryError = null;
-  let shouldCheckVerified = true;
+  let shouldCheckVerified = options.forceVerifiedFetch === true;
 
-  if (services?.dataStatus?.getManifest && options.forceVerifiedFetch !== true) {
+  if (services.dataStatus.getManifest && options.forceVerifiedFetch !== true) {
     try {
       const manifestResp = await services.dataStatus.getManifest();
-      const verifiedMeta = manifestResp?.manifest?.verified_outputs?.["hotspot-analyzer"];
-      if (verifiedMeta && verifiedMeta.available === false) {
-        shouldCheckVerified = false;
+      const hotspotMeta = manifestResp?.manifest?.verified_outputs?.["hotspot-analyzer"];
+      const metaStatus = String(hotspotMeta?.status || "").toLowerCase();
+      if (!hotspotMeta || (hotspotMeta.available !== false && !metaStatus.startsWith("exploratory"))) {
+        shouldCheckVerified = true;
       }
     } catch {
       shouldCheckVerified = true;
     }
+  } else if (!services.dataStatus.getManifest && options.forceVerifiedFetch !== true) {
+    shouldCheckVerified = true;
   }
 
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
-      if (districtsGeoJson) {
-        const check = setMedanBoundaryGeoJson(districtsGeoJson);
-        boundaryValid = check.valid;
-      }
-    } catch (err) {
-      districtsGeoJson = null;
-      boundaryValid = false;
-      boundaryError = err?.message || "Berkas batas administrasi OSM gagal dimuat atau tidak valid.";
+  try {
+    districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
+    if (districtsGeoJson) {
+      const check = setMedanBoundaryGeoJson(districtsGeoJson);
+      boundaryValid = check.valid;
     }
+  } catch (err) {
+    districtsGeoJson = null;
+    boundaryValid = false;
+    boundaryError = err?.message || "Berkas batas administrasi OSM gagal dimuat atau tidak valid.";
   }
 
   let verifiedLoadStatus = "unavailable";
   let verifiedValidationErrors = [];
 
-  if (shouldCheckVerified && services?.dataStatus?.fetchJson) {
+  if (shouldCheckVerified) {
     try {
       const verifiedPayload = await services.dataStatus.fetchJson("hotspot-analyzer.verified.geojson");
       const validation = validateVerifiedHotspotOutput(verifiedPayload);
@@ -990,37 +879,37 @@ export async function loadHotspotZones(services, options = {}) {
       }
       verifiedLoadStatus = "rejected";
       verifiedValidationErrors = validation.errors;
-    } catch {
+    } catch (err) {
       verifiedLoadStatus = "unavailable";
+      verifiedValidationErrors = [err?.message || "Output KDE resmi belum tersedia."];
     }
   }
 
-  let demoPayload = null;
-  let usedFallback = false;
+  if (options.forceVerifiedFetch === true && verifiedLoadStatus === "rejected") {
+    throw new Error(
+      `Output KDE terverifikasi ditolak validasi: ${verifiedValidationErrors.slice(0, 3).join("; ")}`
+    );
+  }
 
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      demoPayload = await services.dataStatus.fetchJson("demo/hotspot-analyzer.demo.json");
-      if (!demoPayload || typeof demoPayload !== "object" || !Array.isArray(demoPayload?.zones?.features)) {
-        demoPayload = FALLBACK_DEMO_FIXTURE;
-        usedFallback = true;
-      }
-    } catch {
-      demoPayload = FALLBACK_DEMO_FIXTURE;
-      usedFallback = true;
-    }
-  } else {
-    demoPayload = FALLBACK_DEMO_FIXTURE;
-    usedFallback = true;
+  const exploratoryPayload = await services.dataStatus.fetchJson("hotspot-analyzer.exploratory.geojson");
+  const exploratoryCheck = validateVerifiedHotspotOutput(exploratoryPayload);
+  if (!exploratoryCheck.valid || !exploratoryCheck.normalized) {
+    throw new Error(
+      `Output KDE eksploratif tidak valid (${exploratoryCheck.errors.slice(0, 3).join("; ")}).`
+    );
   }
 
   return {
-    ...buildDemoZones(demoPayload, usedFallback),
+    ...exploratoryCheck.normalized,
+    sourceMode: "exploratory",
     verifiedLoadStatus,
     verifiedValidationErrors,
+    usedFallback: false,
+    fixturePath: EXPLORATORY_HOTSPOT_OUTPUT_URL,
     boundaryProvenance: BOUNDARY_PROVENANCE,
     boundaryValid,
     boundaryError,
+    invalidZones: [],
     districtsGeoJson
   };
 }

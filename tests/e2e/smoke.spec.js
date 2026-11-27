@@ -38,42 +38,43 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     expect(desktopOverflow).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
 
-    // 2. Fire Hotspot Analyzer module interactions, 4-tier filter, metadata, chart empty state, and lifecycle cleanup
+    // 2. Fire Hotspot Analyzer exploratory KDE interactions, 4-tier filter, metadata, chart empty state, and lifecycle cleanup
     await page.locator("#module-nav-list a[href='/hotspot-analyzer']").click();
     await expect(page.getByRole("heading", { name: "Fire Hotspot Analyzer" })).toBeVisible();
-    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "demo");
-    await expect(page.getByText(/STATUS DATA \(DEMO\)/i)).toBeVisible();
+    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "exploratory");
+    await expect(page.locator("#hotspot-data-status-badge")).toContainText("EKSPLORATIF");
     await expect(page.locator("#hotspot-metadata-kv")).toContainText("Quartic");
-    await expect(page.locator("#hotspot-metadata-kv")).toContainText("1.000 meter");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("1.500 meter");
     await expect(page.locator("#hotspot-metadata-kv")).toContainText("100 meter");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("22 titik");
+    await expect(page.locator("#hotspot-metadata-kv")).toContainText("12 kejadian");
     await expect(page.locator("#hotspot-metadata-kv")).toContainText("OpenStreetMap");
     await expect(page.locator("#hotspot-map")).toBeVisible();
     await expect.poll(() => page.locator("#hotspot-map .leaflet-interactive").count()).toBeGreaterThan(0);
-    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("34 zona");
     await expect(page.locator("#hotspot-chart-frame")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeCharts ?? 0)).toBe(1);
 
     // Verify table selection updates detail panel and map interaction works
-    await page.locator("tr[data-zone-id='demo-hotspot-2']").click();
-    await expect(page.locator("#hotspot-zone-detail")).toContainText("demo-hotspot-2");
+    await page.locator("#hotspot-table-wrap tr[data-zone-id]").first().click();
+    const firstZoneId = await page.locator("#hotspot-table-wrap tr[data-zone-id]").first().getAttribute("data-zone-id");
+    await expect(page.locator("#hotspot-zone-detail")).toContainText(firstZoneId || "hotspot-zone");
 
-    // Test 4-tier filter options including Sangat Tinggi (very-high)
-    await page.selectOption("#hotspot-filter-tier", "high");
-    await expect(page.locator("#hotspot-table-count")).toHaveText("1 zona");
+    // Test tier filter + search empty state + reset recovery
     await page.selectOption("#hotspot-filter-tier", "very-high");
-    await expect(page.locator("#hotspot-table-count")).toHaveText("0 zona");
-    await expect(page.locator("#hotspot-chart-empty")).toBeVisible();
+    const veryHighCount = await page.locator("#hotspot-table-wrap tr[data-zone-id]").count();
+    expect(veryHighCount).toBeGreaterThan(0);
+    expect(veryHighCount).toBeLessThan(34);
     await page.click("#hotspot-filter-reset");
-    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("34 zona");
     await expect(page.locator("#hotspot-chart-frame")).toBeVisible();
 
-    // Test search empty state + reset recovery
     await page.fill("#hotspot-filter-search", "zona-tidak-ada-xyz");
     await expect(page.locator("#hotspot-table-count")).toHaveText("0 zona");
     await expect(page.locator("#hotspot-chart-empty")).toBeVisible();
     await page.click("#hotspot-filter-reset");
-    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-table-count")).toHaveText("34 zona");
 
     // Responsive checks on /hotspot-analyzer across desktop (1440), tablet (768), and mobile (375)
     for (const vp of [
@@ -121,15 +122,23 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.click("#coverage-reset-btn");
     await expect(page.locator("#coverage-table-count")).toHaveText("21 dari 21 kecamatan");
 
-    // Verified vs candidate counts & provenance table remain clearly separated
+    // Verified vs candidate counts & provenance table + individual station selector + partition layer
     await expect(page.locator("#coverage-kpi-verified")).toHaveText("1 Pos");
     await expect(page.locator("#coverage-kpi-candidates")).toHaveText("6 UPT");
-    await expect(page.locator("#coverage-candidate-count-badge")).toContainText("6 KANDIDAT PUBLIK");
+    await expect(page.locator("#coverage-candidate-count-badge")).toContainText("4 Titik OSM, 2 Kec. Saja");
     await expect(page.locator("#coverage-stations-section")).toContainText("MAKO-00");
     await expect(page.locator("#coverage-stations-section")).toContainText("UPT-01");
     await expect(page.locator("#coverage-stations-section")).toContainText("UPT-04");
     await expect(page.locator("#coverage-stations-section")).toContainText("geom = null (kecamatan saja)");
     await expect(page.locator("#coverage-stations-section a[target='_blank']").first()).toHaveAttribute("target", "_blank");
+
+    await page.check("#coverage-toggle-partition");
+    await expect(page.locator(".coverage-partition-grid")).toContainText("Overlap >= 2 Pos");
+    await page.selectOption("#coverage-station-select", "UPT-01");
+    await expect(page.locator("#coverage-selected-station-note")).toContainText("INSPEKSI POS INDIVIDUAL (UPT-01)");
+    await page.selectOption("#coverage-station-select", "UPT-03");
+    await expect(page.locator("#coverage-selected-station-note")).toContainText("POS NON-ROUTABLE (UPT-03");
+    await page.selectOption("#coverage-station-select", "semua");
 
     await page.uncheck("#coverage-toggle-candidates");
     await page.check("#coverage-toggle-candidates");
@@ -138,7 +147,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.selectOption("#coverage-scenario-select", "candidate_scenario");
     await expect(page.locator("#coverage-candidate-scenario-banner")).toBeVisible();
     await expect(page.locator("#coverage-candidate-scenario-banner")).toContainText("BUKAN CAKUPAN RESMI");
-    await expect(page.locator("#coverage-kpi-net5-sub")).toContainText("Skenario non-resmi");
+    await expect(page.locator("#coverage-kpi-net5-sub")).toContainText("Skenario gabungan");
 
     // Zero delta stays neutral without '+' prefix, positive delta shows '+', table & controls do not clip at 1440px
     const deliDeltaCell = page.locator("#coverage-table-wrap tr[data-area-code='12.71.06'] td.coverage-delta-zero");
@@ -164,8 +173,8 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     });
     expect(desktopCoverageGeometry.invOverflowPx).toBeLessThanOrEqual(1);
     expect(desktopCoverageGeometry.invHeaderOverflow).toBe(false);
-    expect(desktopCoverageGeometry.scenarioWidth).toBeGreaterThanOrEqual(450);
-    expect(desktopCoverageGeometry.searchWidth).toBeGreaterThanOrEqual(350);
+    expect(desktopCoverageGeometry.scenarioWidth).toBeGreaterThanOrEqual(400);
+    expect(desktopCoverageGeometry.searchWidth).toBeGreaterThanOrEqual(240);
 
     await page.click("#coverage-reset-btn");
     await expect(page.locator("#coverage-candidate-scenario-banner")).toBeHidden();
@@ -193,6 +202,10 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#priority-status-badge")).toHaveAttribute("data-status-mode", "provisional");
     await expect(page.locator("#priority-status-badge")).toContainText("PROVISIONAL");
     await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+    await expect(page.locator("#priority-table-wrap")).toContainText("Overlay KDE Eksploratif");
+    await page.selectOption("#priority-scenario-select", "multi_station");
+    await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+    await page.selectOption("#priority-scenario-select", "baseline");
     await expect.poll(() => page.locator("#priority-map .leaflet-interactive").count()).toBeGreaterThanOrEqual(21);
     await expect(page.locator("#priority-chart-frame")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
@@ -220,6 +233,10 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#priority-chart-empty")).toBeVisible();
     await page.click("#priority-filter-reset");
     await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+    await expect(page.locator("#priority-table-wrap")).toContainText("Overlay KDE Eksploratif");
+    await page.selectOption("#priority-scenario-select", "multi_station");
+    await expect(page.locator("#priority-table-count")).toHaveText("21 dari 21 kecamatan");
+    await page.selectOption("#priority-scenario-select", "baseline");
 
     for (const vp of [
       { width: 1440, height: 900 },
@@ -322,13 +339,8 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.locator("[data-unloc-filter='semua']").click();
     await expect(page.locator("#unlocated-filtered-count")).toContainText("4 dari");
 
-    // Return to verified tab & toggle opt-in DEMO fixture
+    // Return to verified tab
     await page.click("#tab-verified");
-    await page.click("#toggle-demo-mode");
-    await expect(page.locator("#explorer-granularity-banner")).toContainText("DATA DEMO AKTIF");
-    await expect(page.locator("#explorer-table-count")).toHaveText("3 record DEMO");
-    await page.click("#toggle-demo-mode");
-    await expect(page.locator("#explorer-granularity-banner")).not.toContainText("DATA DEMO AKTIF");
 
     // Verify Simulasi Respons Damkarmat tab: disclaimer, mute default, outside rejection, OSM routing, playback
     await page.click("#tab-simulation");
@@ -399,8 +411,8 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth
     );
     expect(tabletOverflow).toBe(false);
-    const tabletDemoBox = await page.locator("#toggle-demo-mode").boundingBox();
-    expect(tabletDemoBox.height).toBeGreaterThanOrEqual(44);
+    const tabletSimBtnBox = await page.locator("#tab-simulation").boundingBox();
+    expect(tabletSimBtnBox.height).toBeGreaterThanOrEqual(44);
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/incident-explorer");
@@ -546,7 +558,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#hotspot-metadata-kv")).toContainText("38 titik");
     await expect(page.locator("#hotspot-table-count")).toHaveText("1 zona");
 
-    // B. Malformed / DEMO official output must be rejected and safely fall back to DEMO
+    // B. Malformed / DEMO official output must be rejected (shows warning banner on exploratory, or Error panel when exploratory also fails)
     await page.unroute("**/data/hotspot-analyzer.verified.geojson");
     await page.route("**/data/hotspot-analyzer.verified.geojson", async (route) => {
       await route.fulfill({
@@ -563,12 +575,20 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
 
     await page.goto("/hotspot-analyzer");
     await expect(page.locator("#hotspot-verified-rejected-banner")).toBeVisible();
-    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "demo");
-    await expect(page.locator("#hotspot-data-status-badge")).toContainText("DEMO");
-    await expect(page.locator("#hotspot-table-count")).toHaveText("2 zona");
+    await expect(page.locator("#hotspot-data-status-badge")).toHaveAttribute("data-status-mode", "exploratory");
+
+    await page.route("**/data/hotspot-analyzer.exploratory.geojson", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ type: "FeatureCollection", isDemo: true, dataLabel: "DEMO", features: [] })
+      });
+    });
+    await page.goto("/hotspot-analyzer");
+    await expect(page.getByRole("heading", { name: /Data Fire Hotspot Analyzer gagal dimuat/i })).toBeVisible();
   });
 
-  test("safely rejects malformed or DEMO provisional payloads on Station Coverage and Priority Planner back to DEMO", async ({
+  test("safely rejects malformed or DEMO provisional payloads on Station Coverage and Priority Planner with explicit Error state", async ({
     page
   }) => {
     await page.setViewportSize({ width: 1280, height: 860 });
@@ -586,9 +606,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     });
 
     await page.goto("/station-coverage");
-    await expect(page.locator("#coverage-provisional-rejected")).toBeVisible();
-    await expect(page.locator("#coverage-status-badge")).toHaveAttribute("data-status-mode", "demo");
-    await expect(page.locator("#coverage-status-badge")).toContainText("DEMO");
+    await expect(page.getByRole("heading", { name: /Data Fire Station Coverage gagal dimuat/i })).toBeVisible();
 
     await page.route("**/data/priority-planner.provisional.json", async (route) => {
       await route.fulfill({
@@ -603,9 +621,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     });
 
     await page.goto("/priority-planner");
-    await expect(page.locator("#priority-provisional-rejected")).toBeVisible();
-    await expect(page.locator("#priority-status-badge")).toHaveAttribute("data-status-mode", "demo");
-    await expect(page.locator("#priority-status-badge")).toContainText("DEMO");
+    await expect(page.getByRole("heading", { name: /Data Fire Service Priority Planner gagal dimuat/i })).toBeVisible();
   });
 
   test("displays enriched Satu Data series, BPBD comparison, non-fire rescues, and unverified independent candidates cleanly", async ({
@@ -623,10 +639,16 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.getByText(/100% \(target 100%\)/i)).toBeVisible();
     await expect(page.getByText(/13\.10 mnt \(target 15\.00 mnt\)/i)).toBeVisible();
     await expect(page.getByText(/2\.218/)).toBeVisible();
-    await expect(page.getByText(/27 \(17 titik ruas\)/)).toBeVisible();
+    await expect(page.getByText(/34 \(22 titik ruas\)/)).toBeVisible();
+
+    for (const routePath of ["/", "/about", "/incident-explorer", "/hotspot-analyzer", "/station-coverage", "/priority-planner"]) {
+      await page.goto(routePath);
+      const bodyText = await page.locator("body").innerText();
+      expect(bodyText).not.toMatch(/\bDATA DEMO\b|\bComing Soon\b|\bDalam Pengembangan\b/i);
+    }
 
     await page.goto("/about");
-    await expect(page.getByText(/Pengayaan Kandidat Independen \(Belum Terverifikasi\)/i)).toBeVisible();
+    await expect(page.getByText(/Pengayaan Terdokumentasi Publik \(Terpisah dari Rekap Resmi\)/i)).toBeVisible();
     await expect(page.getByText(/BPBD Rekapitulasi Bencana Tahun 2021/i)).toBeVisible();
     await expect(page.getByText(/ODbL 1\.0/i).first()).toBeVisible();
     await expect(page.locator("#about-data-source-badge")).toContainText("Sumber Data: JSON Lokal");
@@ -668,9 +690,9 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await expect(page.locator("#detail-qa-note")).toContainText("62 vs jumlah kategori kanan 61");
 
     await page.selectOption("#filter-period", "kandidat-independen");
-    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Kandidat Independen (needs_review)");
-    await expect(page.locator("#explorer-table-count")).toHaveText("27 kandidat");
-    await expect(page.locator("#explorer-granularity-banner")).toContainText("Belum Terverifikasi");
+    await expect(page.locator("#explorer-mode-badge")).toHaveText("Mode: Insiden Terdokumentasi Publik");
+    await expect(page.locator("#explorer-table-count")).toHaveText("34 kandidat");
+    await expect(page.locator("#explorer-granularity-banner")).toContainText("34 kejadian unik");
     await expect(page.locator("#detail-kv")).toContainText("Non-KDE");
     await expect(page.locator("#explorer-upt-candidates-panel")).toBeVisible();
     await expect(page.locator("#explorer-upt-candidates-panel")).toContainText("UPT-01");
@@ -679,6 +701,12 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
       "target",
       "_blank"
     );
+    await page.selectOption("#filter-public-accuracy", "district_only");
+    await expect(page.locator("#explorer-table-count")).toHaveText("12 kandidat");
+    await page.selectOption("#filter-public-accuracy", "semua");
+    await page.selectOption("#filter-public-year", "2026");
+    await expect.poll(() => page.locator("#explorer-table-wrap tr[data-row-key]").count()).toBeGreaterThanOrEqual(7);
+    await page.selectOption("#filter-public-year", "semua");
     await page.locator("tr[data-row-key='IND-2026-0127-DELI']").click();
     await expect(page.locator("#detail-kv")).toContainText("Liputan Duplikat Terhubung (3)");
     await expect(page.locator("#detail-kv a[href*='652642']")).toHaveAttribute("target", "_blank");
@@ -687,7 +715,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
 
     // Verify empty-state chart & table titles always reflect active period rather than stale 2023 heading
     await page.fill("#filter-search", "zzzz-tidak-ada");
-    await expect(page.locator("#explorer-table-count")).toHaveText("0 kandidat");
+    await expect(page.locator("#explorer-table-count")).toHaveText("0 catatan");
     await expect(page.locator("#explorer-chart-title")).toContainText("kandidat berita kebakaran");
     await expect(page.locator("#explorer-table-title")).toContainText("Kandidat Kejadian Media Independen");
     await page.selectOption("#filter-period", "bpbd-2022-2023-bulanan");

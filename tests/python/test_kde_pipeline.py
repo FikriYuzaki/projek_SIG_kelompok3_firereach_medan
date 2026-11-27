@@ -392,6 +392,15 @@ class TestStrictInputValidation(unittest.TestCase):
         demo_payload["dataLabel"] = " demo "
         self.assertFalse(validate_verified_hotspot_output(demo_payload)["valid"])
 
+    def test_tracked_exploratory_hotspot_output_is_valid_22_points(self):
+        exp_path = REPO_ROOT / "public" / "data" / "hotspot-analyzer.exploratory.geojson"
+        self.assertTrue(exp_path.exists(), "hotspot-analyzer.exploratory.geojson wajib tersedia")
+        payload = json.loads(exp_path.read_text(encoding="utf-8"))
+        self.assertTrue(validate_verified_hotspot_output(payload)["valid"])
+        self.assertEqual(payload["analysis"]["incident_count_used"], 22)
+        self.assertEqual(payload["analysis"]["excluded_count"], 12)
+        self.assertGreater(len(payload["features"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

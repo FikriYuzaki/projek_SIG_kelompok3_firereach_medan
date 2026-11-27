@@ -1,3 +1,13 @@
+function renderStateIcon(variant) {
+  if (variant === "error") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 14.5 13.5H1.5L8 1.5Zm0 4.2v3.8m0 1.8h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  if (variant === "loading") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="22 10"/></svg>`;
+  }
+  return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+}
+
 export function renderStatePanel({ variant = "empty", title, message, actionLabel = "", onAction = null }) {
   const box = document.createElement("section");
   box.className = "state-panel";
@@ -9,13 +19,14 @@ export function renderStatePanel({ variant = "empty", title, message, actionLabe
   const badge = document.createElement("span");
   badge.className = `status-badge ${
     variant === "error"
-      ? "status-badge--demo"
+      ? "status-badge--warn"
       : variant === "loading"
         ? "status-badge--dev"
         : "status-badge--soon"
   }`;
-  badge.textContent =
-    variant === "error" ? "[!] Gangguan Data" : variant === "loading" ? "[~] Memuat" : "[ ] Kosong";
+  const labelText =
+    variant === "error" ? "Gangguan Data" : variant === "loading" ? "Memuat" : "Kosong";
+  badge.innerHTML = `${renderStateIcon(variant)}<span>${labelText}</span>`;
 
   const heading = document.createElement("h2");
   heading.textContent = title;

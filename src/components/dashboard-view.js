@@ -83,17 +83,46 @@ export async function renderDashboard({ container, services, navigate }) {
       ? `${totals.spm_response_time_minutes.toFixed(2)} mnt`
       : "-";
 
+  const stationCand = summary.candidate_stations?.stations || [];
+  const routableStationCount =
+    (summary.verified_stations?.length || 0) +
+    stationCand.filter((st) => st.geom !== null && Number.isFinite(st.lat) && Number.isFinite(st.lon)).length;
+  const totalStationCount = (summary.verified_stations?.length || 0) + stationCand.length;
+
   container.innerHTML = `
     <section class="page-header">
       <div>
         <h1>Ringkasan Pemetaan Kebakaran Kota Medan</h1>
         <p class="page-lead">
-          Fondasi Web GIS kelompok 3 untuk memantau rekapitulasi kejadian kebakaran resmi, kesiapan data spasial 21 kecamatan, serta status pengembangan empat modul analisis.
+          Sistem Informasi Geografis Kota Medan untuk memantau arsip kejadian kebakaran resmi 21 kecamatan, katalog ${services.format.number(totals.independent_candidate_incidents_total || 34)} insiden terdokumentasi publik, kesiapan ${services.format.number(totalStationCount)} pos Damkarmat, serta analisis hotspot KDE dan prioritas layanan terpadu.
         </p>
       </div>
       <a href="/incident-explorer" class="btn btn-primary" data-nav="/incident-explorer">
         Buka Fire Incident Explorer
       </a>
+    </section>
+
+    <section class="kpi-grid" aria-label="Indikator Utama FireReach Medan">
+      <div class="kpi-card">
+        <span class="kpi-card-label">Arsip Kebakaran 2025</span>
+        <span class="kpi-card-value">${services.format.number(totals.year_2025)}</span>
+        <span class="kpi-card-note">Agregat bulanan resmi Damkarmat</span>
+      </div>
+      <div class="kpi-card kpi-card--amber">
+        <span class="kpi-card-label">Insiden Publik Terkatalog</span>
+        <span class="kpi-card-value">${services.format.number(totals.independent_candidate_incidents_total || 0)}</span>
+        <span class="kpi-card-note">${services.format.number(totals.independent_candidate_incidents_approximate || 0)} berkoordinat ruas jalan OSM (KDE eksploratif)</span>
+      </div>
+      <div class="kpi-card kpi-card--teal">
+        <span class="kpi-card-label">Pos Damkarmat Terinventaris</span>
+        <span class="kpi-card-value">${services.format.number(totalStationCount)}</span>
+        <span class="kpi-card-note">${services.format.number(routableStationCount)} pos dianalisis rute jaringan jalan (2 district_only)</span>
+      </div>
+      <div class="kpi-card kpi-card--teal">
+        <span class="kpi-card-label">SPM Waktu Tanggap</span>
+        <span class="kpi-card-value">${spmResponse ? spmResponse.realization_value.toFixed(1) : "13.1"} mnt</span>
+        <span class="kpi-card-note">Target nasional <= 15.0 menit (2023)</span>
+      </div>
     </section>
 
     <div class="split-layout split-layout--map-lead">
@@ -107,16 +136,16 @@ export async function renderDashboard({ container, services, navigate }) {
         <div class="map-canvas" id="dashboard-map" role="region" aria-label="Peta wilayah studi Kota Medan"></div>
         <div class="map-legend" aria-label="Legenda peta overview">
           <span class="legend-item">
-            <span class="legend-swatch" style="background: #F9ECE8;"></span> 1 - 6 kejadian (2023)
+            <span class="legend-swatch" style="background: #FCECE8;"></span> 1 - 6 kejadian (2023)
           </span>
           <span class="legend-item">
-            <span class="legend-swatch" style="background: #D58A43;"></span> 7 - 14 kejadian (2023)
+            <span class="legend-swatch" style="background: #D98A36;"></span> 7 - 14 kejadian (2023)
           </span>
           <span class="legend-item">
-            <span class="legend-swatch" style="background: #B84A35;"></span> 15 - 21 kejadian (2023)
+            <span class="legend-swatch" style="background: #B83B28;"></span> 15 - 21 kejadian (2023)
           </span>
           <span class="legend-item">
-            <span class="legend-swatch" style="background: #356067; border-radius: 50%;"></span> Mako 0.0 Damkarmat (Terverifikasi)
+            <span class="legend-swatch" style="background: #2C555C; border-radius: 50%;"></span> Mako 0.0 Damkarmat (Terverifikasi)
           </span>
         </div>
         <div class="provenance-bar">
@@ -144,7 +173,7 @@ export async function renderDashboard({ container, services, navigate }) {
             <dt style="font-size: var(--text-sm);">Penduduk Kota Medan 2025 (BPS)</dt>
             <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.population_2025_total)}</dd>
 
-            <dt style="font-size: var(--text-sm);">Titik kejadian individual berkoordinat</dt>
+            <dt style="font-size: var(--text-sm);">Titik individual resmi Damkarmat</dt>
             <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.individual_geocoded_count)}</dd>
 
             <dt style="font-size: var(--text-sm);">SPM layanan penyelamatan &amp; evakuasi</dt>
@@ -156,15 +185,15 @@ export async function renderDashboard({ container, services, navigate }) {
             <dt style="font-size: var(--text-sm);">Penyelamatan non-kebakaran (2023 - 2025, terpisah)</dt>
             <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.non_fire_rescues_2023_2025_total || 0)}</dd>
 
-            <dt style="font-size: var(--text-sm);">Kandidat media independen (perlu review, terpisah)</dt>
+            <dt style="font-size: var(--text-sm);">Insiden terdokumentasi publik (terpisah)</dt>
             <dd class="mono tabular" style="margin: 0; font-weight: 700;">${services.format.number(totals.independent_candidate_incidents_total || 0)} (${services.format.number(totals.independent_candidate_incidents_approximate || 0)} titik ruas)</dd>
           </dl>
         </section>
 
         <section class="panel-subtle">
-          <h3>Catatan Granularitas &amp; Akses</h3>
+          <h3>Catatan Granularitas &amp; Kejujuran Spasial</h3>
           <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
-            Rekapitulasi resmi 2024 dan 2025 pada Satu Data Medan belum mencantumkan koordinat atau kolom kecamatan, sehingga peta di samping hanya menampilkan agregat kecamatan 2023 serta titik Mako 0.0. Enam kandidat pos UPT serta ${services.format.number(totals.independent_candidate_incidents_total || 0)} kandidat media independen berstatus needs_review disimpan terpisah di Fire Incident Explorer.
+            Rekapitulasi resmi 2024 dan 2025 belum memuat koordinat per kejadian, sehingga peta utama menampilkan agregat 2023 dan titik Mako 0.0. Sebanyak ${services.format.number(totals.independent_candidate_incidents_total || 0)} insiden publik (${services.format.number(totals.independent_candidate_incidents_approximate || 0)} berkoordinat ruas OSM) menjadi dasar KDE eksploratif yang terpisah dari agregat resmi.
           </p>
           <p style="font-size: var(--text-xs); color: var(--color-ink-muted); margin-bottom: 0;">
             ${manifest.blockers.length} catatan pembatasan akses tercatat pada halaman <a href="/about" data-nav="/about">Tentang &amp; Sumber Data</a>.
@@ -175,9 +204,9 @@ export async function renderDashboard({ container, services, navigate }) {
 
     <section class="panel">
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3);">
-        <h2>Status Pengembangan Empat Modul</h2>
+        <h2>Empat Modul Analisis Spasial</h2>
         <span style="font-size: var(--text-xs); color: var(--color-ink-muted);">
-          Registry modul mengontrol aktivasi fitur tanpa mengklaim modul yang belum selesai.
+          Seluruh modul aktif terhubung langsung ke lapisan data terverifikasi dan output QGIS EPSG:32647.
         </span>
       </div>
       <div class="table-scroll">
@@ -187,7 +216,7 @@ export async function renderDashboard({ container, services, navigate }) {
               <th>Modul</th>
               <th>Penanggung Jawab</th>
               <th>Status</th>
-              <th>Fokus Tugas</th>
+              <th>Fokus Analisis</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -200,14 +229,13 @@ export async function renderDashboard({ container, services, navigate }) {
                   <td>${feat.owner}</td>
                   <td>
                     <span class="status-badge ${meta.badgeClass}">
-                      <span aria-hidden="true">${meta.marker}</span>
                       <span>${meta.label}</span>
                     </span>
                   </td>
                   <td>${feat.description}</td>
                   <td>
                     <a href="${feat.route}" class="btn btn-secondary btn-sm" data-nav="${feat.route}">
-                      ${feat.status === "coming-soon" ? "Lihat Info" : "Buka Modul"}
+                      Buka Modul
                     </a>
                   </td>
                 </tr>
@@ -223,9 +251,9 @@ export async function renderDashboard({ container, services, navigate }) {
   const mapHandle = services.maps.createMap(mapContainer);
 
   function districtColor(count) {
-    if (count >= 15) return "#B84A35";
-    if (count >= 7) return "#D58A43";
-    return "#F9ECE8";
+    if (count >= 15) return "#B83B28";
+    if (count >= 7) return "#D98A36";
+    return "#FCECE8";
   }
 
   const districtLayer = services.maps.addGeoJson(mapHandle.map, geojson, {

@@ -15,7 +15,7 @@ Deployment to Vercel has **not been executed** during foundation setup because r
 
 Configure these variables in the Vercel project dashboard before deploying:
 
-| Variable | Required for Local-Only Demo? | Required for Supabase Mode? | Notes |
+| Variable | Required for Local-Only Mode? | Required for Supabase Mode? | Notes |
 |---|---|---|---|
 | `VITE_SUPABASE_URL` | No (leave blank) | Yes | Public project URL (`https://<ref>.supabase.co`) |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | No (leave blank) | Yes | Public publishable key (`sb_publishable_...`). Never use `service_role` or secret keys. |
@@ -23,4 +23,4 @@ Configure these variables in the Vercel project dashboard before deploying:
 Rules:
 - Never commit `.env` or `.env.local` files (protected by `.gitignore`).
 - Never place `SUPABASE_SERVICE_ROLE_KEY`, database passwords, or management tokens in `VITE_*` variables or frontend code.
-- Without Supabase environment variables, the deployed static Vite bundle still runs safely in `Mode Lokal` using verified static datasets under `public/data/`.
+- Without Supabase environment variables (or when Supabase snapshots are from an older schema version before `2026-11-27-prod`), the deployed static Vite bundle automatically serves validated datasets under `public/data/`.

@@ -57,6 +57,7 @@ def _execute_priority_pipeline(
     pop_csv_path: Path,
     boundary_path: Path,
     coverage_json_path: Path,
+    hotspot_json_path: Path,
     out_json_path: Path,
     out_gpkg_path: Path,
 ) -> dict[str, Any]:
@@ -78,10 +79,14 @@ def _execute_priority_pipeline(
     pop_rows = _read_population_csv(pop_csv_path)
 
     coverage_rows = None
+    coverage_5pos_rows = None
     if coverage_json_path.exists():
         cov_payload = json.loads(coverage_json_path.read_text(encoding="utf-8"))
         if cov_payload.get("isDemo") is False:
             coverage_rows = cov_payload.get("district_coverage")
+            cand_scen = cov_payload.get("candidate_coverage_scenario") or {}
+            if isinstance(cand_scen.get("district_coverage"), list):
+                coverage_5pos_rows = cand_scen.get("district_coverage")
 
     join_res = validate_and_join_districts(
         fire_districts=summary_data.get("district_2023") or [],
@@ -96,8 +101,79 @@ def _execute_priority_pipeline(
         data_label="PROVISIONAL",
     )
 
+    multi_station_zones = None
+    if coverage_5pos_rows:
+        join_5pos = validate_and_join_districts(
+            fire_districts=summary_data.get("district_2023") or [],
+            pop_rows=pop_rows,
+            boundary_geojson=boundary_geojson,
+            coverage_rows=coverage_5pos_rows,
+        )
+        score_5pos = compute_priority_scores(
+            joined_rows=join_5pos["rows"],
+            weights=DEFAULT_WEIGHTS,
+            coverage_available=join_5pos["coverage_available"],
+            data_label="PROVISIONAL",
+        )
+        multi_station_zones = score_5pos["zones"]
+
+    # Integrasi diagnostik KDE eksploratif (hotspot-analyzer.exploratory.geojson) dalam EPSG:32647
+    utm_crs = QgsCoordinateReferenceSystem("EPSG:32647")
+    kde_diag_by_code: dict[str, dict[str, Any]] = {}
+    if hotspot_json_path.exists():
+        hs_lyr_wgs = QgsVectorLayer(str(hotspot_json_path), "hotspot_exp", "ogr")
+        if hs_lyr_wgs.isValid():
+            hs_utm = processing.run(
+                "native:reprojectlayer",
+                {"INPUT": hs_lyr_wgs, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
+            )["OUTPUT"]
+            dist_wgs_tmp = QgsVectorLayer(str(boundary_path), "dist_tmp", "ogr")
+            dist_utm_tmp = processing.run(
+                "native:fixgeometries",
+                {
+                    "INPUT": processing.run(
+                        "native:reprojectlayer",
+                        {"INPUT": dist_wgs_tmp, "TARGET_CRS": utm_crs, "OUTPUT": "memory:"},
+                    )["OUTPUT"],
+                    "OUTPUT": "memory:",
+                },
+            )["OUTPUT"]
+            hs_geoms = [(int(f["density_rank"] or 0), f.geometry()) for f in hs_utm.getFeatures() if f.geometry()]
+            for df in dist_utm_tmp.getFeatures():
+                code = str(df["area_code"])
+                d_geom = df.geometry()
+                d_area = max(1.0, d_geom.area())
+                covered_parts = []
+                max_rank = 0
+                for rk, hg in hs_geoms:
+                    inter = d_geom.intersection(hg)
+                    if inter and not inter.isEmpty() and inter.area() > 1.0:
+                        covered_parts.append(inter)
+                        if rk > max_rank:
+                            max_rank = rk
+                if covered_parts:
+                    merged_cov = covered_parts[0] if len(covered_parts) == 1 else QgsGeometry.unaryUnion(covered_parts)
+                    cov_pct = round(min(100.0, (merged_cov.area() / d_area) * 100.0), 2)
+                else:
+                    cov_pct = 0.0
+                kde_diag_by_code[code] = {
+                    "kde_exploratory_coverage_pct": cov_pct,
+                    "kde_exploratory_max_rank": max_rank,
+                }
+
+    gap5_by_code = {str(r["area_code"]): r for r in (coverage_5pos_rows or [])}
+    for zone_list in (score_res["zones"], multi_station_zones or []):
+        for z in zone_list:
+            c = z["area_code"]
+            kd = kde_diag_by_code.get(c, {})
+            z["kde_exploratory_coverage_pct"] = kd.get("kde_exploratory_coverage_pct", 0.0)
+            z["kde_exploratory_max_rank"] = kd.get("kde_exploratory_max_rank", 0)
+            g5 = gap5_by_code.get(c)
+            z["network_5km_coverage_pct_5pos"] = g5.get("network_5km_coverage_pct") if g5 else None
+            z["network_5km_gap_ratio_5pos"] = g5.get("network_5km_gap_ratio") if g5 else None
+
     is_partial = score_res["mode"] == "partial"
-    data_status = "partial_no_coverage" if is_partial else "provisional_single_station_and_2023_aggregate"
+    data_status = "partial_no_coverage" if is_partial else "integrated_real_data_21_districts"
 
     output_payload = {
         "isDemo": False,
@@ -106,16 +182,15 @@ def _execute_priority_pipeline(
         "owner": "Olo",
         "generated_at": date.today().isoformat(),
         "notice": (
-            "ANALISIS PRIORITAS PROVISIONAL: menggabungkan data agregat kebakaran 2023 (219 kejadian, "
-            "bukan hasil KDE titik individual), kepadatan penduduk BPS 2025, dan kesenjangan jaringan "
-            "jalan 5 km dari 1 stasiun terverifikasi (Mako 0.0). Peringkat akan diperbarui setelah "
-            "titik kebakaran individual dan pos UPT lengkap terverifikasi."
+            "ANALISIS PRIORITAS TERINTEGRASI (21 KECAMATAN): menggabungkan beban kebakaran resmi 2023 (219 kejadian) "
+            "+ overlay zona KDE eksploratif insiden publik, kepadatan penduduk BPS 2025 (2.498.293 jiwa), dan gap "
+            "jangkauan jaringan jalan 5 km (mode baseline terverifikasi Mako 0.0 maupun skenario 5 pos berkoordinat OSM)."
         ),
         "analysis": {
             "title": "Indeks Prioritas Peningkatan Layanan Pemadam Kebakaran Kota Medan (21 Kecamatan)",
-            "method_version": METHOD_VERSION,
+            "method_version": "priority-v2.0-integrated",
             "data_status": data_status,
-            "period_label": "Kebakaran Agregat 2023, Penduduk BPS 2025, Jaringan Jalan OSM 2026-11-21",
+            "period_label": "Kebakaran 2023, Insiden Publik KDE 2024-2026, Penduduk BPS 2025, Jaringan Jalan OSM",
             "analysis_unit": "kecamatan (21 unit, area_code 12.71.01 - 12.71.21)",
             "weights": score_res["weights"],
             "normalization_method": "Min-Max (x - min) / (max - min) pada 21 kecamatan; arah: nilai lebih tinggi = prioritas lebih tinggi",
@@ -123,13 +198,21 @@ def _execute_priority_pipeline(
             "tier_classification": "Quantile 4 kelas (Rendah, Sedang, Tinggi, Sangat Tinggi) atas composite_score",
             "tier_breaks": score_res["tier_breaks"],
             "normalization_diagnostics": score_res["normalization"],
+            "indicator_availability": {
+                "official_fire_2023": True,
+                "exploratory_kde_public": bool(kde_diag_by_code),
+                "verified_station_coverage_5km": join_res["coverage_available"],
+                "multi_station_coverage_5km": bool(multi_station_zones),
+                "bps_population_2025": True,
+            },
             "sources": [
                 "Dinas Damkarmat Kota Medan via Satu Data Medan (Agregat Kebakaran 2023: 219 kejadian, Mako 0.0)",
+                "KDE Eksploratif Insiden Publik Kota Medan (22 titik geocode ruas jalan OSM)",
                 "BPS Kota Medan via Satu Data Medan (Penduduk & Kepadatan 2025: 2.498.293 jiwa)",
                 "OpenStreetMap Nominatim & Geofabrik Sumatra PBF (© OpenStreetMap contributors, ODbL 1.0)",
             ],
             "limitations": [
-                "hotspot_score memakai angka agregat kecamatan 2023 per 10.000 penduduk karena titik kejadian individual terverifikasi (KDE) belum tersedia.",
+                "hotspot_score baku memakai agregat resmi kecamatan 2023 per 10.000 penduduk agar konsisten antar 21 kecamatan; persentase tumpang tindih KDE eksploratif disajikan terpisah sebagai indikator diagnostik.",
                 join_res["coverage_note"],
                 "population_exposure_score mencerminkan kepadatan penduduk sebagai indikator paparan, bukan jumlah korban maupun prediksi kejadian.",
                 "Batas administrasi memakai fallback OpenStreetMap (bukan batas resmi Geoportal Pemko Medan).",
@@ -137,6 +220,7 @@ def _execute_priority_pipeline(
             "qa_anomalies_2023": join_res["qa_anomalies"],
         },
         "zones": score_res["zones"],
+        "zones_multi_station": multi_station_zones,
     }
 
     contract_check = validate_priority_output(output_payload)
@@ -259,6 +343,7 @@ def run_pipeline() -> dict[str, Any]:
     pop_csv_path = REPO_ROOT / "data" / "processed" / "medan_population_2022_2025.csv"
     boundary_path = REPO_ROOT / "public" / "data" / "medan_districts_osm.geojson"
     coverage_json_path = REPO_ROOT / "public" / "data" / "station-coverage.provisional.json"
+    hotspot_json_path = REPO_ROOT / "public" / "data" / "hotspot-analyzer.exploratory.geojson"
     out_json_path = REPO_ROOT / "public" / "data" / "priority-planner.provisional.json"
     out_gpkg_path = _SCRIPT_DIR / "layers" / "priority_analysis.gpkg"
 
@@ -283,6 +368,7 @@ def run_pipeline() -> dict[str, Any]:
             pop_csv_path=pop_csv_path,
             boundary_path=boundary_path,
             coverage_json_path=coverage_json_path,
+            hotspot_json_path=hotspot_json_path,
             out_json_path=out_json_path,
             out_gpkg_path=out_gpkg_path,
         )

@@ -6,7 +6,7 @@
     "data_sources": 38,
     "fire_incident_aggregates": 193,
     "fire_stations": 7,
-    "fire_incidents": 27,
+    "fire_incidents": 34,
     "app_data_snapshots": 5,
     "non_fire_rescues_separate": 36,
     "damkarmat_spm_separate": 2
@@ -4841,6 +4841,148 @@
         "source_name": "Detik Sumut",
         "source_url": "https://www.detik.com/sumut/berita/d-8540467/kebakaran-pabrik-mainan-di-medan-belum-padam-11-kk-mengungsi-evakuasi-barang",
         "geom": null
+      },
+      {
+        "source_record_id": "IND-2026-0915-PETISAH",
+        "occurred_at": null,
+        "period_year": 2026,
+        "period_month": 9,
+        "address_text": "Ruas Jalan Meranti, Kec. Medan Petisah",
+        "district_name": "Medan Petisah",
+        "subdistrict_name": null,
+        "object_type": "ruko",
+        "cause_category": null,
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita-kategori/%20Berita#meranti-petisah",
+        "geom": {
+          "type": "Point",
+          "coordinates": [
+            98.665559,
+            3.59496
+          ]
+        }
+      },
+      {
+        "source_record_id": "IND-2026-0920-SELAYANG",
+        "occurred_at": null,
+        "period_year": 2026,
+        "period_month": 9,
+        "address_text": "Kawasan Taman Setiabudi Indah (Jl. Cycas III), Kec. Medan Selayang",
+        "district_name": "Medan Selayang",
+        "subdistrict_name": null,
+        "object_type": "rumah",
+        "cause_category": null,
+        "location_accuracy": "district_only",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita-kategori/%20Berita#cycas-selayang",
+        "geom": null
+      },
+      {
+        "source_record_id": "IND-2026-1006-JOHOR",
+        "occurred_at": null,
+        "period_year": 2026,
+        "period_month": 10,
+        "address_text": "Ruas Jalan Eka Baru, Kel. Gedung Johor, Kec. Medan Johor",
+        "district_name": "Medan Johor",
+        "subdistrict_name": "Gedung Johor",
+        "object_type": "gudang_pabrik",
+        "cause_category": null,
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-tangani-kebakaran-di-medan-johor.html",
+        "geom": {
+          "type": "Point",
+          "coordinates": [
+            98.6682484,
+            3.5172794
+          ]
+        }
+      },
+      {
+        "source_record_id": "IND-2026-1101-MAIMUN",
+        "occurred_at": null,
+        "period_year": 2026,
+        "period_month": 11,
+        "address_text": "Ruas Jalan Brigjen Katamso (Kawasan PPKS), Kel. Kampung Baru, Kec. Medan Maimun",
+        "district_name": "Medan Maimun",
+        "subdistrict_name": "Kampung Baru",
+        "object_type": "fasilitas_umum",
+        "cause_category": null,
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id) & SumatraKini",
+        "source_url": "https://p2k.medan.go.id/berita-kategori/%20Berita#ppks-brigjen-katamso",
+        "geom": {
+          "type": "Point",
+          "coordinates": [
+            98.68923,
+            3.561045
+          ]
+        }
+      },
+      {
+        "source_record_id": "IND-2026-1105-MAIMUN",
+        "occurred_at": "2026-11-05T13:12:00+07:00",
+        "period_year": 2026,
+        "period_month": 11,
+        "address_text": "Ruas Jalan Mangkubumi, Kel. Aur, Kec. Medan Maimun",
+        "district_name": "Medan Maimun",
+        "subdistrict_name": "Aur",
+        "object_type": "ruko",
+        "cause_category": null,
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-tangani-kebakaran-ruko-di-jl-mangkubumi-medan-maimun.html",
+        "geom": {
+          "type": "Point",
+          "coordinates": [
+            98.680029,
+            3.582427
+          ]
+        }
+      },
+      {
+        "source_record_id": "IND-2026-1118-TIMUR",
+        "occurred_at": "2026-11-18T08:55:00+07:00",
+        "period_year": 2026,
+        "period_month": 11,
+        "address_text": "Kawasan Jl. Amal Gang Bonsai, Kel. Pulo Brayan Darat II, Kec. Medan Timur",
+        "district_name": "Medan Timur",
+        "subdistrict_name": "Pulo Brayan Darat II",
+        "object_type": "rumah",
+        "cause_category": null,
+        "location_accuracy": "district_only",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita/kebakaran-terjadi-di-jl-amal-gg-bonsai-pulo-brayan-darat-ii-kecamatan-medan-timur.html",
+        "geom": null
+      },
+      {
+        "source_record_id": "IND-2026-1125-BARAT",
+        "occurred_at": null,
+        "period_year": 2026,
+        "period_month": 11,
+        "address_text": "Ruas Jalan Putri Hijau (Warteg Putri Hijau), Kel. Kesawan, Kec. Medan Barat",
+        "district_name": "Medan Barat",
+        "subdistrict_name": "Kesawan",
+        "object_type": "ruko",
+        "cause_category": "kebocoran_gas_lpg",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id) & Tribun Medan",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-kerahkan-8-unit-armada-padamkan-kebakaran-warteg-putri-hijau.html",
+        "geom": {
+          "type": "Point",
+          "coordinates": [
+            98.673408,
+            3.603409
+          ]
+        }
       }
     ],
     "app_data_snapshots": [
@@ -4848,15 +4990,15 @@
         "snapshot_key": "manifest",
         "dataset_status": "verified",
         "public_file_path": "public/data/manifest.json",
-        "content_sha256": "3e4771a3f67e64831e6dddeeba4529e6dd8cb637a84f302b28633f9fef0147ff",
-        "byte_size": 14311
+        "content_sha256": "36f1aeb528f214b6bd8a5dab878d6261b6cdc4de081e175c5a635d34c30f31c0",
+        "byte_size": 14354
       },
       {
         "snapshot_key": "fire_incidents_summary",
         "dataset_status": "verified",
         "public_file_path": "public/data/fire_incidents_summary.json",
-        "content_sha256": "adea970547cd33c2a3d90edf2acedf1a8471712d6d6cee00238964590f34885c",
-        "byte_size": 241675
+        "content_sha256": "72e54658053bbca5650186fd6022e9306268e3ef7b13ba82e432c0dec6dd6d2a",
+        "byte_size": 277378
       },
       {
         "snapshot_key": "medan_districts_osm",
@@ -4869,15 +5011,15 @@
         "snapshot_key": "station_coverage_provisional",
         "dataset_status": "provisional",
         "public_file_path": "public/data/station-coverage.provisional.json",
-        "content_sha256": "aea772003e0099762fd05789ce5b48ad90bb9a938501251ba7c1024301202d1a",
-        "byte_size": 701708
+        "content_sha256": "0d2550784f73c245278f1ac93b7bf9e350a643884922c9cb9651f9fab9148b9f",
+        "byte_size": 1814374
       },
       {
         "snapshot_key": "priority_planner_provisional",
         "dataset_status": "provisional",
         "public_file_path": "public/data/priority-planner.provisional.json",
-        "content_sha256": "47c994bd2da72a47ef37cf7b900800fc203c78541f3fcaf190036868bd11a769",
-        "byte_size": 22962
+        "content_sha256": "8423e3680b4473b6037f348b7d3d7b19f2d681df3cfb152de44a5fbc0c272ec9",
+        "byte_size": 49383
       }
     ]
   },

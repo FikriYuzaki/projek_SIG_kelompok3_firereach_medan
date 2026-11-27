@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shutil
 import sys
 import zipfile
 
@@ -55,6 +56,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 BOUNDARY_PATH = SCRIPT_DIR / "layers" / "medan_districts_osm.geojson"
 MAKO_PATH = SCRIPT_DIR / "layers" / "mako_damkarmat_verified.geojson"
+EXPLORATORY_KDE_SRC = REPO_ROOT / "public" / "data" / "hotspot-analyzer.exploratory.geojson"
+EXPLORATORY_POINTS_SRC = REPO_ROOT / "data" / "processed" / "public_incidents_points.geojson"
+EXPLORATORY_KDE_LAYER = SCRIPT_DIR / "layers" / "hotspot_exploratory_22pts.geojson"
+EXPLORATORY_POINTS_LAYER = SCRIPT_DIR / "layers" / "public_incidents_22pts.geojson"
 KDE_QML_PATH = SCRIPT_DIR / "styles" / "hotspot_kde_4kelas.qml"
 QGZ_PATH = SCRIPT_DIR / "medan_hotspot_template.qgz"
 PNG_PATH = SCRIPT_DIR / "exports" / "peta_agregat_kebakaran_medan_2023_template_kde.png"
@@ -126,6 +131,19 @@ def _style_boundary_layer(layer: QgsVectorLayer) -> None:
             "outline_color": "#202A2D",
             "outline_width": "0.45",
             "outline_style": "solid",
+        }
+    )
+    layer.renderer().setSymbol(sym)
+
+
+def _style_exploratory_points_layer(layer: QgsVectorLayer) -> None:
+    sym = QgsMarkerSymbol.createSimple(
+        {
+            "name": "circle",
+            "color": "#B83B28",
+            "outline_color": "#FFFFFF",
+            "outline_width": "0.45",
+            "size": "2.4",
         }
     )
     layer.renderer().setSymbol(sym)
@@ -269,6 +287,14 @@ def build_project() -> None:
         project.setCrs(utm_crs)
         project.setTitle("FireReach Medan - Template Proyek QGIS Hotspot Analyzer (EPSG:32647)")
 
+        # Salin layer eksploratif (jika tersedia) agar proyek .qgz mandiri & portabel
+        has_exploratory_kde = EXPLORATORY_KDE_SRC.exists()
+        has_exploratory_pts = EXPLORATORY_POINTS_SRC.exists()
+        if has_exploratory_kde:
+            shutil.copyfile(EXPLORATORY_KDE_SRC, EXPLORATORY_KDE_LAYER)
+        if has_exploratory_pts:
+            shutil.copyfile(EXPLORATORY_POINTS_SRC, EXPLORATORY_POINTS_LAYER)
+
         # Gunakan path relatif agar proyek dan Print Layout sepenuhnya portabel lintas komputer
         agg_layer = QgsVectorLayer(
             "./layers/medan_districts_osm.geojson",
@@ -285,28 +311,69 @@ def build_project() -> None:
             "Mako 0.0 Damkarmat Medan (Terverifikasi)",
             "ogr",
         )
+        exp_kde_layer = (
+            QgsVectorLayer(
+                "./layers/hotspot_exploratory_22pts.geojson",
+                "KDE Eksploratif Publik (22 Titik OSM, BW 1.500 m)",
+                "ogr",
+            )
+            if has_exploratory_kde and EXPLORATORY_KDE_LAYER.exists()
+            else None
+        )
+        exp_pts_layer = (
+            QgsVectorLayer(
+                "./layers/public_incidents_22pts.geojson",
+                "Titik Insiden Publik OSM (22 Lokasi Ruas)",
+                "ogr",
+            )
+            if has_exploratory_pts and EXPLORATORY_POINTS_LAYER.exists()
+            else None
+        )
 
-        for lyr, name in (
+        layers_to_check = [
             (agg_layer, "agregat 2023"),
             (boundary_layer, "batas kecamatan OSM"),
             (mako_layer, "Mako 0.0"),
-        ):
+        ]
+        if exp_kde_layer is not None:
+            layers_to_check.append((exp_kde_layer, "KDE eksploratif publik"))
+        if exp_pts_layer is not None:
+            layers_to_check.append((exp_pts_layer, "titik insiden publik 22 lokasi"))
+
+        for lyr, name in layers_to_check:
             if not lyr.isValid():
                 raise RuntimeError(f"Layer QGIS gagal dimuat: {name}")
 
         _style_aggregate_layer(agg_layer)
         _style_boundary_layer(boundary_layer)
         _style_mako_layer(mako_layer)
+        if exp_kde_layer is not None and KDE_QML_PATH.exists():
+            exp_kde_layer.loadNamedStyle(str(KDE_QML_PATH))
+        if exp_pts_layer is not None:
+            _style_exploratory_points_layer(exp_pts_layer)
 
         project.addMapLayer(agg_layer, False)
         project.addMapLayer(boundary_layer, False)
         project.addMapLayer(mako_layer, False)
+        if exp_kde_layer is not None:
+            project.addMapLayer(exp_kde_layer, False)
+        if exp_pts_layer is not None:
+            project.addMapLayer(exp_pts_layer, False)
 
         root = project.layerTreeRoot()
         root.addLayer(mako_layer)
         root.addLayer(boundary_layer)
         root.addLayer(agg_layer)
-        kde_group = root.addGroup("Output KDE Terverifikasi (Menunggu Titik Individual)")
+        exp_group = root.addGroup("Analisis Eksploratif Publik (22 Titik OSM, Bukan Resmi)")
+        exp_group.setCustomProperty(
+            "exploratory_note",
+            "Output KDE Quantile 4 kelas dihitung di EPSG:32647 dari 22 titik insiden publik (12 district_only dikecualikan).",
+        )
+        if exp_pts_layer is not None:
+            exp_group.addLayer(exp_pts_layer)
+        if exp_kde_layer is not None:
+            exp_group.addLayer(exp_kde_layer)
+        kde_group = root.addGroup("Output KDE Terverifikasi (Menunggu Titik Resmi Damkarmat)")
         kde_group.setCustomProperty(
             "template_note",
             "Muat public/data/hotspot-analyzer.verified.geojson lalu terapkan styles/hotspot_kde_4kelas.qml",

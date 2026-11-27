@@ -1,0 +1,561 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0423-PERJUANGAN",
+        "source_record_id": "IND-2024-0423-PERJUANGAN",
+        "incident_date": "2024-04-23",
+        "incident_time": "12:35",
+        "published_at": "2024-04-23T17:04:59+07:00",
+        "address": "Ruas Jalan Sejati, Kel. Sidorame Barat I, Kec. Medan Perjuangan",
+        "kecamatan": "Medan Perjuangan",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/568377/sebanyak-delapan-rumah-di-medan-ludes-terbakar",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.68557,
+          3.601558
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0517-BARAT",
+        "source_record_id": "IND-2024-0517-BARAT",
+        "incident_date": "2024-05-17",
+        "incident_time": null,
+        "published_at": "2024-05-17T22:53:26+07:00",
+        "address": "Ruas Jalan Yos Sudarso, Kel. Pulo Brayan Kota, Kec. Medan Barat",
+        "kecamatan": "Medan Barat",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/570957/sembilan-armada-damkar-padamkan-kebakaran-14-rumah-di-medan",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.669096,
+          3.625347
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0610-DELI",
+        "source_record_id": "IND-2024-0610-DELI",
+        "incident_date": "2024-06-10",
+        "incident_time": null,
+        "published_at": "2024-06-11T16:11:58+07:00",
+        "address": "Kawasan Gudang PT Musim Mas, Jalan Yos Sudarso, Kel. Tanjung Mulia, Kec. Medan Deli",
+        "kecamatan": "Medan Deli",
+        "object_type": "gudang_pabrik",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/574077/perusahaan-kelapa-sawit-terbakar-tujuh-armada-pemadam-dikerahkan",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.661283,
+          3.647468
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0615-AREA",
+        "source_record_id": "IND-2024-0615-AREA",
+        "incident_date": "2024-06-15",
+        "incident_time": null,
+        "published_at": "2024-06-15T18:49:26+07:00",
+        "address": "Kantor Camat Medan Area, Jalan Rahmadsyah, Kel. Kotamatsum, Kec. Medan Area",
+        "kecamatan": "Medan Area",
+        "object_type": "fasilitas_umum",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/574749/kantor-camat-medan-area-terbakar-begini-kronologisnya",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.694531,
+          3.579692
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0708-TEMBUNG",
+        "source_record_id": "IND-2024-0708-TEMBUNG",
+        "incident_date": "2024-07-08",
+        "incident_time": null,
+        "published_at": "2024-07-08T16:07:20+07:00",
+        "address": "Ruas Jalan Bersama, Kel. Bantan, Kec. Medan Tembung",
+        "kecamatan": "Medan Tembung",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/577113/tujuh-rumah-terbakar-di-medan-tembung-damkarmat-berjibaku-kerahkan-enam-armada",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.718408,
+          3.595429
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-0806-BARAT",
+        "source_record_id": "IND-2024-0806-BARAT",
+        "incident_date": "2024-08-06",
+        "incident_time": null,
+        "published_at": "2024-08-06T19:36:46+07:00",
+        "address": "Ruas Jalan Yos Sudarso, Kel. Pulo Brayan, Kec. Medan Barat",
+        "kecamatan": "Medan Barat",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/581999/21-rumah-di-pulo-brayan-terbakar-apa-penyebabnya-",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.669096,
+          3.625347
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2024-1227-KOTA",
+        "source_record_id": "IND-2024-1227-KOTA",
+        "incident_date": "2024-12-27",
+        "incident_time": null,
+        "published_at": "2024-12-27T13:00:15+07:00",
+        "address": "Kawasan Pusat Pasar Kota Medan, Kec. Medan Kota",
+        "kecamatan": "Medan Kota",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/606278/toko-florist-di-pusat-pasar-kota-medan-terbakar-damkarmat-kerahkan-enam-unit-armada",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.68813,
+          3.585477
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2025-0222-PERJUANGAN",
+        "source_record_id": "IND-2025-0222-PERJUANGAN",
+        "incident_date": "2025-02-22",
+        "incident_time": null,
+        "published_at": "2025-02-22T18:42:02+07:00",
+        "address": "Ruas Jalan Permai, Kel. Sidorame Timur, Kec. Medan Perjuangan",
+        "kecamatan": "Medan Perjuangan",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/613709/enam-rumah-di-medan-perjuangan-terbakar-diduga-akibat-kompor-gas-meledak",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.692829,
+          3.607277
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2025-0720-BARAT",
+        "source_record_id": "IND-2025-0720-BARAT",
+        "incident_date": "2025-07-20",
+        "incident_time": null,
+        "published_at": "2025-07-20T12:18:33+07:00",
+        "address": "Ruas Jalan Putri Hijau, Kel. Kesawan, Kec. Medan Barat",
+        "kecamatan": "Medan Barat",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/630957/damkarmat-medan-kerahkan-11-armada-padamkan-25-rumah-terbakar",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.676144,
+          3.594329
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2025-0730-JOHOR",
+        "source_record_id": "IND-2025-0730-JOHOR",
+        "incident_date": "2025-07-30",
+        "incident_time": null,
+        "published_at": "2025-07-30T13:44:39+07:00",
+        "address": "Kawasan Asrama Haji Medan (Gedung Madinah Al Munawwarah), Kel. Pangkalan Masyhur, Kec. Medan Johor",
+        "kecamatan": "Medan Johor",
+        "object_type": "fasilitas_umum",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8036591/7-mobil-damkar-diturunkan-kebakaran-di-asrama-haji-medan-dipadamkan",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.674085,
+          3.540944
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2025-0927-TIMUR",
+        "source_record_id": "IND-2025-0927-TIMUR",
+        "incident_date": "2025-09-27",
+        "incident_time": null,
+        "published_at": "2025-09-27T12:58:28+07:00",
+        "address": "Ruas Jalan Gaharu, Kel. Gaharu, Kec. Medan Timur",
+        "kecamatan": "Medan Timur",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8133027/kebakaran-permukiman-padat-penduduk-di-medan-timur-padam-5-rumah-terbakar",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.678504,
+          3.596479
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2025-0930-AREA",
+        "source_record_id": "IND-2025-0930-AREA",
+        "incident_date": "2025-09-30",
+        "incident_time": "20:16",
+        "published_at": "2025-10-01T17:18:10+07:00",
+        "address": "Kawasan Jalan Asia Mega Mas, Kel. Sukaramai II, Kec. Medan Area",
+        "kecamatan": "Medan Area",
+        "object_type": "rumah",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/639709/damkarmat-medan-tidak-ada-korban-jiwa-dalam-kejadian-kebakaran",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.704338,
+          3.587444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0127-DELI",
+        "source_record_id": "IND-2026-0127-DELI",
+        "incident_date": "2026-01-27",
+        "incident_time": "21:50",
+        "published_at": "2026-01-28T11:43:16+07:00",
+        "address": "Kawasan Pabrik Sandal PT Garuda Mas Perkasa, Jalan Yos Sudarso, Kel. Tanjung Mulia, Kec. Medan Deli",
+        "kecamatan": "Medan Deli",
+        "object_type": "gudang_pabrik",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "ANTARA News Sumut",
+        "source_url": "https://sumut.antaranews.com/berita/652505/damkarmat-kerahkan-150-personel-dan-20-armada-padamkan-pabrik-terbakar",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.663492,
+          3.640662
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0218-LABUHAN",
+        "source_record_id": "IND-2026-0218-LABUHAN",
+        "incident_date": "2026-02-18",
+        "incident_time": null,
+        "published_at": "2026-02-18T15:01:35+07:00",
+        "address": "Pasar Pagi, Ruas Jalan Syahbuddin Yatim, Kel. Pekan Labuhan, Kec. Medan Labuhan",
+        "kecamatan": "Medan Labuhan",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8360857/pasar-pagi-di-medan-labuhan-terbakar-sejumlah-ruko-hangus",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.675217,
+          3.736051
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0410-MARELAN",
+        "source_record_id": "IND-2026-0410-MARELAN",
+        "incident_date": "2026-04-10",
+        "incident_time": null,
+        "published_at": "2026-04-10T13:14:39+07:00",
+        "address": "Ruas Jalan Marelan Raya Pasar V, Kec. Medan Marelan",
+        "kecamatan": "Medan Marelan",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8437871/ini-penyebab-kebakaran-toko-cat-sebabkan-1-warga-tewas-di-medan",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.657814,
+          3.700646
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0412-TIMUR",
+        "source_record_id": "IND-2026-0412-TIMUR",
+        "incident_date": "2026-04-12",
+        "incident_time": null,
+        "published_at": "2026-04-13T13:47:38+07:00",
+        "address": "Ruas Jalan Jati, Kec. Medan Timur",
+        "kecamatan": "Medan Timur",
+        "object_type": "gudang_pabrik",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8441880/gudang-ekspedisi-di-medan-kebakaran-hebat-api-padam-setelah-12-jam",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.687079,
+          3.635698
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0714-KOTA",
+        "source_record_id": "IND-2026-0714-KOTA",
+        "incident_date": "2026-07-14",
+        "incident_time": "12:30",
+        "published_at": "2026-07-14T15:13:51+07:00",
+        "address": "Persimpangan Jalan Semarang dan Jalan Porsea, Kec. Medan Kota",
+        "kecamatan": "Medan Kota",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Detik Sumut",
+        "source_url": "https://www.detik.com/sumut/berita/d-8573652/ruko-4-lantai-di-jalan-semarang-kota-medan-terbakar",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.685755,
+          3.584157
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-0915-PETISAH",
+        "source_record_id": "IND-2026-0915-PETISAH",
+        "incident_date": "2026-09-15",
+        "incident_time": null,
+        "published_at": "2026-09-15T12:00:00+07:00",
+        "address": "Ruas Jalan Meranti, Kec. Medan Petisah",
+        "kecamatan": "Medan Petisah",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita-kategori/%20Berita#meranti-petisah",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.665559,
+          3.59496
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-1006-JOHOR",
+        "source_record_id": "IND-2026-1006-JOHOR",
+        "incident_date": "2026-10-06",
+        "incident_time": null,
+        "published_at": "2026-10-06T18:00:00+07:00",
+        "address": "Ruas Jalan Eka Baru, Kel. Gedung Johor, Kec. Medan Johor",
+        "kecamatan": "Medan Johor",
+        "object_type": "gudang_pabrik",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-tangani-kebakaran-di-medan-johor.html",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.6682484,
+          3.5172794
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-1101-MAIMUN",
+        "source_record_id": "IND-2026-1101-MAIMUN",
+        "incident_date": "2026-11-01",
+        "incident_time": null,
+        "published_at": "2026-11-10T12:00:00+07:00",
+        "address": "Ruas Jalan Brigjen Katamso (Kawasan PPKS), Kel. Kampung Baru, Kec. Medan Maimun",
+        "kecamatan": "Medan Maimun",
+        "object_type": "fasilitas_umum",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id) & SumatraKini",
+        "source_url": "https://p2k.medan.go.id/berita-kategori/%20Berita#ppks-brigjen-katamso",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.68923,
+          3.561045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-1105-MAIMUN",
+        "source_record_id": "IND-2026-1105-MAIMUN",
+        "incident_date": "2026-11-05",
+        "incident_time": "13:12",
+        "published_at": "2026-11-05T16:30:00+07:00",
+        "address": "Ruas Jalan Mangkubumi, Kel. Aur, Kec. Medan Maimun",
+        "kecamatan": "Medan Maimun",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id)",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-tangani-kebakaran-ruko-di-jl-mangkubumi-medan-maimun.html",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.680029,
+          3.582427
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "incident_id": "IND-2026-1125-BARAT",
+        "source_record_id": "IND-2026-1125-BARAT",
+        "incident_date": "2026-11-25",
+        "incident_time": null,
+        "published_at": "2026-11-25T18:00:00+07:00",
+        "address": "Ruas Jalan Putri Hijau (Warteg Putri Hijau), Kel. Kesawan, Kec. Medan Barat",
+        "kecamatan": "Medan Barat",
+        "object_type": "ruko",
+        "location_accuracy": "approximate",
+        "verification_status": "needs_review",
+        "source_name": "Dinas Damkarmat Kota Medan (p2k.medan.go.id) & Tribun Medan",
+        "source_url": "https://p2k.medan.go.id/berita/damkarmat-kota-medan-kerahkan-8-unit-armada-padamkan-kebakaran-warteg-putri-hijau.html",
+        "isDemo": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.673408,
+          3.603409
+        ]
+      }
+    }
+  ]
+}

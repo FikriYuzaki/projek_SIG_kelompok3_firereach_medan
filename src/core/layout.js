@@ -10,6 +10,19 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function renderStatusIcon(markerKey) {
+  if (markerKey === "active" || markerKey === "[+]") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.4 6.4 11.6 12.8 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  if (markerKey === "warn" || markerKey === "[!]") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 14.2 13.4H1.8L8 2.2Zm0 4.3v3.2m0 1.8h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  if (markerKey === "dev" || markerKey === "review" || markerKey === "[~]" || markerKey === "[?]") {
+    return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>`;
+  }
+  return `<svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+}
+
 export function createShellLayout(rootElement, supabaseStatus, initialSnapshotStatus = null) {
   const sourceMeta = describeActiveDataSource(
     initialSnapshotStatus || { mode: supabaseStatus.isConfigured ? "supabase_pending" : "local" }
@@ -50,7 +63,7 @@ export function createShellLayout(rootElement, supabaseStatus, initialSnapshotSt
             id="supabase-status-badge"
             title="${escapeHtml(supabaseStatus.note)}"
           >
-            <span aria-hidden="true">${supabaseStatus.isConfigured ? "[+]" : "[o]"}</span>
+            ${renderStatusIcon(supabaseStatus.isConfigured ? "active" : "local")}
             <span>Koneksi: ${escapeHtml(supabaseStatus.statusLabel)}</span>
           </span>
           <span
@@ -60,7 +73,7 @@ export function createShellLayout(rootElement, supabaseStatus, initialSnapshotSt
             role="status"
             aria-live="polite"
           >
-            <span aria-hidden="true" data-role="marker">${sourceMeta.marker}</span>
+            <span data-role="marker" aria-hidden="true">${renderStatusIcon(sourceMeta.marker)}</span>
             <span data-role="label">${escapeHtml(sourceMeta.label)}</span>
           </span>
         </div>
@@ -99,8 +112,8 @@ export function createShellLayout(rootElement, supabaseStatus, initialSnapshotSt
                     <a href="${feat.route}" class="nav-link" data-nav="${feat.route}">
                       <span class="nav-link-main">${feat.shortTitle}</span>
                       <span class="status-badge ${meta.badgeClass}">
-                        <span aria-hidden="true">${meta.marker}</span>
-                        <span>${feat.status === "in-development" ? "Dev" : feat.status === "coming-soon" ? "Soon" : meta.label}</span>
+                        ${renderStatusIcon(meta.marker)}
+                        <span>${meta.label}</span>
                       </span>
                     </a>
                   </li>
@@ -142,7 +155,7 @@ export function createShellLayout(rootElement, supabaseStatus, initialSnapshotSt
     const next = describeActiveDataSource(snapshotStatus);
     dataSourceBadge.className = `status-badge ${next.badgeClass}`;
     dataSourceBadge.title = next.title;
-    if (dataSourceMarkerEl) dataSourceMarkerEl.textContent = next.marker;
+    if (dataSourceMarkerEl) dataSourceMarkerEl.innerHTML = renderStatusIcon(next.marker);
     if (dataSourceLabelEl) dataSourceLabelEl.textContent = next.label;
   }
 
