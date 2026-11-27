@@ -66,7 +66,7 @@ Section composition varies intentionally (`RHYTHM 2`): Dashboard pairs an asymme
 
 - **Border radius variation**: `4px` on form inputs, table pills, and status tags; `8px` on map/content panels; `6px` on buttons. Never pill-shaped (`9999px`) on cards or inputs.
 - **Elevation**: Flat paper-on-canvas by default (`1px solid #D9DEDA`). Subtle shadow (`0 4px 14px rgba(32, 42, 45, 0.08)`) reserved exclusively for floating mobile nav drawer and active map tooltips/overlays.
-- **Motion (`MOTION 1`)**: Hover/focus/active transitions (`150ms ease`) and drawer slide transitions only. Zero continuous pulse animations, zero bounce/floating loops. All transitions disable under `@media (prefers-reduced-motion: reduce)`. The bounded Three.js mini preview starts paused under reduced motion and always provides an explicit Play/Pause rotation button.
+- **Motion (`MOTION 1`)**: Tactile hover/focus/active transitions (`150ms`-`180ms` ease, slight lift and light sheen on interactive buttons) and drawer slide transitions, plus warm editorial skeleton shimmer placeholders during asynchronous module and dataset loads. Zero bounce/floating loops. All transitions and skeleton shimmer animations disable under `@media (prefers-reduced-motion: reduce)`. The bounded Three.js mini preview starts paused under reduced motion and always provides an explicit Play/Pause rotation button.
 - **Icons**: Minimal inline geometric SVGs (`aria-hidden="true"`) strictly where navigation, map legend geometry, or status differentiation (non-color marker) requires visual clarity. Zero decorative emojis or sparkle/AI glyphs.
 
 ---

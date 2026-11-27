@@ -688,6 +688,16 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
   let outerMounted = true;
 
   async function mountWorkspace() {
+    if (typeof document !== "undefined" && typeof container.replaceChildren === "function") {
+      container.replaceChildren(
+        renderStatePanel({
+          variant: "loading",
+          title: "Memuat data kejadian kebakaran",
+          message: "Menyiapkan batas 21 kecamatan, statistik resmi, dan titik laporan terbaru."
+        })
+      );
+    }
+
     let datasets = null;
     try {
       datasets = await loadExplorerDatasets(services);
