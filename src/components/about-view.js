@@ -11,6 +11,13 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function resolveDatasetLicense(ds) {
+  if (ds?.license) return ds.license;
+  if (String(ds?.publisher || "").includes("BPBD")) return "Portal Satu Data Medan (Pembanding BPBD)";
+  if (String(ds?.publisher || "").includes("Statistik")) return "BPS / Portal Satu Data Medan";
+  return "Portal Satu Data Medan Open Data";
+}
+
 export async function renderAbout({ container, services, navigate }) {
   const manifestResp = await services.dataStatus.getManifest();
   if (!manifestResp.ok) {
@@ -56,8 +63,8 @@ export async function renderAbout({ container, services, navigate }) {
           id="about-data-source-badge"
           title="${escapeHtml(sourceMeta.title)}"
         >
-          <span aria-hidden="true">${sourceMeta.marker}</span>
-          <span>${escapeHtml(sourceMeta.label)}</span>
+          <span aria-hidden="true" data-role="marker">${sourceMeta.marker}</span>
+          <span data-role="label">${escapeHtml(sourceMeta.label)}</span>
         </span>
       </div>
     </section>
@@ -79,12 +86,12 @@ export async function renderAbout({ container, services, navigate }) {
                 const meta = FEATURE_STATUS_META[feat.status];
                 return `
                   <tr>
-                    <td><strong>${feat.owner}</strong></td>
-                    <td>${feat.title}</td>
+                    <td><strong>${escapeHtml(feat.owner)}</strong></td>
+                    <td>${escapeHtml(feat.title)}</td>
                     <td>
                       <span class="status-badge ${meta.badgeClass}">
                         <span aria-hidden="true">${meta.marker}</span>
-                        <span>${meta.label}</span>
+                        <span>${escapeHtml(meta.label)}</span>
                       </span>
                     </td>
                   </tr>
@@ -104,10 +111,13 @@ export async function renderAbout({ container, services, navigate }) {
           <strong>Sumber Data Aktif:</strong> ${escapeHtml(sourceMeta.label)}${(snapshotStatus.isStaleFallback || snapshotStatus.isFallback) && snapshotStatus.reason ? ` (${escapeHtml(snapshotStatus.reason)})` : ""}
         </p>
         <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
-          <strong>Standar CRS:</strong> Analisis jarak, luas, dan kepadatan metrik dijalankan pada <code class="mono">${manifest.crs_metric}</code> (UTM Zone 47N), sedangkan penyimpanan PostGIS dan pertukaran GeoJSON web memakai <code class="mono">${manifest.crs_web}</code>.
+          <strong>Standar CRS:</strong> Analisis jarak, luas, jaringan jalan, dan kepadatan metrik dijalankan pada <code class="mono">${escapeHtml(manifest.crs_metric)}</code> (UTM Zone 47N), sedangkan penyimpanan PostGIS dan pertukaran GeoJSON web memakai <code class="mono">${escapeHtml(manifest.crs_web)}</code>.
+        </p>
+        <p style="font-size: var(--text-sm); margin-bottom: var(--space-2);">
+          <strong>Atribusi &amp; Lisensi Peta:</strong> Batas kecamatan dan jaringan jalan OpenStreetMap berada di bawah lisensi <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">ODbL 1.0</a> (<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">&copy; OpenStreetMap contributors</a>).
         </p>
         <p style="font-size: var(--text-sm); margin-bottom: 0;">
-          <strong>Prinsip kejujuran data:</strong> Data agregat kecamatan atau bulanan tidak pernah diubah menjadi titik koordinat palsu. Fixture pengembangan ditandai eksplisit sebagai <code class="mono">DEMO</code>.
+          <strong>Prinsip integritas spasial:</strong> Data agregat kecamatan atau bulanan tidak pernah diubah menjadi titik koordinat palsu, tidak ada scraping atau penyimpanan koordinat Google Maps, dan fixture pengembangan selalu ditandai eksplisit sebagai <code class="mono">DEMO</code>.
         </p>
       </section>
     </div>
@@ -119,7 +129,7 @@ export async function renderAbout({ container, services, navigate }) {
           <thead>
             <tr>
               <th>Dataset</th>
-              <th>Penerbit</th>
+              <th>Penerbit &amp; Lisensi</th>
               <th>Periode</th>
               <th>Granularitas</th>
               <th>Jumlah</th>
@@ -138,13 +148,17 @@ export async function renderAbout({ container, services, navigate }) {
                     ${ds.url ? ` | <a href="${escapeHtml(ds.url)}" target="_blank" rel="noopener noreferrer">Sumber</a>` : ""}
                   </div>
                 </td>
-                <td>${escapeHtml(ds.publisher)}</td>
+                <td>
+                  <div>${escapeHtml(ds.publisher)}</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-ink-muted);">${escapeHtml(resolveDatasetLicense(ds))}</div>
+                </td>
                 <td>${escapeHtml(ds.period)}</td>
                 <td><code class="mono">${escapeHtml(ds.granularity)}</code></td>
                 <td class="mono tabular">${services.format.number(ds.record_count)}</td>
                   <td>
                     <span class="status-badge ${ds.status === "verified" ? "status-badge--active" : "status-badge--dev"}">
-                      ${ds.status === "verified" ? "Terverifikasi" : "Fallback OSM"}
+                      <span aria-hidden="true">${ds.status === "verified" ? "[+]" : "[~]"}</span>
+                      <span>${ds.status === "verified" ? "Terverifikasi" : "Fallback OSM"}</span>
                     </span>
                   </td>
                 </tr>
@@ -187,8 +201,9 @@ export async function renderAbout({ container, services, navigate }) {
                 <tr>
                   <td>
                     <strong>${escapeHtml(item.title)}</strong>
-                    <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted);">
+                    <div class="mono" style="font-size: var(--text-xs); color: var(--color-ink-muted); overflow-wrap: anywhere;">
                       SHA-256: ${item.sha256 ? escapeHtml(item.sha256.slice(0, 14)) + "..." : "-"}
+                      ${item.path ? ` | <a href="${escapeHtml(item.path)}" target="_blank" rel="noopener noreferrer">Katalog JSON</a>` : ""}
                     </div>
                   </td>
                   <td>${escapeHtml(item.publisher)}</td>
@@ -237,5 +252,32 @@ export async function renderAbout({ container, services, navigate }) {
     </section>
   `;
 
-  return async function unmount() {};
+  const badgeEl = container.querySelector("#about-data-source-badge");
+  const markerEl = badgeEl?.querySelector?.('[data-role="marker"]') || null;
+  const labelEl = badgeEl?.querySelector?.('[data-role="label"]') || null;
+  const noteEl = container.querySelector("#about-active-source-note");
+
+  const unsubscribe =
+    typeof services.dataStatus.subscribe === "function"
+      ? services.dataStatus.subscribe((nextStatus) => {
+          const nextMeta = describeActiveDataSource(nextStatus);
+          if (badgeEl) {
+            badgeEl.className = `status-badge ${nextMeta.badgeClass}`;
+            badgeEl.title = nextMeta.title;
+          }
+          if (markerEl) markerEl.textContent = nextMeta.marker;
+          if (labelEl) labelEl.textContent = nextMeta.label;
+          if (noteEl) {
+            const reasonText =
+              (nextStatus?.isStaleFallback || nextStatus?.isFallback) && nextStatus?.reason
+                ? ` (${nextStatus.reason})`
+                : "";
+            noteEl.innerHTML = `<strong>Sumber Data Aktif:</strong> ${escapeHtml(nextMeta.label)}${escapeHtml(reasonText)}`;
+          }
+        })
+      : () => {};
+
+  return async function unmount() {
+    unsubscribe();
+  };
 }

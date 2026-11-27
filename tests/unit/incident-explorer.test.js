@@ -32,11 +32,12 @@ vi.mock("leaflet", () => ({
   }
 }));
 
-const mockPreviewDestroy = vi.fn();
-vi.mock("../../src/components/three-preview.js", () => ({
-  mountObjectSchematicPreview: () => ({
-    setObjectType: vi.fn(),
-    destroy: mockPreviewDestroy
+const mockSimDestroy = vi.fn();
+const mockSimActivate = vi.fn();
+vi.mock("../../src/features/incident-explorer/response-simulation.js", () => ({
+  mountFireResponseSimulation: () => ({
+    activate: mockSimActivate,
+    destroy: mockSimDestroy
   })
 }));
 
@@ -754,7 +755,7 @@ describe("incident-explorer mount & unmount lifecycle", () => {
     await unmount();
     expect(mockOverlayClear).toHaveBeenCalledTimes(2);
     expect(chartDestroy).toHaveBeenCalledTimes(1);
-    expect(mockPreviewDestroy).toHaveBeenCalledTimes(1);
+    expect(mockSimDestroy).toHaveBeenCalledTimes(1);
     expect(mapDestroy).toHaveBeenCalledTimes(1);
   });
 });

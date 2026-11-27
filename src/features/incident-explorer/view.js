@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { mountObjectSchematicPreview } from "../../components/three-preview.js";
+import { mountFireResponseSimulation } from "./response-simulation.js";
 import { renderStatePanel } from "../../components/state-panel.js";
 import {
   CATEGORY_LABELS,
@@ -45,7 +45,16 @@ function renderBadge(status) {
 function formatSourceLinkLabel(url, fallbackIndex = 1) {
   const raw = String(url || "");
   if (raw.includes("peraturan.bpk.go.id")) {
-    return "JDIH BPK (Perwali 25/2018)";
+    return "JDIH BPK (Perwali 25/2018 - historis)";
+  }
+  if (raw.includes("portal.medan.go.id")) {
+    return "Portal Pemko Medan";
+  }
+  if (raw.includes("medanbelawan.medan.go.id")) {
+    return "Kec. Medan Belawan";
+  }
+  if (raw.includes("metrorakyat.com")) {
+    return "Metro Rakyat";
   }
   const antaraMatch = raw.match(/antaranews\.com\/berita\/(\d+)/);
   if (antaraMatch) {
@@ -784,6 +793,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         <button type="button" class="tab-btn" role="tab" id="tab-unlocated" aria-selected="false" aria-controls="explorer-tab-unlocated" data-tab="unlocated">
           Belum Terlokasi &amp; Perlu Review (${summary.unlocated_register.length} batch)
         </button>
+        <button type="button" class="tab-btn" role="tab" id="tab-simulation" aria-selected="false" aria-controls="explorer-tab-simulation" data-tab="simulation">
+          Simulasi Respons Damkarmat
+        </button>
       </div>
 
       <div id="explorer-tab-verified" role="tabpanel" aria-labelledby="tab-verified">
@@ -869,11 +881,13 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
             </section>
 
             <section class="panel">
-              <h3 style="margin-bottom: var(--space-1);">Pratinjau Skematis Objek</h3>
-              <p style="font-size: var(--text-xs); color: var(--color-ink-muted); margin-bottom: var(--space-2);">
-                Visualisasi pendukung kategori objek dominan pada pilihan aktif (bukan peta kota 3D).
+              <h3 style="margin-bottom: var(--space-1);">Simulasi Respons Damkarmat</h3>
+              <p style="font-size: var(--text-xs); color: var(--color-ink-muted); margin-bottom: var(--space-3);">
+                Uji rute jaringan jalan OSM dari pos skenario terdekat serta proses pemadaman interaktif (non-darurat).
               </p>
-              <div id="explorer-three-slot"></div>
+              <button type="button" class="btn btn-primary btn-sm" id="open-simulation-tab-btn">
+                Buka Simulasi Respons
+              </button>
             </section>
           </aside>
         </div>
@@ -900,6 +914,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       </div>
 
       <div id="explorer-tab-unlocated" role="tabpanel" aria-labelledby="tab-unlocated" hidden></div>
+      <div id="explorer-tab-simulation" role="tabpanel" aria-labelledby="tab-simulation" hidden></div>
     `;
 
     const modeBadgeEl = container.querySelector("#explorer-mode-badge");
@@ -907,8 +922,11 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     const demoBtn = container.querySelector("#toggle-demo-mode");
     const tabVerifiedBtn = container.querySelector("#tab-verified");
     const tabUnlocatedBtn = container.querySelector("#tab-unlocated");
+    const tabSimulationBtn = container.querySelector("#tab-simulation");
     const tabVerifiedPanel = container.querySelector("#explorer-tab-verified");
     const tabUnlocatedPanel = container.querySelector("#explorer-tab-unlocated");
+    const tabSimulationPanel = container.querySelector("#explorer-tab-simulation");
+    const openSimBtn = container.querySelector("#open-simulation-tab-btn");
     const uptCandidatesPanelEl = container.querySelector("#explorer-upt-candidates-panel");
 
     const periodSel = container.querySelector("#filter-period");
@@ -935,10 +953,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     const tableCountEl = container.querySelector("#explorer-table-count");
     const tableWrapEl = container.querySelector("#explorer-table-wrap");
 
-    const previewHandle = mountObjectSchematicPreview(
-      container.querySelector("#explorer-three-slot"),
-      "rumah"
-    );
+    const simulationHandle = mountFireResponseSimulation({
+      container: tabSimulationPanel,
+      services,
+      summary,
+      districtsGeoJson
+    });
     const mapHandle = services.maps.createMap(container.querySelector("#explorer-map"));
     const dynamicOverlay = L.layerGroup().addTo(mapHandle.map);
     const supabaseOverlay = L.layerGroup().addTo(mapHandle.map);
@@ -995,7 +1015,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         detailQaEl.hidden = true;
         detailQaEl.textContent = "";
       }
-      previewHandle.setObjectType(result.previewType);
     }
 
     function applySelectionUiOnly(selectedKey) {
@@ -1549,11 +1568,11 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         mapTitleEl.textContent = "Peta Kandidat Media Independen & Pos UPT Perkiraan (needs_review)";
         legendEl.innerHTML = `
           <span class="legend-item"><span class="legend-swatch" style="background: #8A5218; border-radius: 50%;"></span> Kandidat Kebakaran (${approxIncidents.length} approximate, Non-KDE)</span>
-          <span class="legend-item"><span class="legend-swatch" style="background: #FBF2E6; border: 2px solid #356067; border-radius: 50%;"></span> Kandidat UPT V &amp; VI (${candStations.length} approximate ruas, needs_review)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background: #FBF2E6; border: 2px solid #356067; border-radius: 50%;"></span> Kandidat UPT I, II, V &amp; VI (${candStations.length} approximate OSM, needs_review)</span>
           <span class="legend-item"><span class="legend-swatch" style="background: #356067; border-radius: 50%;"></span> Mako 0.0 Terverifikasi</span>
         `;
         provenanceEl.innerHTML = `
-          <span>Kandidat: ANTARA News Sumut, Detik Sumut, Perwali 25/2018 &amp; OSM Nominatim (status: needs_review, Non-KDE)</span>
+          <span>Kandidat: ANTARA Sumut, Detik Sumut, Portal Pemko Medan, Perwali 25/2018 (historis) &amp; OSM Nominatim (needs_review, Non-KDE)</span>
           <span>Batas: OpenStreetMap Nominatim (&copy; OpenStreetMap contributors, ODbL)</span>
         `;
 
@@ -1907,7 +1926,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           </span>
         </div>
         <p style="font-size: var(--text-sm); color: var(--color-ink-muted); margin-bottom: var(--space-3);">
-          Seluruh pos UPT berstatus <code class="mono">needs_review</code> karena <code class="mono">p2k.medan.go.id</code> mengembalikan HTTP 403 Cloudflare. Pos dengan <code class="mono">geom = null</code> (UPT-01 sampai UPT-04) tidak ditampilkan sebagai titik pada peta.
+          Seluruh pos UPT berstatus <code class="mono">needs_review</code> karena <code class="mono">p2k.medan.go.id</code> mengembalikan HTTP 403 Cloudflare. Pos dengan <code class="mono">geom = null</code> (UPT-03 dan UPT-04) tidak ditampilkan sebagai titik pada peta.
         </p>
         <div class="table-scroll">
           <table class="data-table">
@@ -2143,10 +2162,14 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     function switchTab(nextTab) {
       state.activeTab = nextTab;
       const showVerified = nextTab === "verified";
+      const showUnlocated = nextTab === "unlocated";
+      const showSimulation = nextTab === "simulation";
       tabVerifiedBtn.setAttribute("aria-selected", String(showVerified));
-      tabUnlocatedBtn.setAttribute("aria-selected", String(!showVerified));
+      tabUnlocatedBtn.setAttribute("aria-selected", String(showUnlocated));
+      tabSimulationBtn.setAttribute("aria-selected", String(showSimulation));
       tabVerifiedPanel.hidden = !showVerified;
-      tabUnlocatedPanel.hidden = showVerified;
+      tabUnlocatedPanel.hidden = !showUnlocated;
+      tabSimulationPanel.hidden = !showSimulation;
       if (showVerified) {
         if (invalidateTimer) clearTimeout(invalidateTimer);
         invalidateTimer = setTimeout(() => {
@@ -2155,6 +2178,8 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
             mapHandle.map.invalidateSize({ animate: false });
           }
         }, 0);
+      } else if (showSimulation) {
+        simulationHandle.activate();
       }
     }
 
@@ -2237,17 +2262,30 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
     tabVerifiedBtn.addEventListener("click", () => switchTab("verified"), { signal: ac.signal });
     tabUnlocatedBtn.addEventListener("click", () => switchTab("unlocated"), { signal: ac.signal });
+    tabSimulationBtn.addEventListener("click", () => switchTab("simulation"), { signal: ac.signal });
+    if (openSimBtn) {
+      openSimBtn.addEventListener("click", () => switchTab("simulation"), { signal: ac.signal });
+    }
 
+    const tabOrder = ["verified", "unlocated", "simulation"];
+    const tabBtns = {
+      verified: tabVerifiedBtn,
+      unlocated: tabUnlocatedBtn,
+      simulation: tabSimulationBtn
+    };
     const handleTabKey = (event) => {
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
         event.preventDefault();
-        const nextTab = state.activeTab === "verified" ? "unlocated" : "verified";
+        const curIdx = Math.max(0, tabOrder.indexOf(state.activeTab));
+        const delta = event.key === "ArrowRight" ? 1 : -1;
+        const nextTab = tabOrder[(curIdx + delta + tabOrder.length) % tabOrder.length];
         switchTab(nextTab);
-        (nextTab === "verified" ? tabVerifiedBtn : tabUnlocatedBtn).focus();
+        tabBtns[nextTab]?.focus();
       }
     };
     tabVerifiedBtn.addEventListener("keydown", handleTabKey, { signal: ac.signal });
     tabUnlocatedBtn.addEventListener("keydown", handleTabKey, { signal: ac.signal });
+    tabSimulationBtn.addEventListener("keydown", handleTabKey, { signal: ac.signal });
 
     demoBtn.addEventListener(
       "click",
@@ -2302,7 +2340,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         chartHandle.destroy();
         chartHandle = null;
       }
-      previewHandle.destroy();
+      simulationHandle.destroy();
       mapHandle.destroy();
     };
   }

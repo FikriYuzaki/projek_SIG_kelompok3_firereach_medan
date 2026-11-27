@@ -22,6 +22,8 @@
 - Ketiga proyek QGIS (`medan_hotspot_template.qgz`, `station_coverage.qgz`, `priority_analysis.qgz`) dibersihkan dari referensi relatif luar folder proyek (`../../public/data/medan_districts_osm.geojson` disalin ke `./layers/medan_districts_osm.geojson` di masing-masing proyek).
 - Ekspor layout bersih berada di `./exports/` pada tiap modul dan dikemas tanpa PBF mentah ataupun `__pycache__` ke dalam `FireReach_Medan_QGIS_Pack.zip`.
 
-## 4. Pembersihan Fitur & Ketergantungan Frontend (Tahap 2 - Tertunda)
+## 4. Pembersihan Fitur & Ketergantungan Frontend (Tahap 2 - Selesai)
 
-- Penghapusan `src/components/three-preview.js` dan dependensi `three` dari `package.json` serta `vite.config.js` akan dicatat pada pembaruan laporan ini setelah Tahap 2 (Simulasi Respons Damkarmat) selesai dibangun dan diverifikasi.
+- Dihapus: `src/components/three-preview.js`, rule CSS obsolet `.preview-box` / `.preview-stage` / `.preview-controls` di `src/styles/components.css`, manual chunk `three: ["three"]` di `vite.config.js`, serta dependensi npm `three` (`npm uninstall three`, `1` paket dihapus).
+- Verifikasi grep pada `src/` (selain catatan arsip dokumentasi), `package.json`, `vite.config.js`, dan `tests/`: nol (`0`) impor atau pemakaian modul `three` yang tersisa.
+- Fitur tersebut digantikan oleh modul simulasi spasial jaringan jalan Damkarmat pada `src/features/incident-explorer/response-router.js`, `response-audio.js`, dan `response-simulation.js`.
