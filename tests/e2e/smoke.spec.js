@@ -751,4 +751,55 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
   });
+
+  test("renders skeleton shimmer while loading and tactile button hover styles", async ({ page }) => {
+    const consoleErrors = [];
+    const pageErrors = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    page.on("pageerror", (err) => pageErrors.push(String(err)));
+
+    await page.route("**/data/**hotspot-analyzer*.geojson", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await route.continue();
+    });
+
+    await page.goto("/hotspot-analyzer", { waitUntil: "domcontentloaded" });
+    const loadingPanel = page.locator(".state-panel--loading[aria-busy='true']");
+    await expect(loadingPanel).toBeVisible();
+    await expect(loadingPanel.locator(".skeleton-shimmer").first()).toBeVisible();
+
+    await expect(page.locator("#hotspot-filter-reset")).toBeVisible();
+
+    const navLink = page.locator(".nav-link").first();
+    await expect(navLink).toBeVisible();
+    await navLink.hover();
+    const navTransition = await navLink.evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return {
+        transitionProperty: style.transitionProperty,
+        transitionDuration: style.transitionDuration
+      };
+    });
+    expect(navTransition.transitionProperty).toContain("transform");
+    expect(navTransition.transitionDuration).not.toBe("0s");
+
+    await page.goto("/incident-explorer");
+    await expect(page.locator("#filter-reset")).toBeVisible();
+    const resetBtn = page.locator("#filter-reset");
+    await resetBtn.hover();
+    const btnTransition = await resetBtn.evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return {
+        transitionProperty: style.transitionProperty,
+        transitionDuration: style.transitionDuration
+      };
+    });
+    expect(btnTransition.transitionProperty).toContain("transform");
+    expect(btnTransition.transitionDuration).not.toBe("0s");
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
 });

@@ -91,10 +91,20 @@
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 600;
+  transition: transform var(--transition-interactive), box-shadow var(--transition-interactive),
+    background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .menu-trigger:hover {
   background-color: var(--color-surface-subtle);
+  border-color: var(--color-ink-muted);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-btn-hover);
+}
+
+.menu-trigger:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--shadow-btn-active);
 }
 
 .shell-body {
@@ -178,12 +188,18 @@
   color: var(--color-ink);
   font-size: var(--text-sm);
   font-weight: 500;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-interactive), background-color var(--transition-fast),
+    border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .nav-link:hover {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  transform: translateX(3px);
+}
+
+.nav-link:active {
+  transform: translateX(1px);
 }
 
 .nav-link[aria-current="page"] {
@@ -263,5 +279,14 @@
 
   .app-main {
     padding: var(--space-6) var(--space-8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-trigger:hover,
+  .menu-trigger:active,
+  .nav-link:hover,
+  .nav-link:active {
+    transform: none;
   }
 }
