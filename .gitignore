@@ -49,3 +49,14 @@ Thumbs.db
 data/raw/
 data/interim/
 deliverables/
+
+# Local-only AI agent tooling
+.agents/
+AGENTS.md
+skills-lock.json
+
+# Local-only archived helper documents
+docs/AGENT_SETUP.md
+docs/REPOSITORY_HOUSEKEEPING_HANDOFF.md
+docs/tasks/
+docs/qa/PRODUCTION_SMOKE_TEST_2026-11-24.md
