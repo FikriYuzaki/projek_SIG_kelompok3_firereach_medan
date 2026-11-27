@@ -13,9 +13,9 @@
 
 | Direktori | Berkas Aktif | Status | Keputusan |
 |---|---|---|---|
-| `public/data/` | `manifest.json`, `fire_incidents_summary.json`, `medan_districts_osm.geojson`, `medan_road_graph.json`, `public_incident_candidates.json`, `damkarmat_station_candidates.json`, `station-coverage.provisional.json`, `priority-planner.provisional.json`, `demo/` | Dibutuhkan oleh SPA & integrasi lintas modul | Dipertahankan; ditambahkan `medan_road_graph.json` (`587.909` byte) untuk simulasi rute jaringan jalan |
-| `data/processed/` | `independent_enrichment_input.json`, `medan_population_2022_2025.csv`, `supabase_staging_bundle.json`, serta artefak mirror output pipeline | Sumber input/staging pipeline `build_processed_data.py` | Dipertahankan seluruhnya; tidak ada duplikat tak terpakai |
-| `data/fixtures/demo/` | `hotspot-analyzer.demo.json`, `incident-explorer-sample.demo.json`, `priority-planner.demo.json`, `station-coverage.demo.json` | Fixture fallback mode DEMO terisolasi (`isDemo: true`) | Dipertahankan untuk keandalan pengujian & fallback |
+| `public/data/` | `manifest.json`, `fire_incidents_summary.json`, `medan_districts_osm.geojson`, `medan_road_graph.json`, `public_incident_candidates.json`, `damkarmat_station_candidates.json`, `hotspot-analyzer.exploratory.geojson`, `station-coverage.provisional.json`, `priority-planner.provisional.json` | Dibutuhkan oleh SPA & integrasi lintas modul (`public/data/demo/` telah dihapus pada rilis `2026-11-27-prod`) | Dipertahankan; ditambahkan `medan_road_graph.json` (`587.909` byte) untuk simulasi rute jaringan jalan dan `hotspot-analyzer.exploratory.geojson` untuk KDE eksploratif |
+| `data/processed/` | `independent_enrichment_input.json`, `medan_population_2022_2025.csv`, `public_incidents_points.geojson`, `supabase_staging_bundle.json`, serta artefak mirror output pipeline | Sumber input/staging pipeline `build_processed_data.py` | Dipertahankan seluruhnya; tidak ada duplikat tak terpakai |
+| `data/fixtures/demo/` | `hotspot-analyzer.demo.json`, `incident-explorer-sample.demo.json`, `priority-planner.demo.json`, `station-coverage.demo.json` | Fixture kontrak pengujian unit terisolasi (`isDemo: true`); bukan fallback runtime produksi | Dipertahankan khusus untuk validasi kontrak di `tests/unit/` |
 
 ## 3. Audit Artefak QGIS (`qgis/`)
 

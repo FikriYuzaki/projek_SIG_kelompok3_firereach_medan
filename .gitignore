@@ -3,28 +3,49 @@
 .env.*
 !.env.example
 
-# Dependencies and build outputs
+# Dependencies, build outputs, and Vite/Vercel caches
 node_modules/
 dist/
-coverage/
 .vite/
+.vercel/
 
-# Test and Playwright artifacts
+# Coverage, test, and Playwright artifacts
+coverage/
+htmlcov/
+.coverage
+.coverage.*
 playwright-report/
 test-results/
 blob-report/
 
-# Logs and temporary files
+# Python bytecode, caches, and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# QGIS backups and SQLite/GeoPackage lock files
+*.qgz~
+*.qgs~
+*.gpkg-shm
+*.gpkg-wal
+*.gpkg-journal
+
+# Logs, temporary files, and OS metadata
 *.log
 *.tmp
+*.bak
+*.swp
 tmp/
 .DS_Store
 Thumbs.db
 
-# Raw and interim data (archived locally, documented in data/metadata/source-register.csv)
+# Raw/interim datasets and local TA archive
 data/raw/
 data/interim/
-
-# Python caches and local TA deliverable archive
-__pycache__/
 deliverables/

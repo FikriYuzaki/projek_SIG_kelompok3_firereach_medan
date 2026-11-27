@@ -10,7 +10,7 @@ Dial: ENERGY 1 / RHYTHM 2 / MOTION 1
 
 FireReach Medan is an academic and civic Web GIS tool for Kota Medan (`Fire Incident Mapping & Emergency Service Coverage Analysis`). Its interface pairs a **Warm Editorial + Modern Geospatial Intelligence** aesthetic inspired by archival atlases and civic engineering dossiers: warm ivory canvas (`#FAF6F0`), paper map/data sheets (`#FFFDF9`), warm sand containers (`#F3ECE2`), deep charcoal ink (`#1F2421`), and terracotta crimson (`#B83B28` / `#962E1E`) paired with ochre gold (`#8A5212` / `#D98A36`) and river teal (`#2C555C` / `#3D6E76`).
 
-- **One focal point per screen**: On the Dashboard and Fire Incident Explorer, the interactive Kota Medan Leaflet map (or data registry view when spatial points are absent) occupies the primary visual weight; KPIs, tables, and the schematic 3D preview sit as structured companions.
+- **One focal point per screen**: On the Dashboard and Fire Incident Explorer, the interactive Kota Medan Leaflet map (or data registry view when spatial points are absent) occupies the primary visual weight; KPIs, tables, and the spatial response-simulation panel sit as structured companions.
 - **Hierarchical contrast**: Editorial display headings (`Playfair Display`), readable body UI (`Plus Jakarta Sans`), and tabular numerals/coordinate readouts (`IBM Plex Mono` with `tabular-nums`) establish a clear typographic hierarchy without oversized marketing banners.
 - **Whitespace as structure**: Generous margins (`24px` to `32px` on desktop, `16px` on mobile) separate navigation, map canvas, filter controls, and metadata notes so dense spatial tables stay readable.
 - **Deliberate accent discipline**: Terracotta Crimson `#B83B28` marks active fire incidents and the single primary action per view; secondary data layers use River Teal `#2C555C` / `#3D6E76` and Ochre Gold `#D98A36` / `#8A5212`.
@@ -66,7 +66,7 @@ Section composition varies intentionally (`RHYTHM 2`): Dashboard pairs an asymme
 
 - **Border radius variation**: `4px` on form inputs, table pills, and status tags; `8px` on map/content panels; `6px` on buttons. Never pill-shaped (`9999px`) on cards or inputs.
 - **Elevation**: Flat paper-on-canvas by default (`1px solid #D9DEDA`). Subtle shadow (`0 4px 14px rgba(32, 42, 45, 0.08)`) reserved exclusively for floating mobile nav drawer and active map tooltips/overlays.
-- **Motion (`MOTION 1`)**: Tactile hover/focus/active transitions (`150ms`-`180ms` ease, slight lift and light sheen on interactive buttons) and drawer slide transitions, plus warm editorial skeleton shimmer placeholders during asynchronous module and dataset loads. Zero bounce/floating loops. All transitions and skeleton shimmer animations disable under `@media (prefers-reduced-motion: reduce)`. The bounded Three.js mini preview starts paused under reduced motion and always provides an explicit Play/Pause rotation button.
+- **Motion (`MOTION 1`)**: Tactile hover/focus/active transitions (`150ms`-`180ms` ease, slight lift and light sheen on interactive buttons) and drawer slide transitions, plus warm editorial skeleton shimmer placeholders during asynchronous module and dataset loads. Zero bounce/floating loops. All transitions and skeleton shimmer animations disable under `@media (prefers-reduced-motion: reduce)`.
 - **Icons**: Minimal inline geometric SVGs (`aria-hidden="true"`) strictly where navigation, map legend geometry, or status differentiation (non-color marker) requires visual clarity. Zero decorative emojis or sparkle/AI glyphs.
 
 ---
@@ -89,5 +89,5 @@ Section composition varies intentionally (`RHYTHM 2`): Dashboard pairs an asymme
 - **Layout**: Navigation rail separates shell overview from the 4 ownership modules while prioritizing map and table visibility over uniform stat cards.
 - **Spacing**: Progressive `16px` / `24px` / `32px` gaps isolate dense filter controls from cartographic layers and tables.
 - **Border Radius**: `4px` controls vs `8px` panels visually separate interactive inputs from structural containers without pill uniformity.
-- **Motion**: `150ms` state feedback and explicit 3D pause toggle honor `MOTION 1` and vestibular accessibility.
-- **Three.js Mini Preview**: Bounded schematic massing clarifies selected fire object categories while keeping Leaflet 2D as the sole spatial analysis map.
+- **Motion**: `150ms`-`180ms` state feedback and reduced-motion guards on hover and shimmer animations honor `MOTION 1` and vestibular accessibility.
+- **Spatial Map & Response Simulation**: Leaflet 2D serves as the sole spatial analysis map across all four modules, paired with Canvas 2D and SVG 2D fallback road-network dispatch simulation in Incident Explorer.

@@ -5,8 +5,8 @@
 FireReach Medan connects desktop GIS analysis, PostGIS spatial storage, static verified open datasets, and a modular Vite web shell:
 
 ```text
-Official & OSM Sources
-(Satu Data Medan, BPS, Geofabrik OSM, Field Verification)
+Official, Public & OSM Sources
+(Satu Data Medan, BPS, Portal Damkarmat/Media Publik, Geofabrik OSM)
         |
         v
 QGIS Desktop Processing (CRS: EPSG:32647 UTM 47N)
@@ -19,7 +19,7 @@ QGIS Desktop Processing (CRS: EPSG:32647 UTM 47N)
                                                             v
 Browser Client (Vite + Vanilla JS ES Modules)
   |- Shell (Layout, Router, Feature Registry, Shared Services)
-  |- Leaflet 2D Primary Map + Chart.js + Bounded Three.js Mini Preview
+  |- Leaflet 2D Primary Map + Chart.js + Canvas/SVG 2D Response Simulation
   |- Modules: incident-explorer (Fikri), hotspot-analyzer (Adeptri),
               station-coverage (Adriel), priority-planner (Olo)
 ```
@@ -36,11 +36,11 @@ Browser Client (Vite + Vanilla JS ES Modules)
    - `supabase.js`: Safe `@supabase/supabase-js` client initialized strictly from `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, falling back cleanly to local-only mode when unconfigured.
    - `map/index.js`: Shared Leaflet factory defaulting to Kota Medan (`3.5952, 98.6722`) with lifecycle tracking so every map instance is destroyed on `unmount()`.
    - `charts.js`: Shared Chart.js wrapper registering only required chart controllers and tracking active instances for cleanup.
-   - `data-status.js`: Reads published dataset snapshots (`manifest`, `fire_incidents_summary`, `medan_districts_osm`, `station_coverage_provisional`, `priority_planner_provisional`) from Supabase `public.app_data_snapshots` with automatic schema verification (`release_version: 2026-11-27-prod`, `34` public incidents, `per_station_coverage`, `priority-v2.0-integrated`) and fallback to `public/data/` JSON files. No runtime DEMO fixtures exist in `public/data/`.
+   - `data-status.js`: Reads published dataset snapshots (`manifest`, `fire_incidents_summary`, `medan_districts_osm`, `station_coverage_provisional`, `priority_planner_provisional`) from Supabase `public.app_data_snapshots` with automatic schema verification (`release_version: 2026-11-27-prod`, `34` public incidents, `per_station_coverage`, `priority-v2.0-integrated`) and fallback to `public/data/` static files (`hotspot-analyzer.exploratory.geojson` is also read from `public/data/`). Runtime `DEMO` fixtures do not exist in `public/data/`; `data/fixtures/demo/` is retained strictly for unit contract tests.
 
-## 3. Three.js Bounded Role
+## 3. Spatial Visualization & Simulation Scope
 
-Leaflet 2D remains the sole spatial analysis map. `src/components/three-preview.js` provides a compact schematic object massing preview (for residential, commercial, warehouse, land/vegetation, or station structures) with explicit Play/Pause control, clean WebGL disposal, and an automatic 2D SVG schematic fallback whenever WebGL is unavailable.
+Leaflet 2D remains the sole spatial analysis map across all four modules. Prior Three.js preview scaffolding was removed ahead of release `2026-11-27-prod`, and interactive dispatch simulation in `src/features/incident-explorer/response-simulation.js` renders directly over Leaflet with Canvas 2D animation and an automatic SVG 2D fallback (`src/features/incident-explorer/response-router.js`, `response-audio.js`).
 
 ## 4. Local-Only vs Supabase Mode
 
