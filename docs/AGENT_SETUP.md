@@ -43,6 +43,6 @@ npm run test:e2e
 
 ## 3. Repository & Remote Guardrails
 
-- Follow the branch flow: `main` (stable baseline) -> `develop` (integration) -> `feature/<member>-<module>` (created from `develop`). Target feature Pull Requests at `develop`, and open a reviewed Pull Request from `develop` to `main` after integration QA.
+- Follow the branch flow: create scoped `chore/*`, `fix/*`, or `feature/<member>-<module>` branches from the latest `main`, then open a reviewed Pull Request back into `main` after GitHub Actions CI and the Vercel preview pass. `main` deploys to production (`https://firereach-medan.vercel.app`); `develop` and older feature branches are kept only as history.
 - Only repository owner Fikri manages GitHub collaborator invitations (`Settings > Collaborators`).
 - Never apply remote Supabase migrations, modify remote Supabase RLS/settings, or deploy to Vercel without explicit owner approval.
