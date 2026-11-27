@@ -22,22 +22,22 @@ import * as stationCoverage from "../../src/features/station-coverage/index.js";
 import * as priorityPlanner from "../../src/features/priority-planner/index.js";
 
 describe("feature-registry contract", () => {
-  it("registers all four modules with exact owners and initial non-active statuses", () => {
+  it("registers all four modules with exact owners and ACTIVE production status", () => {
     expect(FEATURE_REGISTRY).toHaveLength(4);
     expect(getFeatureById("incident-explorer")?.owner).toBe("Fikri");
-    expect(getFeatureById("incident-explorer")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
+    expect(getFeatureById("incident-explorer")?.status).toBe(FEATURE_STATUSES.ACTIVE);
 
     expect(getFeatureById("hotspot-analyzer")?.owner).toBe("Adeptri");
-    expect(getFeatureById("hotspot-analyzer")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
+    expect(getFeatureById("hotspot-analyzer")?.status).toBe(FEATURE_STATUSES.ACTIVE);
 
     expect(getFeatureById("station-coverage")?.owner).toBe("Adriel");
-    expect(getFeatureById("station-coverage")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
+    expect(getFeatureById("station-coverage")?.status).toBe(FEATURE_STATUSES.ACTIVE);
 
     expect(getFeatureById("priority-planner")?.owner).toBe("Olo");
-    expect(getFeatureById("priority-planner")?.status).toBe(FEATURE_STATUSES.IN_DEVELOPMENT);
+    expect(getFeatureById("priority-planner")?.status).toBe(FEATURE_STATUSES.ACTIVE);
 
     for (const item of FEATURE_REGISTRY) {
-      expect(item.status).not.toBe(FEATURE_STATUSES.ACTIVE);
+      expect(item.status).toBe(FEATURE_STATUSES.ACTIVE);
     }
   });
 

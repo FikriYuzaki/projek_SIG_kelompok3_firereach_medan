@@ -5,12 +5,10 @@ import {
   CATEGORY_LABELS,
   classifyChoroplethTier,
   computeChoroplethBreaks,
-  filterDemoRecords,
   filterIndependentCandidates,
   filterOfficialRows,
   filterSupabasePoints,
   getDominantCategory,
-  loadDemoContractFixture,
   loadExplorerDatasets,
   normalizeDistrictName,
   shouldResetMapExtent
@@ -34,12 +32,12 @@ function escapeHtml(value) {
 
 function renderBadge(status) {
   if (status === "verified") {
-    return `<span class="status-badge status-badge--active">[+] verified</span>`;
+    return `<span class="status-badge status-badge--active">Terverifikasi Resmi</span>`;
   }
   if (status === "needs_review") {
-    return `<span class="status-badge status-badge--dev">[~] needs_review</span>`;
+    return `<span class="status-badge status-badge--dev">Katalog Publik (needs_review)</span>`;
   }
-  return `<span class="status-badge status-badge--demo">[!] ${escapeHtml(status || "unlocated")}</span>`;
+  return `<span class="status-badge status-badge--warn">${escapeHtml(status || "unlocated")}</span>`;
 }
 
 function formatSourceLinkLabel(url, fallbackIndex = 1) {
@@ -74,25 +72,6 @@ function getRowKey(row, isDemoMode) {
 function buildDetailHtml({ row, state, format, categoryLabels }) {
   if (!row) {
     return { html: `<dt>Status</dt><dd>Belum ada baris terpilih</dd>`, qaNote: "", previewType: "umum" };
-  }
-
-  if (state.demoMode) {
-    const hasCoords = typeof row.lat === "number" && typeof row.lon === "number";
-    return {
-      html: `
-        <dt>ID Record (DEMO)</dt><dd class="mono">${escapeHtml(row.source_record_id)}</dd>
-        <dt>Kecamatan</dt><dd>${escapeHtml(row.district_name || "-")}</dd>
-        <dt>Alamat Perkiraan</dt><dd>${escapeHtml(row.address_text || "-")}</dd>
-        <dt>Objek</dt><dd>${escapeHtml(row.object_type || "-")}</dd>
-        <dt>Penyebab</dt><dd>${escapeHtml(row.cause_category || "Belum terverifikasi")}</dd>
-        <dt>Akurasi Lokasi</dt><dd class="mono">${escapeHtml(row.location_accuracy)}</dd>
-        <dt>Status</dt><dd>${renderBadge(`DEMO: ${row.verification_status}`)}</dd>
-        <dt>Geometri</dt><dd class="mono">${hasCoords ? `${row.lat}, ${row.lon}` : "geom = null (unlocated)"}</dd>
-        <dt>Sumber Data</dt><dd>${escapeHtml(row.source_name)}</dd>
-      `,
-      qaNote: "Fixture DEMO ini hanya menguji skema record individual; tidak termasuk statistik resmi Kota Medan.",
-      previewType: row.object_type || "umum"
-    };
   }
 
   if (state.period === "2023-dampak") {
@@ -292,9 +271,6 @@ function buildDetailHtml({ row, state, format, categoryLabels }) {
 }
 
 function getExplorerChartTitle(state) {
-  if (state.demoMode && state.demoFixture) {
-    return "Contoh Sebaran Record Kontrak (DATA DEMO)";
-  }
   if (state.period === "2023-dampak") {
     return "Bagaimana tren bulanan kejadian & korban kebakaran Tahun 2023?";
   }
@@ -325,9 +301,6 @@ function getExplorerChartTitle(state) {
 }
 
 function getExplorerTableTitle(state) {
-  if (state.demoMode && state.demoFixture) {
-    return "Tabel Kontrak Record Individual (DATA DEMO)";
-  }
   if (state.period === "2023-dampak") {
     return "Rekapitulasi Bulanan Dampak & Kerugian Kebakaran (2023)";
   }
@@ -747,22 +720,23 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       period: "2023-kecamatan",
       district: "semua",
       category: "semua",
+      publicYear: "semua",
+      publicSource: "semua",
+      publicAccuracy: "semua",
       search: "",
       sortBy: "default",
       selectedKey: null,
-      demoMode: false,
-      demoFixture: null,
       showSupabasePoints: true,
       unlocatedFilter: "semua"
     };
 
     const supabaseBadgeText = supabaseStatus.active
       ? supabaseStatus.partialLoad
-        ? `[!] Supabase Parsial (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
-        : `[+] Supabase Aktif (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
+        ? `Supabase Parsial (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
+        : `Supabase Aktif (${supabaseStatus.partitioned.verifiedLocated.length} titik)`
       : supabaseStatus.source === "local_fallback"
-        ? "[!] Fallback Lokal (Supabase gagal)"
-        : "[ ] Mode Lokal (Arsip Resmi)";
+        ? "Fallback Lokal (Supabase gagal)"
+        : "Mode Lokal (Arsip Resmi)";
     const hasSupabasePoints =
       supabaseStatus.active && (supabaseStatus.partitioned.verifiedLocated || []).length > 0;
 
@@ -771,16 +745,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         <div>
           <h1>${escapeHtml(manifest.title)}</h1>
           <p class="page-lead">
-            Eksplorasi data kejadian kebakaran Kota Medan resmi (2016 - 2025), pembanding BPBD, penyelamatan non-kebakaran, serta kandidat media independen secara terpisah.
+            Eksplorasi data kejadian kebakaran Kota Medan resmi (2016 - 2025), pembanding BPBD, penyelamatan non-kebakaran, serta ${services.format.number((summary.independent_incident_candidates?.records || []).length)} insiden terdokumentasi publik secara terpisah.
           </p>
         </div>
         <div class="explorer-header-actions">
-          <span class="status-badge status-badge--dev">[~] Dalam Pengembangan</span>
           <span class="status-badge status-badge--active" id="explorer-mode-badge">Mode: Data Resmi Damkarmat</span>
           <span class="status-badge status-badge--local" id="explorer-source-mode">${escapeHtml(supabaseBadgeText)}</span>
-          <button type="button" class="btn btn-secondary btn-sm" id="toggle-demo-mode" aria-pressed="false">
-            Pratinjau Kontrak Individual (DEMO)
-          </button>
         </div>
       </section>
 
@@ -813,7 +783,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
                 <option value="bpbd-2021-2023">2021 - 2023 (Pembanding BPBD Medan)</option>
                 <option value="bpbd-2022-2023-bulanan">2022 - 2023 (Pembanding Bulanan BPBD Medan)</option>
                 <option value="non-kebakaran-2023-2025">2023 - 2025 (Penyelamatan Non-Kebakaran)</option>
-                <option value="kandidat-independen">2024 - 2026 (Kandidat Media Independen - Perlu Review)</option>
+                <option value="kandidat-independen">2024 - 2026 (Insiden Terdokumentasi Publik)</option>
               </select>
             </div>
             <div class="field">
@@ -846,6 +816,34 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
             </div>
             <div>
               <button type="button" class="btn btn-secondary" id="filter-reset">Reset Filter</button>
+            </div>
+          </div>
+          <div class="filter-bar" id="explorer-public-filters" hidden style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
+            <div class="field">
+              <label for="filter-public-year">Tahun Insiden Publik</label>
+              <select id="filter-public-year">
+                <option value="semua">Semua Tahun (2024 - 2026)</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-public-source">Sumber Publikasi</label>
+              <select id="filter-public-source">
+                <option value="semua">Semua Sumber Publik</option>
+                <option value="p2k.medan.go.id">Portal Damkarmat (p2k.medan.go.id)</option>
+                <option value="antara">ANTARA Sumut</option>
+                <option value="detik">Detik Sumut</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-public-accuracy">Tingkat Akurasi Lokasi</label>
+              <select id="filter-public-accuracy">
+                <option value="semua">Semua Akurasi (34 Kejadian)</option>
+                <option value="approximate">Perkiraan Ruas OSM (approximate)</option>
+                <option value="district_only">Kecamatan Saja (district_only)</option>
+              </select>
             </div>
           </div>
           <p class="explorer-source-note ${supabaseStatus.truncated || supabaseStatus.partialLoad || supabaseStatus.source === "local_fallback" ? "explorer-source-note--warn" : ""}" id="explorer-supabase-note">${escapeHtml(supabaseStatus.note)}</p>
@@ -919,7 +917,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
     const modeBadgeEl = container.querySelector("#explorer-mode-badge");
     const bannerEl = container.querySelector("#explorer-granularity-banner");
-    const demoBtn = container.querySelector("#toggle-demo-mode");
     const tabVerifiedBtn = container.querySelector("#tab-verified");
     const tabUnlocatedBtn = container.querySelector("#tab-unlocated");
     const tabSimulationBtn = container.querySelector("#tab-simulation");
@@ -932,6 +929,10 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     const periodSel = container.querySelector("#filter-period");
     const districtSel = container.querySelector("#filter-district");
     const categorySel = container.querySelector("#filter-category");
+    const publicFiltersBar = container.querySelector("#explorer-public-filters");
+    const publicYearSel = container.querySelector("#filter-public-year");
+    const publicSourceSel = container.querySelector("#filter-public-source");
+    const publicAccuracySel = container.querySelector("#filter-public-accuracy");
     const searchInput = container.querySelector("#filter-search");
     const sortSel = container.querySelector("#filter-sort");
     const resetBtn = container.querySelector("#filter-reset");
@@ -978,7 +979,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
 
     function getMapLayerKey() {
-      return `${state.demoMode}|${state.period}|${state.district}|${state.category}|${state.search}|${state.showSupabasePoints}`;
+      return `${state.period}|${state.district}|${state.category}|${state.publicYear}|${state.publicSource}|${state.publicAccuracy}|${state.search}|${state.showSupabasePoints}`;
     }
 
     function computeDistrictFeatureStyle(feature) {
@@ -1020,7 +1021,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     function applySelectionUiOnly(selectedKey) {
       state.selectedKey = selectedKey;
       const found = activeRowsSnapshot.find(
-        (item) => getRowKey(item, state.demoMode || state.period === "kandidat-independen") === selectedKey
+        (item) => getRowKey(item, state.period === "kandidat-independen") === selectedKey
       );
       updateDetail(found);
 
@@ -1029,7 +1030,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         tr.classList.toggle("is-selected", tr.getAttribute("data-row-key") === selectedKey);
       });
 
-      if (!state.demoMode && districtGeoLayer) {
+      if (districtGeoLayer) {
         districtGeoLayer.setStyle((feature) => computeDistrictFeatureStyle(feature));
       }
     }
@@ -1194,14 +1195,9 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
     function updateModeBadge() {
       if (!modeBadgeEl) return;
-      if (state.demoMode && state.demoFixture) {
-        modeBadgeEl.className = "status-badge status-badge--demo";
-        modeBadgeEl.textContent = "Mode: DATA DEMO (Pratinjau Skema)";
-        return;
-      }
       if (state.period === "kandidat-independen") {
         modeBadgeEl.className = "status-badge status-badge--dev";
-        modeBadgeEl.textContent = "Mode: Kandidat Independen (needs_review)";
+        modeBadgeEl.textContent = "Mode: Insiden Terdokumentasi Publik";
         return;
       }
       if (state.period === "bpbd-2021-2023" || state.period === "bpbd-2022-2023-bulanan") {
@@ -1220,14 +1216,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
     function updateBanner() {
       updateModeBadge();
-      if (state.demoMode && state.demoFixture) {
-        bannerEl.className = "notice-banner notice-banner--demo";
-        bannerEl.innerHTML = `
-          <strong>DATA DEMO AKTIF:</strong> ${escapeHtml(state.demoFixture.notice)}
-          Menampilkan ${state.demoFixture.records.length} contoh kontrak record individual untuk pengujian skema UI.
-        `;
-        return;
-      }
 
       if (state.period === "2023-kecamatan") {
         bannerEl.className = "notice-banner";
@@ -1265,9 +1253,12 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
           <strong>Penyelamatan Non-Kebakaran Damkarmat (2023 - 2025):</strong> Berisi 2.218 operasi evakuasi non-kebakaran (ular, sarang tawon, cincin, kucing, dll.). Dipisahkan tegas dan tidak pernah dihitung ke jumlah kebakaran (<code>geom = null</code>).
         `;
       } else if (state.period === "kandidat-independen") {
+        const pubRecords = summary.independent_incident_candidates?.records || [];
+        const approxCount = pubRecords.filter((r) => typeof r.lat === "number" && typeof r.lon === "number").length;
+        const distOnlyCount = pubRecords.length - approxCount;
         bannerEl.className = "notice-banner notice-banner--warn";
         bannerEl.innerHTML = `
-          <strong>Kandidat Media Independen (Belum Terverifikasi / Non-KDE):</strong> Berisi 27 kejadian unik hasil deduplikasi dari 35 artikel berita terbuka (ANTARA Sumut &amp; Detik Sumut) dan 6 kandidat pos UPT. Hanya 17 kejadian memiliki titik perkiraan ruas/landmark (<code>approximate</code>) dan 10 kejadian tetap <code>geom = null</code>; tidak menggantikan data resmi Damkarmat.
+          <strong>Katalog Insiden Terdokumentasi Publik (Terpisah dari Rekap Resmi):</strong> Berisi ${services.format.number(pubRecords.length)} kejadian unik terkurasi dari Portal Damkarmat Medan (p2k.medan.go.id), ANTARA Sumut, dan Detik Sumut beserta 6 kandidat pos UPT. Sebanyak ${services.format.number(approxCount)} kejadian memiliki perkiraan koordinat ruas OSM (<code>approximate</code>) dan ${services.format.number(distOnlyCount)} tetap <code>district_only</code> (<code>geom = null</code>).
         `;
       } else {
         const yr = state.period === "2024-bulanan" ? "2024" : "2025";
@@ -1294,27 +1285,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
       chartEmptyEl.hidden = true;
       chartFrameEl.hidden = false;
-
-      if (state.demoMode && state.demoFixture) {
-        const counts = {};
-        for (const r of rows) {
-          const d = r.district_name || "Tidak Tercatat";
-          counts[d] = (counts[d] || 0) + 1;
-        }
-        chartHandle = services.charts.createChart(chartCanvas, {
-          type: "bar",
-          data: {
-            labels: Object.keys(counts),
-            datasets: [{ label: "Record DEMO", data: Object.values(counts), backgroundColor: "#B84A35" }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-          }
-        });
-        return;
-      }
 
       if (state.period === "2023-dampak") {
         chartHandle = services.charts.createChart(chartCanvas, {
@@ -1521,41 +1491,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       districtGeoLayer = null;
 
       if (supabaseLayerBarEl) {
-        supabaseLayerBarEl.hidden = state.demoMode || state.period === "kandidat-independen" || !hasSupabasePoints;
-      }
-
-      if (state.demoMode && state.demoFixture) {
-        mapTitleEl.textContent = "Peta Kontrak Titik Individual (DATA DEMO)";
-        legendEl.innerHTML = `
-          <span class="legend-item"><span class="legend-swatch" style="background: #B84A35; border-radius: 50%;"></span> Titik perkiraan DEMO</span>
-          <span class="legend-item"><span class="legend-swatch" style="background: #356067; border-radius: 50%;"></span> Mako 0.0 Terverifikasi</span>
-        `;
-        provenanceEl.innerHTML = `<span>Sumber: Fixture kontrak DEMO (bukan data resmi) &amp; batas OSM (&copy; OpenStreetMap contributors)</span>`;
-
-        const boundary = L.geoJSON(districtsGeoJson, {
-          style: { color: "#6E7A7D", weight: 1, fillOpacity: 0.08 }
-        }).addTo(dynamicOverlay);
-
-        for (const r of rows) {
-          if (typeof r.lat === "number" && typeof r.lon === "number") {
-            L.circleMarker([r.lat, r.lon], {
-              radius: 9,
-              color: "#202A2D",
-              weight: 2,
-              fillColor: "#B84A35",
-              fillOpacity: 0.9
-            })
-              .bindPopup(
-                `<strong>${escapeHtml(r.source_record_id)} (DEMO)</strong><br/>${escapeHtml(r.address_text)}<br/>Objek: ${escapeHtml(r.object_type)}`
-              )
-              .on("click", () => applySelectionUiOnly(r.source_record_id))
-              .addTo(dynamicOverlay);
-          }
-        }
-        if (fitExtent) {
-          services.maps.fitBounds(mapHandle.map, boundary);
-        }
-        return;
+        supabaseLayerBarEl.hidden = state.period === "kandidat-independen" || !hasSupabasePoints;
       }
 
       if (state.period === "kandidat-independen") {
@@ -1818,11 +1754,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     function renderTable(rows) {
       tableTitleEl.textContent = getExplorerTableTitle(state);
       if (!rows.length) {
-        tableCountEl.textContent = state.demoMode
-          ? "0 record DEMO"
-          : state.period === "kandidat-independen"
-            ? "0 kandidat"
-            : "0 baris";
+        tableCountEl.textContent = state.period === "kandidat-independen" ? "0 catatan" : "0 baris";
         tableWrapEl.replaceChildren(
           renderStatePanel({
             variant: "empty",
@@ -1835,50 +1767,10 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         return;
       }
 
-      if (state.demoMode && state.demoFixture) {
-        tableCountEl.textContent = `${rows.length} record DEMO`;
-        tableWrapEl.innerHTML = `
-          <div class="table-scroll">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID Record</th>
-                  <th>Tanggal</th>
-                  <th>Kecamatan</th>
-                  <th>Alamat Perkiraan</th>
-                  <th>Objek</th>
-                  <th>Akurasi</th>
-                  <th>Geometri</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows
-                  .map(
-                    (r) => `
-                  <tr data-interactive="true" data-row-key="${escapeHtml(r.source_record_id)}" tabindex="0" class="${state.selectedKey === r.source_record_id ? "is-selected" : ""}">
-                    <td class="mono">${escapeHtml(r.source_record_id)}</td>
-                    <td class="mono">${services.format.date(r.occurred_at)}</td>
-                    <td><strong>${escapeHtml(r.district_name || "-")}</strong></td>
-                    <td>${escapeHtml(r.address_text || "-")}</td>
-                    <td>${escapeHtml(r.object_type || "-")}</td>
-                    <td class="mono">${escapeHtml(r.location_accuracy)}</td>
-                    <td class="mono">${typeof r.lat === "number" ? "Point" : "null"}</td>
-                    <td><span class="status-badge status-badge--demo">DEMO (${escapeHtml(r.verification_status)})</span></td>
-                  </tr>
-                `
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
-      } else {
-        const view = buildOfficialTableMarkup({ rows, state, format: services.format });
-        tableTitleEl.textContent = view.title;
-        tableCountEl.textContent = view.count;
-        tableWrapEl.innerHTML = view.html;
-      }
+      const view = buildOfficialTableMarkup({ rows, state, format: services.format });
+      tableTitleEl.textContent = view.title;
+      tableCountEl.textContent = view.count;
+      tableWrapEl.innerHTML = view.html;
 
       const rowEls = tableWrapEl.querySelectorAll("tr[data-row-key]");
       rowEls.forEach((tr) => {
@@ -1907,7 +1799,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
 
     function renderUptCandidatesPanel() {
       if (!uptCandidatesPanelEl) return;
-      if (state.demoMode || state.period !== "kandidat-independen") {
+      if (state.period !== "kandidat-independen") {
         uptCandidatesPanelEl.hidden = true;
         uptCandidatesPanelEl.innerHTML = "";
         return;
@@ -1988,17 +1880,6 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
 
     function renderMetrics(rows) {
-      if (state.demoMode && state.demoFixture) {
-        const located = rows.filter((r) => typeof r.lat === "number").length;
-        metricsEl.innerHTML = `
-          <div class="metric-box"><div class="metric-label">Record DEMO Ditampilkan</div><div class="metric-value">${rows.length}</div></div>
-          <div class="metric-box"><div class="metric-label">Memiliki Koordinat Perkiraan</div><div class="metric-value">${located}</div></div>
-          <div class="metric-box"><div class="metric-label">Belum Terlokasi (DEMO)</div><div class="metric-value">${rows.length - located}</div></div>
-          <div class="metric-box"><div class="metric-label">Label Status</div><div class="metric-value">DEMO</div></div>
-        `;
-        return;
-      }
-
       if (state.period === "kandidat-independen") {
         const approxCount = rows.filter((r) => typeof r.lat === "number").length;
         metricsEl.innerHTML = `
@@ -2074,49 +1955,49 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     }
 
     function syncView() {
+      const isPublicMode = state.period === "kandidat-independen";
       const supportsDistrict =
-        !state.demoMode &&
-        (state.period === "2023-kecamatan" ||
-          state.period === "bpbd-2021-2023" ||
-          state.period === "kandidat-independen");
+        state.period === "2023-kecamatan" ||
+        state.period === "bpbd-2021-2023" ||
+        isPublicMode;
       const supportsCategory =
-        !state.demoMode &&
-        (state.period === "2023-kecamatan" ||
-          state.period === "2024-bulanan" ||
-          state.period === "2025-bulanan" ||
-          state.period === "kandidat-independen");
+        state.period === "2023-kecamatan" ||
+        state.period === "2024-bulanan" ||
+        state.period === "2025-bulanan" ||
+        isPublicMode;
 
       districtSel.disabled = !supportsDistrict;
-      periodSel.disabled = state.demoMode;
+      periodSel.disabled = false;
       categorySel.disabled = !supportsCategory;
-      sortSel.disabled = state.demoMode;
+      sortSel.disabled = false;
+      if (publicFiltersBar) {
+        publicFiltersBar.hidden = !isPublicMode;
+      }
 
       updateBanner();
 
-      const activeRows =
-        state.demoMode && state.demoFixture
-          ? filterDemoRecords(state.demoFixture.records, {
-              search: state.search
-            })
-          : state.period === "kandidat-independen"
-            ? filterIndependentCandidates(summary.independent_incident_candidates?.records || [], {
-                district: state.district,
-                category: state.category,
-                search: state.search,
-                sortBy: state.sortBy
-              })
-            : filterOfficialRows({
-                summary,
-                period: state.period,
-                district: state.district,
-                category: state.category,
-                search: state.search,
-                sortBy: state.sortBy
-              });
+      const activeRows = isPublicMode
+        ? filterIndependentCandidates(summary.independent_incident_candidates?.records || [], {
+            district: state.district,
+            category: state.category,
+            year: state.publicYear,
+            source: state.publicSource,
+            accuracy: state.publicAccuracy,
+            search: state.search,
+            sortBy: state.sortBy
+          })
+        : filterOfficialRows({
+            summary,
+            period: state.period,
+            district: state.district,
+            category: state.category,
+            search: state.search,
+            sortBy: state.sortBy
+          });
 
       activeRowsSnapshot = activeRows;
 
-      const isRecordKeyMode = state.demoMode || state.period === "kandidat-independen";
+      const isRecordKeyMode = isPublicMode;
       if (!state.selectedKey || !activeRows.some((r) => getRowKey(r, isRecordKeyMode) === state.selectedKey)) {
         state.selectedKey = activeRows[0] ? getRowKey(activeRows[0], isRecordKeyMode) : null;
       }
@@ -2126,7 +2007,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       renderMetrics(activeRows);
       const nextLayerKey = getMapLayerKey();
       const nextExtentCtx = {
-        demoMode: state.demoMode,
+        demoMode: false,
         period: state.period,
         district: state.district
       };
@@ -2135,7 +2016,7 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
         lastMapLayerKey = nextLayerKey;
         lastExtentCtx = nextExtentCtx;
         renderMapAndLegend(activeRows, { fitExtent: shouldFit });
-      } else if (!state.demoMode && districtGeoLayer && isChoroplethPeriod()) {
+      } else if (districtGeoLayer && isChoroplethPeriod()) {
         districtGeoLayer.setStyle((feature) => computeDistrictFeatureStyle(feature));
       }
       renderChart(activeRows);
@@ -2148,12 +2029,18 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
       state.period = "2023-kecamatan";
       state.district = "semua";
       state.category = "semua";
+      state.publicYear = "semua";
+      state.publicSource = "semua";
+      state.publicAccuracy = "semua";
       state.search = "";
       state.sortBy = "default";
       state.selectedKey = null;
       periodSel.value = state.period;
       districtSel.value = state.district;
       categorySel.value = state.category;
+      if (publicYearSel) publicYearSel.value = "semua";
+      if (publicSourceSel) publicSourceSel.value = "semua";
+      if (publicAccuracySel) publicAccuracySel.value = "semua";
       searchInput.value = "";
       sortSel.value = state.sortBy;
       syncView();
@@ -2287,42 +2174,39 @@ export async function renderIncidentExplorer({ container, services, manifest }) 
     tabUnlocatedBtn.addEventListener("keydown", handleTabKey, { signal: ac.signal });
     tabSimulationBtn.addEventListener("keydown", handleTabKey, { signal: ac.signal });
 
-    demoBtn.addEventListener(
-      "click",
-      async () => {
-        if (!state.demoMode) {
-          demoBtn.disabled = true;
-          demoBtn.setAttribute("aria-busy", "true");
-          try {
-            if (!state.demoFixture) {
-              const loaded = await loadDemoContractFixture(services);
-              if (!isMounted) return;
-              state.demoFixture = loaded;
-            }
-            state.demoMode = true;
-            state.selectedKey = null;
-            demoBtn.textContent = "Kembali ke Data Resmi";
-            demoBtn.setAttribute("aria-pressed", "true");
-            switchTab("verified");
-            syncView();
-          } catch (err) {
-            if (isMounted) services.notify.show(err.message, "error");
-          } finally {
-            if (isMounted) {
-              demoBtn.disabled = false;
-              demoBtn.removeAttribute("aria-busy");
-            }
-          }
-        } else {
-          state.demoMode = false;
+    if (publicYearSel) {
+      publicYearSel.addEventListener(
+        "change",
+        () => {
+          state.publicYear = publicYearSel.value;
           state.selectedKey = null;
-          demoBtn.textContent = "Pratinjau Kontrak Individual (DEMO)";
-          demoBtn.setAttribute("aria-pressed", "false");
           syncView();
-        }
-      },
-      { signal: ac.signal }
-    );
+        },
+        { signal: ac.signal }
+      );
+    }
+    if (publicSourceSel) {
+      publicSourceSel.addEventListener(
+        "change",
+        () => {
+          state.publicSource = publicSourceSel.value;
+          state.selectedKey = null;
+          syncView();
+        },
+        { signal: ac.signal }
+      );
+    }
+    if (publicAccuracySel) {
+      publicAccuracySel.addEventListener(
+        "change",
+        () => {
+          state.publicAccuracy = publicAccuracySel.value;
+          state.selectedKey = null;
+          syncView();
+        },
+        { signal: ac.signal }
+      );
+    }
 
     renderUnlocatedTab();
     syncView();

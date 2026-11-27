@@ -21,8 +21,8 @@ vi.mock("leaflet", () => ({
 
 import {
   BOUNDARY_PROVENANCE,
+  EXPLORATORY_HOTSPOT_OUTPUT_URL,
   MEDAN_BOUNDS,
-  RUNTIME_DEMO_FIXTURE_URL,
   VERIFIED_HOTSPOT_OUTPUT_URL,
   extractValidMedanPoint,
   filterHotspotZones,
@@ -442,46 +442,24 @@ describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/mal
     expect(result.zones[0].dataLabel).toBe("TERVERIFIKASI");
   });
 
-  it("menolak output resmi yang berlabel DEMO atau isDemo=true dan jatuh aman ke fixture DEMO", async () => {
+  it("menolak output resmi yang berlabel DEMO atau malformed secara eksplisit tanpa fallback ke DEMO", async () => {
     const disguisedDemo = makeValidVerifiedOutput({ isDemo: true, dataLabel: "  demo " });
-    const demoFixture = {
-      isDemo: true,
-      dataLabel: "DEMO",
-      notice: "Fixture DEMO resmi",
-      analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647", incident_count_used: 0 },
-      zones: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: { isDemo: true, dataLabel: "DEMO", zone_id: "demo-1", density_class: "Tinggi (DEMO)", density_rank: 3, area_km2: 2.1 },
-            geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
-          }
-        ]
-      }
-    };
-
     const services = {
       dataStatus: {
         fetchJson: vi.fn(async (relPath) => {
           if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
           if (relPath === "hotspot-analyzer.verified.geojson") return disguisedDemo;
-          if (relPath === "demo/hotspot-analyzer.demo.json") return demoFixture;
           return null;
         })
       }
     };
 
-    const result = await loadHotspotZones(services, { forceVerifiedFetch: true });
-    expect(result.verifiedLoadStatus).toBe("rejected");
-    expect(result.verifiedValidationErrors.length).toBeGreaterThan(0);
-    expect(result.isDemo).toBe(true);
-    expect(result.dataLabel).toBe("DEMO");
-    expect(result.sourceMode).toBe("demo");
-    expect(result.zones[0].zone_id).toBe("demo-1");
+    await expect(loadHotspotZones(services, { forceVerifiedFetch: true })).rejects.toThrow(
+      /Output KDE terverifikasi ditolak validasi/i
+    );
   });
 
-  it("menolak output resmi yang malformed (FeatureCollection kosong, metadata hilang, kelas konflik) serta menjaga label fixture tetap DEMO", async () => {
+  it("memuat output KDE eksploratif 22 titik dan menolak output malformed secara eksplisit", async () => {
     const malformed = {
       type: "FeatureCollection",
       isDemo: false,
@@ -491,79 +469,43 @@ describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/mal
     };
     expect(validateVerifiedHotspotOutput(malformed).valid).toBe(false);
 
-    // Bahkan jika file demo mencoba menyamar sebagai non-DEMO, loadHotspotZones tetap memaksa status DEMO
-    const tamperedDemoFixture = {
-      isDemo: false,
-      dataLabel: "TERVERIFIKASI",
-      analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647" },
-      zones: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: { isDemo: false, dataLabel: "TERVERIFIKASI", zone_id: "demo-tamper", density_class: "Tinggi", density_rank: 3, area_km2: 2.4 },
-            geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
-          }
-        ]
-      }
-    };
-
-    const services = {
+    const malformedServices = {
       dataStatus: {
         fetchJson: vi.fn(async (relPath) => {
           if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
           if (relPath === "hotspot-analyzer.verified.geojson") return malformed;
-          if (relPath === "demo/hotspot-analyzer.demo.json") return tamperedDemoFixture;
           return null;
         })
       }
     };
+    await expect(loadHotspotZones(malformedServices, { forceVerifiedFetch: true })).rejects.toThrow(
+      /Output KDE terverifikasi ditolak validasi/i
+    );
 
-    const result = await loadHotspotZones(services, { forceVerifiedFetch: true });
-    expect(result.verifiedLoadStatus).toBe("rejected");
-    expect(result.isDemo).toBe(true);
-    expect(result.dataLabel).toBe("DEMO");
-    expect(result.zones[0].isDemo).toBe(true);
-    expect(result.zones[0].dataLabel).toBe("DEMO");
-  });
-
-  it("fallback ke fixture DEMO saat output resmi tidak tersedia di manifest maupun saat fetch gagal", async () => {
-    const demoServices = {
+    const realExploratory = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "public/data/hotspot-analyzer.exploratory.geojson"), "utf-8")
+    );
+    const expServices = {
       dataStatus: {
         getManifest: vi.fn(async () => ({
           ok: true,
-          manifest: { verified_outputs: { "hotspot-analyzer": { available: false } } }
+          manifest: { verified_outputs: { "hotspot-analyzer": { available: true, status: "exploratory" } } }
         })),
         fetchJson: vi.fn(async (relPath) => {
           if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
-          if (relPath === "demo/hotspot-analyzer.demo.json") {
-            return {
-              isDemo: true,
-              dataLabel: "DEMO",
-              notice: "Demo runtime",
-              analysis: { kernel_method: "Quartic", bandwidth_meters: 1000, pixel_size_meters: 100, working_crs: "EPSG:32647", incident_count_used: 0 },
-              zones: {
-                type: "FeatureCollection",
-                features: [
-                  {
-                    type: "Feature",
-                    properties: { isDemo: true, dataLabel: "DEMO", zone_id: "demo-hotspot-1", density_class: "Tinggi (DEMO)", density_rank: 3, area_km2: 2.4 },
-                    geometry: { type: "Polygon", coordinates: [[[98.67, 3.58], [98.68, 3.58], [98.68, 3.59], [98.67, 3.58]]] }
-                  }
-                ]
-              }
-            };
-          }
-          throw new Error("404 Not Found");
+          if (relPath === "hotspot-analyzer.exploratory.geojson") return realExploratory;
+          throw new Error(`Unexpected path: ${relPath}`);
         })
       }
     };
 
-    const demoResult = await loadHotspotZones(demoServices);
-    expect(demoResult.usedFallback).toBe(false);
-    expect(demoResult.fixturePath).toBe(RUNTIME_DEMO_FIXTURE_URL);
-    expect(demoResult.isDemo).toBe(true);
-    expect(demoResult.dataLabel).toBe("DEMO");
+    const expResult = await loadHotspotZones(expServices);
+    expect(expResult.usedFallback).toBe(false);
+    expect(expResult.fixturePath).toBe(EXPLORATORY_HOTSPOT_OUTPUT_URL);
+    expect(expResult.isDemo).toBe(false);
+    expect(expResult.sourceMode).toBe("exploratory");
+    expect(expResult.analysis.incident_count_used).toBe(22);
+    expect(expResult.zones.length).toBeGreaterThan(0);
 
     const offlineServices = {
       dataStatus: {
@@ -572,12 +514,7 @@ describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/mal
         })
       }
     };
-
-    const offlineResult = await loadHotspotZones(offlineServices);
-    expect(offlineResult.usedFallback).toBe(true);
-    expect(offlineResult.isDemo).toBe(true);
-    expect(offlineResult.dataLabel).toBe("DEMO");
-    expect(offlineResult.zones.length).toBeGreaterThan(0);
+    await expect(loadHotspotZones(offlineServices)).rejects.toThrow(/404 Not Found/);
   });
 
   it("membersihkan instance map dan chart saat modul di-unmount", async () => {
@@ -603,6 +540,9 @@ describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/mal
       replaceChildren: vi.fn()
     };
 
+    const realExploratory = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "public/data/hotspot-analyzer.exploratory.geojson"), "utf-8")
+    );
     const services = {
       format: { number: (n) => String(n) },
       maps: {
@@ -613,7 +553,13 @@ describe("hotspot-analyzer P2: integrasi output resmi, penolakan output DEMO/mal
         createChart: vi.fn(() => ({ destroy: chartDestroy }))
       },
       dataStatus: {
-        fetchJson: vi.fn(async () => {
+        getManifest: vi.fn(async () => ({
+          ok: true,
+          manifest: { verified_outputs: { "hotspot-analyzer": { available: true, status: "exploratory" } } }
+        })),
+        fetchJson: vi.fn(async (relPath) => {
+          if (relPath === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+          if (relPath === "hotspot-analyzer.exploratory.geojson") return realExploratory;
           throw new Error("offline");
         })
       }

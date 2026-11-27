@@ -1,27 +1,28 @@
 :root {
-  /* Core palette (verified WCAG AA in DESIGN.md) */
-  --color-paper: #F4F2EC;
-  --color-surface: #FFFFFF;
-  --color-surface-subtle: #ECEAE2;
-  --color-ink: #202A2D;
-  --color-ink-muted: #556164;
+  /* UI UX Pro Max adapted Warm Editorial + Geospatial Intelligence palette (WCAG AA) */
+  --color-paper: #FAF6F0;
+  --color-surface: #FFFDF9;
+  --color-surface-subtle: #F3ECE2;
+  --color-ink: #1F2421;
+  --color-ink-muted: #525B56;
 
-  /* Semantic accents */
-  --color-ember: #B84A35;
-  --color-ember-hover: #9A3B29;
-  --color-ember-tint: #F9ECE8;
-  --color-river: #477A82;
-  --color-river-text: #356067;
-  --color-river-tint: #EAF2F3;
-  --color-amber-swatch: #D58A43;
-  --color-amber-text: #8A5218;
-  --color-amber-tint: #FBF2E6;
+  /* Semantic accents: Terracotta Crimson, Spatial River Teal, Ochre Gold */
+  --color-ember: #B83B28;
+  --color-ember-hover: #962E1E;
+  --color-ember-tint: #FCECE8;
+  --color-river: #3D6E76;
+  --color-river-text: #2C555C;
+  --color-river-tint: #E8F1F2;
+  --color-amber-swatch: #D98A36;
+  --color-amber-text: #8A5212;
+  --color-amber-tint: #FCF2E3;
 
   /* Structural borders */
-  --color-border: #D9DEDA;
-  --color-border-strong: #6E7A7D;
+  --color-border: #DDD5CA;
+  --color-border-strong: #6A635B;
 
-  /* Typography */
+  /* Typography: Playfair Display editorial headings + Plus Jakarta Sans UI + IBM Plex Mono */
+  --font-display: "Playfair Display", Georgia, serif;
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -29,8 +30,8 @@
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
-  --text-h2: clamp(1.15rem, 1.05rem + 0.4vw, 1.375rem);
-  --text-h1: clamp(1.45rem, 1.2rem + 1vw, 2rem);
+  --text-h2: clamp(1.2rem, 1.08rem + 0.45vw, 1.45rem);
+  --text-h1: clamp(1.55rem, 1.28rem + 1.05vw, 2.15rem);
 
   /* Spacing scale */
   --space-1: 0.25rem;
@@ -41,12 +42,13 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  /* Deliberate radius variation (no all-pill default) */
+  /* Deliberate radius variation */
   --radius-control: 4px;
   --radius-button: 6px;
-  --radius-panel: 8px;
+  --radius-panel: 10px;
 
-  /* Selective elevation only for floating drawer and overlays */
-  --shadow-overlay: 0 4px 16px rgba(32, 42, 45, 0.12);
-  --transition-fast: 150ms ease;
+  /* Selective elevation */
+  --shadow-subtle: 0 1px 3px rgba(31, 36, 33, 0.05);
+  --shadow-overlay: 0 6px 20px rgba(31, 36, 33, 0.12);
+  --transition-fast: 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }

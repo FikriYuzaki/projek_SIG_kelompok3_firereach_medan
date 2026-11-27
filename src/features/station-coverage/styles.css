@@ -88,11 +88,11 @@
   }
 
   .coverage-filter-bar > :nth-child(1) {
-    grid-column: span 7;
+    grid-column: span 6;
   }
 
   .coverage-filter-bar > :nth-child(2) {
-    grid-column: span 5;
+    grid-column: span 6;
   }
 
   .coverage-filter-bar > :nth-child(3) {
@@ -100,14 +100,18 @@
   }
 
   .coverage-filter-bar > :nth-child(4) {
-    grid-column: span 6;
+    grid-column: span 3;
   }
 
   .coverage-filter-bar > :nth-child(5) {
+    grid-column: span 3;
+  }
+
+  .coverage-filter-bar > :nth-child(6) {
     grid-column: span 2;
   }
 
-  .coverage-filter-bar > :nth-child(5) .btn {
+  .coverage-filter-bar > :nth-child(6) .btn {
     width: 100%;
   }
 }
@@ -327,4 +331,31 @@ table.data-table.coverage-inventory-table thead th {
 .coverage-delta-zero {
   color: var(--color-ink-muted);
   font-weight: 400;
+}
+
+.coverage-partition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.coverage-partition-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface-subtle);
+  padding: var(--space-3);
+}
+
+.coverage-partition-card strong {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-1);
+}
+
+.coverage-partition-card .mono {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-ink);
 }

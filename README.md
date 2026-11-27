@@ -15,10 +15,10 @@ Web GIS application for **Fire Incident Mapping & Emergency Service Coverage Ana
 
 | Member | Module ID | Folder | Registry Status |
 |---|---|---|---|
-| Fikri | `incident-explorer` + App Shell | `src/features/incident-explorer/`, `src/core/`, `src/router/`, `src/components/` | `in-development` |
-| Adeptri | `hotspot-analyzer` | `src/features/hotspot-analyzer/` | `coming-soon` |
-| Adriel | `station-coverage` | `src/features/station-coverage/` | `coming-soon` |
-| Olo | `priority-planner` | `src/features/priority-planner/` | `coming-soon` |
+| Fikri | `incident-explorer` + App Shell | `src/features/incident-explorer/`, `src/core/`, `src/router/`, `src/components/` | `active` |
+| Adeptri | `hotspot-analyzer` | `src/features/hotspot-analyzer/` | `active` |
+| Adriel | `station-coverage` | `src/features/station-coverage/` | `active` |
+| Olo | `priority-planner` | `src/features/priority-planner/` | `active` |
 
 ## Quick Start (Local Mode)
 

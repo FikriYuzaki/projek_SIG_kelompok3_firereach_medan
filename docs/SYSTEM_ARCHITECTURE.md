@@ -30,13 +30,13 @@ Browser Client (Vite + Vanilla JS ES Modules)
    - Owns top bar, navigation rail / mobile drawer, route matching, and `<main>` focus management.
    - Awaits the previous route's `unmount()` cleanup before loading and mounting the next module.
 2. **Feature Registry (`src/core/feature-registry.js`)**:
-   - Single authoritative registry listing all four modules, owners, routes, and activation states (`coming-soon`, `in-development`, `ready-for-review`, `active`, `blocked`).
-   - Prevents unfinished modules from being mounted prematurely by routing `coming-soon` / `blocked` items to `src/components/coming-soon.js`.
+   - Single authoritative registry listing all four modules, owners, routes, and activation states (all 4 modules set to `active` for production release `2026-11-27-prod`).
+   - Supports guarded fallback routes via `src/components/coming-soon.js` if any module is ever temporarily disabled in maintenance.
 3. **Shared Services (`src/core/`)**:
    - `supabase.js`: Safe `@supabase/supabase-js` client initialized strictly from `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, falling back cleanly to local-only mode when unconfigured.
    - `map/index.js`: Shared Leaflet factory defaulting to Kota Medan (`3.5952, 98.6722`) with lifecycle tracking so every map instance is destroyed on `unmount()`.
    - `charts.js`: Shared Chart.js wrapper registering only required chart controllers and tracking active instances for cleanup.
-   - `data-status.js`: Reads published dataset snapshots (`manifest`, `fire_incidents_summary`, `medan_districts_osm`, `station_coverage_provisional`, `priority_planner_provisional`) from Supabase `public.app_data_snapshots` with automatic fallback to `public/data/` JSON files, while keeping `DEMO` fixtures strictly local.
+   - `data-status.js`: Reads published dataset snapshots (`manifest`, `fire_incidents_summary`, `medan_districts_osm`, `station_coverage_provisional`, `priority_planner_provisional`) from Supabase `public.app_data_snapshots` with automatic schema verification (`release_version: 2026-11-27-prod`, `34` public incidents, `per_station_coverage`, `priority-v2.0-integrated`) and fallback to `public/data/` JSON files. No runtime DEMO fixtures exist in `public/data/`.
 
 ## 3. Three.js Bounded Role
 

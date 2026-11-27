@@ -643,10 +643,6 @@ export async function loadExplorerDatasets(services) {
   };
 }
 
-export async function loadDemoContractFixture(services) {
-  return services.dataStatus.fetchJson("demo/incident-explorer-sample.demo.json");
-}
-
 function getSourceRowsForPeriod(summary, period) {
   if (period === "2023-kecamatan") return summary.district_2023 || [];
   if (period === "2023-dampak") return summary.monthly_2023_impact || [];
@@ -739,10 +735,21 @@ export function filterOfficialRows({
 
 export function filterIndependentCandidates(
   records = [],
-  { district = "semua", category = "semua", search = "", sortBy = "default" } = {}
+  {
+    district = "semua",
+    category = "semua",
+    year = "semua",
+    source = "semua",
+    accuracy = "semua",
+    search = "",
+    sortBy = "default"
+  } = {}
 ) {
   const query = String(search || "").replace(/\s+/g, " ").trim().toLowerCase();
   const targetDistrict = district !== "semua" ? normalizeDistrictName(district) : "semua";
+  const targetYear = String(year || "semua").trim();
+  const targetSource = String(source || "semua").trim().toLowerCase();
+  const targetAccuracy = String(accuracy || "semua").trim().toLowerCase();
 
   const filtered = (records || [])
     .map((item) => {
@@ -761,6 +768,17 @@ export function filterIndependentCandidates(
       if (category && category !== "semua") {
         const mapped = matchObjectTypeToCategory(rec.object_type) || rec.object_type;
         if (mapped !== category) return false;
+      }
+      if (targetYear !== "semua") {
+        const recYear = String(rec.period_year || String(rec.occurred_on || "").slice(0, 4));
+        if (recYear !== targetYear) return false;
+      }
+      if (targetSource !== "semua") {
+        const haySource = `${rec.source_name || ""} ${rec.source_url || ""}`.toLowerCase();
+        if (!haySource.includes(targetSource)) return false;
+      }
+      if (targetAccuracy !== "semua" && String(rec.location_accuracy || "").toLowerCase() !== targetAccuracy) {
+        return false;
       }
       if (!query) return true;
       const hay = [
@@ -800,27 +818,4 @@ export function filterIndependentCandidates(
   }
 
   return filtered;
-}
-
-export function filterDemoRecords(records = [], { district = "semua", search = "", statusFilter = "semua" } = {}) {
-  const query = String(search || "").replace(/\s+/g, " ").trim().toLowerCase();
-  const targetDistrict = district !== "semua" ? normalizeDistrictName(district) : "semua";
-
-  return records
-    .map((item) => normalizeIncidentRecord({ ...item, isDemo: true }))
-    .filter((rec) => {
-      if (targetDistrict !== "semua" && rec.district_name !== targetDistrict) return false;
-      if (statusFilter !== "semua" && rec.verification_status !== statusFilter) return false;
-      if (!query) return true;
-      const hay = [
-        rec.source_record_id,
-        rec.district_name || "",
-        rec.address_text || "",
-        rec.object_type || "",
-        rec.location_accuracy
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(query);
-    });
 }

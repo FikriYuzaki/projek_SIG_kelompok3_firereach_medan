@@ -43,6 +43,7 @@ export function validateSnapshotPayload(snapshotKey, payload) {
     if (!hasNonEmptyArray(payload.datasets)) missing.push("datasets");
     if (!Array.isArray(payload.blockers)) missing.push("blockers");
     if (!isPlainObject(payload.verified_outputs)) missing.push("verified_outputs");
+    if (payload.release_version !== "2026-11-27-prod") missing.push("release_version");
     const indep = payload.independent_enrichment;
     if (
       !isPlainObject(indep) ||
@@ -70,7 +71,11 @@ export function validateSnapshotPayload(snapshotKey, payload) {
 
   if (snapshotKey === "fire_incidents_summary") {
     const missing = [];
-    if (!isPlainObject(payload.summary_totals) || typeof payload.summary_totals.year_2023 !== "number") {
+    if (
+      !isPlainObject(payload.summary_totals) ||
+      typeof payload.summary_totals.year_2023 !== "number" ||
+      Number(payload.summary_totals.independent_candidate_incidents_total || 0) < 34
+    ) {
       missing.push("summary_totals");
     }
     if (!hasNonEmptyArray(payload.district_2023)) missing.push("district_2023");
@@ -146,11 +151,30 @@ export function validateSnapshotPayload(snapshotKey, payload) {
     return { valid: true, reason: null };
   }
 
-  if (snapshotKey === "station_coverage_provisional" || snapshotKey === "priority_planner_provisional") {
-    if (Object.keys(payload).length === 0) {
+  if (snapshotKey === "station_coverage_provisional") {
+    if (
+      Object.keys(payload).length === 0 ||
+      !hasNonEmptyArray(payload.per_station_coverage) ||
+      !isPlainObject(payload.coverage_partition_5km)
+    ) {
       return {
         valid: false,
-        reason: `Snapshot Supabase '${snapshotKey}' stale/incomplete (objek kosong).`
+        reason:
+          "Snapshot Supabase 'station_coverage_provisional' stale/incomplete (missing per-station or overlap partition)."
+      };
+    }
+    return { valid: true, reason: null };
+  }
+
+  if (snapshotKey === "priority_planner_provisional") {
+    if (
+      Object.keys(payload).length === 0 ||
+      payload.analysis?.method_version !== "priority-v2.0-integrated"
+    ) {
+      return {
+        valid: false,
+        reason:
+          "Snapshot Supabase 'priority_planner_provisional' stale/incomplete (requires priority-v2.0-integrated)."
       };
     }
     return { valid: true, reason: null };

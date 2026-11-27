@@ -151,7 +151,7 @@ describe("priority-planner Phase 6: join 21 kecamatan, normalisasi, bobot what-i
     expect(partialScored[0].priority_tier).toContain("Parsial");
   });
 
-  it("menolak output berlabel DEMO dan memastikan fixture DEMO tidak dipromosikan ke verified", async () => {
+  it("menolak output berlabel DEMO secara eksplisit tanpa fallback ke DEMO", async () => {
     expect(validatePriorityOutput({ isDemo: true, dataLabel: "DEMO", zones: [] }).valid).toBe(false);
 
     const tamperedDemo = {
@@ -161,30 +161,26 @@ describe("priority-planner Phase 6: join 21 kecamatan, normalisasi, bobot what-i
       zones: [{ area_code: "12.71.08", area_name: "Medan Belawan", priority_tier: "Sangat Tinggi" }]
     };
 
-    const res = await loadPriorityPlannerData(
-      {
-        dataStatus: {
-          fetchJson: vi.fn(async (p) => {
-            if (p === "priority-planner.provisional.json") return tamperedDemo;
-            if (p === "demo/priority-planner.demo.json") return tamperedDemo;
-            return null;
-          })
-        }
-      },
-      { forceProvisionalFetch: true }
-    );
-
-    expect(res.provisionalLoadStatus).toBe("rejected");
-    expect(res.isDemo).toBe(true);
-    expect(res.dataLabel).toBe("DEMO");
-    expect(res.zones[0].isDemo).toBe(true);
-    expect(res.zones[0].dataLabel).toBe("DEMO");
+    await expect(
+      loadPriorityPlannerData(
+        {
+          dataStatus: {
+            fetchJson: vi.fn(async (p) => {
+              if (p === "priority-planner.provisional.json") return tamperedDemo;
+              return null;
+            })
+          }
+        },
+        { forceProvisionalFetch: true }
+      )
+    ).rejects.toThrow(/gagal validasi kontrak/i);
   });
 
   it("membersihkan map dan chart saat unmount priority-planner", async () => {
     const mapDestroy = vi.fn();
     const chartDestroy = vi.fn();
     const ids = [
+      "#priority-scenario-select",
       "#priority-tier-select",
       "#priority-search-input",
       "#priority-filter-reset",
@@ -222,6 +218,9 @@ describe("priority-planner Phase 6: join 21 kecamatan, normalisasi, bobot what-i
       ])
     );
 
+    const realPriority = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "public/data/priority-planner.provisional.json"), "utf-8")
+    );
     const unmount = await renderPriorityPlanner({
       container: {
         innerHTML: "",
@@ -234,7 +233,13 @@ describe("priority-planner Phase 6: join 21 kecamatan, normalisasi, bobot what-i
         maps: { createMap: vi.fn(() => ({ map: {}, destroy: mapDestroy })), fitBounds: vi.fn() },
         charts: { createChart: vi.fn(() => ({ destroy: chartDestroy })) },
         dataStatus: {
-          fetchJson: vi.fn(async () => {
+          getManifest: vi.fn(async () => ({
+            ok: true,
+            manifest: { verified_outputs: { "priority-planner": { available: true } } }
+          })),
+          fetchJson: vi.fn(async (p) => {
+            if (p === "medan_districts_osm.geojson") return OSM_BOUNDARY;
+            if (p === "priority-planner.provisional.json") return realPriority;
             throw new Error("offline");
           })
         }

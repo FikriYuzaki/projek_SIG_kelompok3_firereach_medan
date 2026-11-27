@@ -4,89 +4,11 @@ export const REQUIRED_WORKING_CRS = "EPSG:32647";
 export const REQUIRED_OUTPUT_CRS = "EPSG:4326";
 export const DEFAULT_ASSUMED_SPEED_KMH = 35;
 export const PROVISIONAL_COVERAGE_URL = "/data/station-coverage.provisional.json";
-export const RUNTIME_DEMO_FIXTURE_URL = "/data/demo/station-coverage.demo.json";
 export const ALLOWED_CANDIDATE_ACCURACIES = Object.freeze(["approximate", "district_only"]);
 export const CANDIDATE_SCENARIO_LABEL = "SKENARIO_KANDIDAT_BELUM_TERVERIFIKASI";
 export const EXPECTED_AREA_CODES = Object.freeze(
   Array.from({ length: 21 }, (_, idx) => `12.71.${String(idx + 1).padStart(2, "0")}`)
 );
-
-const FALLBACK_DEMO_FIXTURE = {
-  isDemo: true,
-  dataLabel: "DEMO",
-  module: "station-coverage",
-  owner: "Adriel",
-  notice:
-    "DATA DEMO UNTUK PENGEMBANGAN UI: bukan hasil service area jaringan jalan aktual. Hanya Mako 0.0 yang memiliki koordinat terverifikasi.",
-  analysis: {
-    title: "Demo Jangkauan Layanan Damkarmat (Fixture Kontrak)",
-    status: "demo_fixture",
-    method_type: "network_service_area",
-    road_extract_date: "2026-11-18",
-    assumed_speed_kmh: 35,
-    thresholds_meters: [3000],
-    working_crs: "EPSG:32647",
-    output_crs: "EPSG:4326",
-    disclaimer:
-      "Estimasi skenario jarak jaringan jalan menggunakan asumsi kecepatan teoretis dan batas topologi OSM, bukan waktu respons operasional Damkarmat."
-  },
-  stations: [
-    {
-      station_code: "MAKO-00",
-      name: "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
-      station_type: "mako",
-      address: "Jl. Candi Borobudur No. 2, Kota Medan",
-      lat: 3.589536437471534,
-      lon: 98.67144703626451,
-      verification_status: "verified",
-      isDemo: false,
-      source_name: "Satu Data Medan (Knowledge Damkarmat)"
-    },
-    {
-      station_code: "DEMO-UPT-1",
-      name: "Contoh Slot Pos UPT (DEMO)",
-      station_type: "upt",
-      address: "Lokasi placeholder kontrak pengembangan",
-      lat: 3.541,
-      lon: 98.705,
-      verification_status: "needs_review",
-      isDemo: true,
-      source_name: "DEMO Fixture"
-    }
-  ],
-  zones: {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {
-          isDemo: true,
-          dataLabel: "DEMO",
-          station_code: "MAKO-00",
-          coverage_tier: "Jangkauan 3000 m (DEMO)",
-          threshold_m: 3000,
-          threshold_value: 3000,
-          threshold_unit: "meters",
-          area_km2: 14.5
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [98.652, 3.572],
-              [98.691, 3.572],
-              [98.691, 3.607],
-              [98.652, 3.607],
-              [98.652, 3.572]
-            ]
-          ]
-        }
-      }
-    ]
-  },
-  threshold_comparison: [],
-  district_coverage: []
-};
 
 function isFiniteNumber(val) {
   return typeof val === "number" && Number.isFinite(val);
@@ -616,56 +538,15 @@ function normalizeSummaryCandidateStations(summaryPayload, boundaryGeoJson, veri
   return validateCandidateStationRecords(mapped, boundaryGeoJson, verifiedCodes);
 }
 
-function normalizeDemoDataset(payload, usedFallback) {
-  const rawZones = payload?.zones?.features || [];
-  const stations = Array.isArray(payload?.stations) ? payload.stations : FALLBACK_DEMO_FIXTURE.stations;
-  const sanitizedStations = stations.map((st) => ({
-    ...st,
-    isDemoStation: isDemoStationRecord(st)
-  }));
-
-  const demoFeatures = rawZones.map((f, idx) => ({
-    ...f,
-    properties: {
-      ...(f.properties || {}),
-      isDemo: true,
-      dataLabel: "DEMO",
-      threshold_m: Number(f.properties?.threshold_m || f.properties?.threshold_value || 3000),
-      zone_id: f.properties?.zone_id || `demo-coverage-${idx + 1}`
-    }
-  }));
-
-  return {
-    isDemo: true,
-    dataLabel: "DEMO",
-    sourceMode: "demo",
-    usedFallback,
-    fixturePath: usedFallback ? "fallback:inline-demo-fixture" : RUNTIME_DEMO_FIXTURE_URL,
-    notice: String(payload?.notice || FALLBACK_DEMO_FIXTURE.notice),
-    analysis: {
-      ...FALLBACK_DEMO_FIXTURE.analysis,
-      ...(payload?.analysis || {})
-    },
-    roadNetwork: null,
-    stations: sanitizedStations,
-    verifiedStations: sanitizedStations.filter((s) => !s.isDemoStation && s.verification_status === "verified"),
-    candidateStations: [],
-    geolocatedCandidateStations: [],
-    districtOnlyCandidateStations: [],
-    stationInventorySummary: null,
-    candidateCoverageScenario: null,
-    thresholdComparison: [],
-    euclideanBuffersGeoJson: { type: "FeatureCollection", features: [] },
-    networkServiceAreasGeoJson: { type: "FeatureCollection", features: demoFeatures },
-    districtCoverage: []
-  };
-}
-
 export async function loadStationCoverageData(services, options = {}) {
+  if (!services?.dataStatus?.fetchJson) {
+    throw new Error("Layanan data Fire Station Coverage tidak tersedia.");
+  }
+
   let districtsGeoJson = null;
   let shouldCheckProvisional = true;
 
-  if (services?.dataStatus?.getManifest && options.forceProvisionalFetch !== true) {
+  if (services.dataStatus.getManifest && options.forceProvisionalFetch !== true) {
     try {
       const resp = await services.dataStatus.getManifest();
       const meta = resp?.manifest?.verified_outputs?.["station-coverage"];
@@ -677,108 +558,80 @@ export async function loadStationCoverageData(services, options = {}) {
     }
   }
 
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
-    } catch {
-      districtsGeoJson = null;
-    }
+  if (!shouldCheckProvisional) {
+    throw new Error("Output cakupan stasiun Damkarmat belum ditandai tersedia di manifest.");
   }
 
-  let provisionalLoadStatus = "unavailable";
-  let provisionalValidationErrors = [];
-
-  if (shouldCheckProvisional && services?.dataStatus?.fetchJson) {
-    try {
-      const provPayload = await services.dataStatus.fetchJson("station-coverage.provisional.json");
-      const check = validateStationCoverageOutput(provPayload);
-      if (check.valid) {
-        const stationVal = validateStationRecords(provPayload.stations, districtsGeoJson);
-        const verifiedCodes = new Set(stationVal.accepted.map((s) => s.station_code));
-
-        let candVal = null;
-        if (Array.isArray(provPayload.candidate_stations)) {
-          candVal = validateCandidateStationRecords(provPayload.candidate_stations, districtsGeoJson, verifiedCodes);
-        } else {
-          try {
-            const summaryPayload = await services.dataStatus.fetchJson("fire_incidents_summary.json");
-            candVal = normalizeSummaryCandidateStations(summaryPayload, districtsGeoJson, verifiedCodes);
-          } catch {
-            candVal = null;
-          }
-        }
-
-        const candidateStations = candVal?.accepted || [];
-        const geolocatedCandidateStations = candVal?.geolocated || [];
-        const districtOnlyCandidateStations = candVal?.districtOnly || [];
-        const rawScenario = provPayload.candidate_coverage_scenario;
-        const candidateCoverageScenario =
-          rawScenario && validateCandidateCoverageScenario(rawScenario).valid ? rawScenario : null;
-
-        const invSummary = {
-          ...(provPayload.station_inventory_summary || {}),
-          verified_count: stationVal.accepted.length,
-          candidate_total_count: candidateStations.length,
-          candidate_geolocated_count: geolocatedCandidateStations.length,
-          candidate_district_only_count: districtOnlyCandidateStations.length
-        };
-
-        return {
-          isDemo: false,
-          dataLabel: String(provPayload.dataLabel),
-          sourceMode: "provisional",
-          provisionalLoadStatus: "loaded",
-          provisionalValidationErrors: [],
-          usedFallback: false,
-          fixturePath: PROVISIONAL_COVERAGE_URL,
-          notice: String(provPayload.notice),
-          analysis: provPayload.analysis,
-          roadNetwork: provPayload.road_network,
-          stations: stationVal.accepted.map((s) => ({ ...s, isDemoStation: false })),
-          verifiedStations: stationVal.accepted,
-          rejectedStations: stationVal.rejected,
-          candidateStations,
-          geolocatedCandidateStations,
-          districtOnlyCandidateStations,
-          candidateValidation: candVal,
-          stationInventorySummary: invSummary,
-          candidateCoverageScenario,
-          thresholdComparison: provPayload.threshold_comparison || [],
-          euclideanBuffersGeoJson: provPayload.euclidean_buffers,
-          networkServiceAreasGeoJson: provPayload.network_service_areas,
-          districtCoverage: provPayload.district_coverage || [],
-          districtsGeoJson
-        };
-      }
-      provisionalLoadStatus = "rejected";
-      provisionalValidationErrors = check.errors;
-    } catch {
-      provisionalLoadStatus = "unavailable";
-    }
+  try {
+    districtsGeoJson = await services.dataStatus.fetchJson("medan_districts_osm.geojson");
+  } catch {
+    districtsGeoJson = null;
   }
 
-  let demoPayload = null;
-  let usedFallback = false;
-  if (services?.dataStatus?.fetchJson) {
-    try {
-      demoPayload = await services.dataStatus.fetchJson("demo/station-coverage.demo.json");
-      if (!demoPayload || typeof demoPayload !== "object") {
-        demoPayload = FALLBACK_DEMO_FIXTURE;
-        usedFallback = true;
-      }
-    } catch {
-      demoPayload = FALLBACK_DEMO_FIXTURE;
-      usedFallback = true;
-    }
+  const provPayload = await services.dataStatus.fetchJson("station-coverage.provisional.json");
+  const check = validateStationCoverageOutput(provPayload);
+  if (!check.valid) {
+    throw new Error(
+      `Berkas /data/station-coverage.provisional.json gagal validasi kontrak (${check.errors.slice(0, 3).join("; ")}).`
+    );
+  }
+
+  const stationVal = validateStationRecords(provPayload.stations, districtsGeoJson);
+  const verifiedCodes = new Set(stationVal.accepted.map((s) => s.station_code));
+
+  let candVal = null;
+  if (Array.isArray(provPayload.candidate_stations)) {
+    candVal = validateCandidateStationRecords(provPayload.candidate_stations, districtsGeoJson, verifiedCodes);
   } else {
-    demoPayload = FALLBACK_DEMO_FIXTURE;
-    usedFallback = true;
+    try {
+      const summaryPayload = await services.dataStatus.fetchJson("fire_incidents_summary.json");
+      candVal = normalizeSummaryCandidateStations(summaryPayload, districtsGeoJson, verifiedCodes);
+    } catch {
+      candVal = null;
+    }
   }
+
+  const candidateStations = candVal?.accepted || [];
+  const geolocatedCandidateStations = candVal?.geolocated || [];
+  const districtOnlyCandidateStations = candVal?.districtOnly || [];
+  const rawScenario = provPayload.candidate_coverage_scenario;
+  const candidateCoverageScenario =
+    rawScenario && validateCandidateCoverageScenario(rawScenario).valid ? rawScenario : null;
+
+  const invSummary = {
+    ...(provPayload.station_inventory_summary || {}),
+    verified_count: stationVal.accepted.length,
+    candidate_total_count: candidateStations.length,
+    candidate_geolocated_count: geolocatedCandidateStations.length,
+    candidate_district_only_count: districtOnlyCandidateStations.length
+  };
 
   return {
-    ...normalizeDemoDataset(demoPayload, usedFallback),
-    provisionalLoadStatus,
-    provisionalValidationErrors,
+    isDemo: false,
+    dataLabel: String(provPayload.dataLabel),
+    sourceMode: "provisional",
+    provisionalLoadStatus: "loaded",
+    provisionalValidationErrors: [],
+    usedFallback: false,
+    fixturePath: PROVISIONAL_COVERAGE_URL,
+    notice: String(provPayload.notice),
+    analysis: provPayload.analysis,
+    roadNetwork: provPayload.road_network,
+    stations: stationVal.accepted.map((s) => ({ ...s, isDemoStation: false })),
+    verifiedStations: stationVal.accepted,
+    rejectedStations: stationVal.rejected,
+    candidateStations,
+    geolocatedCandidateStations,
+    districtOnlyCandidateStations,
+    candidateValidation: candVal,
+    stationInventorySummary: invSummary,
+    candidateCoverageScenario,
+    perStationCoverage: Array.isArray(provPayload.per_station_coverage) ? provPayload.per_station_coverage : [],
+    coveragePartition5km: provPayload.coverage_partition_5km || null,
+    thresholdComparison: provPayload.threshold_comparison || [],
+    euclideanBuffersGeoJson: provPayload.euclidean_buffers,
+    networkServiceAreasGeoJson: provPayload.network_service_areas,
+    districtCoverage: provPayload.district_coverage || [],
     districtsGeoJson
   };
 }

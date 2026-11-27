@@ -67,7 +67,8 @@ describe("processed data & DEMO fixture integrity", () => {
     }
   });
 
-  it("verifies every DEMO fixture carries explicit isDemo and DEMO labeling", () => {
+  it("verifies runtime public/data/demo directory is removed while internal schema fixture remains intact", () => {
+    expect(fs.existsSync(path.join(ROOT, "public/data/demo"))).toBe(false);
     const demoDir = path.join(ROOT, "data/fixtures/demo");
     const files = fs.readdirSync(demoDir).filter((f) => f.endsWith(".json"));
     expect(files.length).toBeGreaterThanOrEqual(4);
@@ -77,15 +78,21 @@ describe("processed data & DEMO fixture integrity", () => {
       expect(payload.dataLabel).toBe("DEMO");
     }
 
-    const incDemo = readJson("public/data/demo/incident-explorer-sample.demo.json");
+    const incDemo = readJson("data/fixtures/demo/incident-explorer-sample.demo.json");
     expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-001")?.geom?.type).toBe("Point");
     expect(incDemo.records.find((r) => r.source_record_id === "DEMO-INC-003")?.geom).toBeNull();
   });
 
   it("verifies every raw input workbook read by build_processed_data.py is registered in source-register.csv with SHA-256", () => {
     const buildSrc = fs.readFileSync(path.join(ROOT, "scripts/build_processed_data.py"), "utf-8");
+    const generatedGeoJsonOutputs = new Set([
+      "medan_districts_osm.geojson",
+      "public_incidents_points.geojson",
+      "hotspot-analyzer.exploratory.geojson",
+      "/data/hotspot-analyzer.exploratory.geojson"
+    ]);
     const rawRefs = [...new Set([...buildSrc.matchAll(/"([^\s"]+\.(?:xlsx|geojson))"/g)].map((m) => m[1]))].filter(
-      (name) => name !== "medan_districts_osm.geojson"
+      (name) => !generatedGeoJsonOutputs.has(name)
     );
     expect(rawRefs.length).toBe(30);
 
@@ -146,9 +153,9 @@ describe("processed data & DEMO fixture integrity", () => {
     const bundle = readJson("data/processed/supabase_staging_bundle.json");
 
     expect(incCand.isDemo).toBe(false);
-    expect(incCand.records).toHaveLength(27);
-    expect(incCand.summary.approximate_point_count).toBe(17);
-    expect(incCand.summary.district_only_count).toBe(10);
+    expect(incCand.records).toHaveLength(34);
+    expect(incCand.summary.approximate_point_count).toBe(22);
+    expect(incCand.summary.district_only_count).toBe(12);
     expect(incCand.summary.kde_eligible_count).toBe(0);
     expect(incCand.summary.verified_count).toBe(0);
 
@@ -208,7 +215,7 @@ describe("processed data & DEMO fixture integrity", () => {
     const validationCounts = validateStagingBundle(bundle, ROOT);
     expect(validationCounts.fire_incident_aggregates).toBe(193);
     expect(validationCounts.fire_stations).toBe(7);
-    expect(validationCounts.fire_incidents).toBe(27);
+    expect(validationCounts.fire_incidents).toBe(34);
     expect(bundle.schema_recommendations.length).toBeGreaterThanOrEqual(4);
   });
 

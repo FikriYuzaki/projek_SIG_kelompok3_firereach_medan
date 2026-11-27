@@ -54,7 +54,6 @@ import {
   computeChoroplethBreaks,
   extractValidPointCoordinates,
   fetchSupabaseIncidents,
-  filterDemoRecords,
   filterIndependentCandidates,
   filterOfficialRows,
   filterSupabasePoints,
@@ -698,14 +697,16 @@ describe("incident-explorer service helpers", () => {
     expect(classifyChoroplethTier(3, sparseBreaks)).toBe("high");
   });
 
-  it("filters DEMO contract records safely without polluting official lists", () => {
-    const demo = JSON.parse(
-      fs.readFileSync(path.join(ROOT, "public/data/demo/incident-explorer-sample.demo.json"), "utf-8")
-    );
-    const filtered = filterDemoRecords(demo.records, { statusFilter: "unlocated" });
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].source_record_id).toBe("DEMO-INC-003");
-    expect(filtered[0].geom).toBeNull();
+  it("filters 34 documented public incidents safely by year, source, and accuracy without polluting official lists", () => {
+    const records = summary.independent_incident_candidates?.records || [];
+    expect(records).toHaveLength(34);
+    expect(filterIndependentCandidates(records, { year: "2026" }).length).toBeGreaterThanOrEqual(7);
+    const p2kOnly = filterIndependentCandidates(records, { source: "p2k.medan.go.id" });
+    expect(p2kOnly.length).toBeGreaterThanOrEqual(7);
+    expect(p2kOnly.every((r) => String(r.source_name || "").includes("p2k.medan.go.id"))).toBe(true);
+    const distOnly = filterIndependentCandidates(records, { accuracy: "district_only" });
+    expect(distOnly).toHaveLength(12);
+    expect(distOnly.every((r) => r.geom === null)).toBe(true);
   });
 });
 

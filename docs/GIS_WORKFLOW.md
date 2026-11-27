@@ -25,18 +25,17 @@ Verification statuses: `verified`, `needs_review`, `unlocated`.
 - Keep `geom = null` for records without verified coordinates and expose them in the dedicated unlocated / needs-review table.
 
 ### 3.2 Adeptri: Fire Hotspot Analyzer (`hotspot-analyzer`)
-- Filter input strictly to `location_accuracy` in `('exact_verified', 'address_geocoded_verified')` (never mix `district_only` aggregates into point KDE).
-- Run Heatmap (Kernel Density Estimation) in `EPSG:32647` and document: period covered, kernel shape (e.g. Quartic), bandwidth/radius (meters), pixel size (meters), extent, and classification method (e.g. Quantile or Natural Breaks).
-- Always label KDE outputs as historical event concentration, never as fire prediction.
+- Official primary KDE requires `location_accuracy` in `('exact_verified', 'address_geocoded_verified')` (`0` official Damkarmat points available in current release).
+- Exploratory public KDE (`--mode exploratory`) accepts the `22` street-level OSM-geocoded public incidents (`public_incidents_points.geojson`, bandwidth `1,500 m`, pixel `100 m`, Quartic kernel, Quantile 4-class) in `EPSG:32647`, explicitly excluding the `12` `district_only` incidents (`geom = null`) so no synthetic points are generated.
+- Always label KDE outputs as historical event concentration (exploratory when from public reports), never as fire prediction.
 
 ### 3.3 Adriel: Fire Station Coverage (`station-coverage`)
-- Verify Mako 0.0 (`Jl. Candi Borobudur No. 2`, `3.589536, 98.671447`) and every UPT pos address/coordinate before running network analysis.
+- Verify Mako 0.0 (`Jl. Candi Borobudur No. 2`, `3.589536, 98.671447`) and audit all 6 UPT pos (`UPT-01..06`, retaining `UPT-03` and `UPT-04` as `district_only / geom = null` without synthetic coordinates).
 - Extract roads from Geofabrik Sumatra OSM PBF (`sumatra-latest.osm.pbf`), clip to Kota Medan bounding box + 3 km buffer, retain drivable `highway` classes (`motorway`, `trunk`, `primary`, `secondary`, `tertiary`, `unclassified`, `residential`, `service` excluding private/restricted gates where tagged), and check topology, disconnected islands, `oneway`, and `access`/`motor_vehicle` tags.
-- Compare straight-line Euclidean buffers against road-network service areas in QGIS (`Service area (from layer)` / QNEAT3). Whenever converting distance to minutes, state explicit speed assumptions (`km/h`) as an estimation scenario, never as actual Damkarmat response time.
+- Compute baseline (`MAKO-00`), combined 5-station sensitivity (`MAKO-00` + 4 routable UPT), individual per-station network service areas (`per_station_coverage`), and 5 km multi-station overlap/blind-spot partitioning (`coverage_partition_5km`: `overlap_ge2`, `single_station`, `uncovered`) in `EPSG:32647`. Always state speed assumptions (`35 km/h`) as a scenario rather than actual operational response time.
 - Include mandatory attribution: `© OpenStreetMap contributors` (ODbL).
 
 ### 3.4 Olo: Fire Service Priority Planner (`priority-planner`)
 - Use consistent analysis units (`kecamatan`, matching all 21 districts with code `12.71.01` to `12.71.21`, because official population and 2023 district fire aggregates exist at kecamatan level).
-- Combine normalized indicators: historical fire/hotspot intensity, station coverage gap, and BPS population/density exposure.
-- Document normalization direction (benefit vs cost), exact indicator weights with rationale, method version, and period.
-- Develop UI and pipeline immediately against `data/fixtures/demo/priority-planner.demo.json` (`DEMO`) while awaiting Adeptri and Adriel outputs.
+- Combine normalized indicators (`priority-v2.0-integrated`): historical 2023 fire rates per 10,000 residents, station 5 km coverage gap (both verified baseline and 5-station exploratory toggle), BPS population density exposure, and diagnostic exploratory KDE district overlap percentages (`kde_exploratory_coverage_pct`).
+- Document normalization direction (benefit vs cost), exact indicator weights with rationale, indicator availability badges, and What-If sensitivity weights.
