@@ -2,7 +2,7 @@
 
 **Diperbarui:** 2026-11-27
 **Environment:** QGIS Desktop 3.44.13 LTR (`C:\Program Files\QGIS 3.44.13\bin\python-qgis-ltr.bat`)
-**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`22` entri, `3.096.699` byte)
+**Paket Portabel:** [FireReach_Medan_QGIS_Pack.zip](../FireReach_Medan_QGIS_Pack.zip) (`22` entri, `3.096.932` byte)
 
 ---
 
@@ -25,7 +25,7 @@ Catatan pemeriksaan otomatis pada setiap layer:
 
 ## 2. Pemisahan Data Terverifikasi vs Kandidat (`needs_review`)
 
-1. **Hotspot Analysis (`medan_hotspot_template.qgz`):** memuat poligon agregat kebakaran resmi Damkarmat 2023 (`219` kejadian di `21` kecamatan, bukan KDE), titik `Mako 0.0` terverifikasi, serta dua layer eksploratif terpisah: `Titik Insiden Publik OSM (22 Lokasi Ruas)` dan `KDE Eksploratif Publik (22 Titik OSM, BW 1.500 m)`. KDE resmi dari titik individual Damkarmat tetap belum tersedia; KDE eksploratif bukan statistik resmi dan bukan prediksi.
+1. **Hotspot Analysis (`medan_hotspot_template.qgz`):** memuat poligon agregat kebakaran resmi Damkarmat 2023 (`219` kejadian di `21` kecamatan, bukan KDE), titik `Mako 0.0` terverifikasi, serta dua layer eksploratif terpisah: `Titik Insiden Publik OSM (22 Lokasi Ruas)` dan `KDE Eksploratif Publik (22 Titik OSM, BW 1.500 m)` (kernel Quartic, pixel `100` m, `34` zona Quantile 4 kelas; `12` insiden `district_only` tanpa koordinat dikecualikan). KDE resmi dari titik individual Damkarmat tetap belum tersedia; KDE eksploratif bukan statistik resmi lengkap dan bukan prediksi kebakaran.
 2. **Station Coverage (`station_coverage.qgz`):**
    - Layer terverifikasi: `Mako 0.0 Damkarmat Medan (Terverifikasi)` (`1` titik `exact_verified`), `Buffer Jarak Lurus Euclidean (2, 3, 5 km)`, dan `Service Area Jaringan Jalan OSM (2, 3, 5 km)`.
    - Layer kandidat terpisah: `Kandidat UPT Perkiraan OSM (needs_review, Terpisah)` disaring dengan ekspresi `"verification_status" = 'needs_review'` (`4` titik perkiraan OSM `UPT-01, UPT-02, UPT-05, UPT-06`). `UPT-03` dan `UPT-04` berstatus `district_only` (`geom = null`) sehingga tidak diplot.
