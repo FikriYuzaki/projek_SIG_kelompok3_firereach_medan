@@ -8,12 +8,12 @@ Dial: ENERGY 1 / RHYTHM 2 / MOTION 1
 
 ## 1. Design Identity & Liveliness Levers
 
-FireReach Medan is an academic and civic Web GIS tool for Kota Medan (`Fire Incident Mapping & Emergency Service Coverage Analysis`). Its interface takes cues from municipal atlases and technical cartographic notebooks: warm archival paper canvas (`#F4F2EC`), crisp white map/data sheets (`#FFFFFF`), dark slate ink (`#202A2D`), and ember rust (`#B84A35`) reserved strictly for fire incident markers and primary map actions.
+FireReach Medan is an academic and civic Web GIS tool for Kota Medan (`Fire Incident Mapping & Emergency Service Coverage Analysis`). Its interface pairs a **Warm Editorial + Modern Geospatial Intelligence** aesthetic inspired by archival atlases and civic engineering dossiers: warm ivory canvas (`#FAF6F0`), paper map/data sheets (`#FFFDF9`), warm sand containers (`#F3ECE2`), deep charcoal ink (`#1F2421`), and terracotta crimson (`#B83B28` / `#962E1E`) paired with ochre gold (`#8A5212` / `#D98A36`) and river teal (`#2C555C` / `#3D6E76`).
 
 - **One focal point per screen**: On the Dashboard and Fire Incident Explorer, the interactive Kota Medan Leaflet map (or data registry view when spatial points are absent) occupies the primary visual weight; KPIs, tables, and the schematic 3D preview sit as structured companions.
-- **Hierarchical contrast**: Page titles (`Plus Jakarta Sans`), section heads, tabular numerals, and coordinate readouts (`IBM Plex Mono` with `tabular-nums`) establish a clear typographic hierarchy without oversized hero marketing banners.
+- **Hierarchical contrast**: Editorial display headings (`Playfair Display`), readable body UI (`Plus Jakarta Sans`), and tabular numerals/coordinate readouts (`IBM Plex Mono` with `tabular-nums`) establish a clear typographic hierarchy without oversized marketing banners.
 - **Whitespace as structure**: Generous margins (`24px` to `32px` on desktop, `16px` on mobile) separate navigation, map canvas, filter controls, and metadata notes so dense spatial tables stay readable.
-- **One deliberate accent**: Ember `#B84A35` marks active fire incidents and the single primary action per view; secondary data layers use River `#356067` / `#477A82` and Amber `#D58A43` / `#8A5218`.
+- **Deliberate accent discipline**: Terracotta Crimson `#B83B28` marks active fire incidents and the single primary action per view; secondary data layers use River Teal `#2C555C` / `#3D6E76` and Ochre Gold `#D98A36` / `#8A5212`.
 - **Identity motif**: Explicit cartographic provenance footer bars on every map and chart panel displaying CRS (`EPSG:4326` web / `EPSG:32647` metric), period, granularity, and source attribution.
 
 ---
@@ -24,28 +24,29 @@ Theme mode: **Light-first (fixed)**. Geographic base maps, choropleth legends, a
 
 | Token | Hex | Role | Contrast Verification |
 |---|---|---|---|
-| `--color-paper` | `#F4F2EC` | Main warm archival workspace background | Base canvas |
-| `--color-surface` | `#FFFFFF` | Map container, table panel, sidebar surface | Elevated sheet |
-| `--color-surface-subtle` | `#ECEAE2` | Table headers, secondary summary strips | Subtle band |
-| `--color-ink` | `#202A2D` | Primary headings, body text, nav labels | 14.68:1 on `#FFFFFF`, 13.11:1 on `#F4F2EC` (Pass AA/AAA) |
-| `--color-ink-muted` | `#556164` | Secondary labels, captions, metadata | 6.40:1 on `#FFFFFF`, 5.72:1 on `#F4F2EC` (Pass AA; darkened from `#687477` which scored 4.31:1 on `#F4F2EC`) |
-| `--color-ember` | `#B84A35` | Primary action fill, fire marker accent | 5.16:1 on `#FFFFFF`, 4.61:1 on `#F4F2EC`, 5.16:1 white text on fill (Pass AA) |
-| `--color-ember-hover` | `#9A3B29` | Primary button hover/active state | 6.93:1 white text on fill (Pass AA) |
-| `--color-river` | `#477A82` | Secondary layer fill, station/water markers | 4.80:1 white text on fill (Pass AA) |
-| `--color-river-text` | `#356067` | Secondary links and text badges | 6.95:1 on `#FFFFFF`, 6.21:1 on `#F4F2EC` (Pass AA; darkened from `#477A82` which scored 4.29:1 on `#F4F2EC`) |
-| `--color-amber-swatch` | `#D58A43` | Medium-tier choropleth/chart fill ONLY | Never used for text on light; paired with `#202A2D` border/label |
-| `--color-amber-text` | `#8A5218` | Warning/in-development text label | 6.36:1 on `#FFFFFF`, 5.68:1 on `#F4F2EC` (Pass AA) |
-| `--color-border` | `#D9DEDA` | Structural hairline dividers | Hairline separator |
-| `--color-border-strong` | `#6E7A7D` | Input borders, checkboxes, focus outlines | >= 4.3:1 on `#FFFFFF` and >= 3.8:1 on `#F4F2EC` (Pass non-text 3:1) |
+| `--color-paper` | `#FAF6F0` | Warm ivory workspace background | Base canvas |
+| `--color-surface` | `#FFFDF9` | Map container, table panel, sidebar surface | Elevated paper sheet |
+| `--color-surface-subtle` | `#F3ECE2` | Table headers, secondary summary strips | Warm sand subtle band |
+| `--color-ink` | `#1F2421` | Primary headings, body text, nav labels | 15.51:1 on `#FFFDF9`, 14.64:1 on `#FAF6F0`, 13.44:1 on `#F3ECE2` (Pass AA/AAA) |
+| `--color-ink-muted` | `#525B56` | Secondary labels, captions, metadata | 6.91:1 on `#FFFDF9`, 6.52:1 on `#FAF6F0` (Pass AA) |
+| `--color-ember` | `#B83B28` | Primary action fill, fire marker accent | 5.60:1 `#FFFDF9` text on fill (Pass AA) |
+| `--color-ember-hover` | `#962E1E` | Primary button hover, warn-badge text | 7.64:1 `#FFFDF9` text on fill, 6.76:1 on `#FCECE8` (Pass AA) |
+| `--color-river` | `#3D6E76` | Secondary layer fill, station/network accents | Paired with light surface and dark ink borders |
+| `--color-river-text` | `#2C555C` | Secondary links and active status badges | 8.07:1 on `#FFFDF9`, 7.14:1 on `#E8F1F2` (Pass AA) |
+| `--color-amber-swatch` | `#D98A36` | Medium-tier choropleth/chart fill ONLY | Never used for text on light; paired with `#1F2421` border/label |
+| `--color-amber-text` | `#8A5212` | Exploratory/provisional text label | 5.75:1 on `#FCF2E3` (Pass AA) |
+| `--color-border` | `#DDD5CA` | Structural hairline dividers | Warm stone hairline separator |
+| `--color-border-strong` | `#6A635B` | Input borders, checkboxes, focus outlines | High contrast non-text outline (>= 3:1) |
 
-Palette rule (R-29): Core colors stay strictly bounded to Ink, Paper/Surface neutrals, Ember (primary accent), River (secondary GIS layer), and Amber (mid-scale legend tier).
+Palette rule (R-29): Core colors stay strictly bounded to Charcoal Ink, Warm Ivory neutrals, Terracotta Crimson (primary accent), River Teal (secondary GIS layer), and Ochre Gold (mid-scale legend tier).
 
 ---
 
 ## 3. Typography (R-06)
 
-- **UI & Headings**: `Plus Jakarta Sans` (`@fontsource/plus-jakarta-sans`, weights 400, 500, 600, 700), bundled locally by Vite. Chosen for clean Indonesian legibility, open counters in dense kecamatan tables, and zero third-party font render-blocking.
-- **Technical Metadata & Coordinates**: `IBM Plex Mono` (`@fontsource/ibm-plex-mono`, weights 400, 500), bundled locally by Vite. Used strictly for CRS codes (`EPSG:32647`, `EPSG:4326`), coordinates, file hashes, dates, and tabular counts (`font-variant-numeric: tabular-nums`), never as oversized decorative display headlines.
+- **Editorial Headings**: `Playfair Display` (`@fontsource/playfair-display`, weights 600, 700), bundled locally by Vite for authoritative atlas-grade `h1`/`h2` hierarchy and brand wordmark.
+- **UI & Tables**: `Plus Jakarta Sans` (`@fontsource/plus-jakarta-sans`, weights 400, 500, 600, 700), bundled locally by Vite. Chosen for crisp Indonesian legibility and open counters in dense kecamatan tables.
+- **Technical Metadata & Coordinates**: `IBM Plex Mono` (`@fontsource/ibm-plex-mono`, weights 400, 500), bundled locally by Vite for CRS codes (`EPSG:32647`, `EPSG:4326`), coordinates, SHA-256 hashes, dates, and `tabular-nums`.
 - **Type Scale**: Fluid H1 (`clamp(1.5rem, 1.25rem + 1vw, 2.05rem)`), H2 (`clamp(1.15rem, 1.05rem + 0.4vw, 1.375rem)`), body `1rem` (`16px`), metadata `0.875rem` (`14px`), micro caption `0.75rem` (`12px` minimum).
 
 ---
@@ -75,16 +76,16 @@ Section composition varies intentionally (`RHYTHM 2`): Dashboard pairs an asymme
 - Every enabled interactive control sets `cursor: pointer`; disabled controls set `cursor: not-allowed`.
 - Visible `:focus-visible` ring (`2px solid #202A2D` with `2px` white offset) on all links, buttons, selects, inputs, and table rows.
 - Interactive touch targets maintain minimum `44px` height/hit area on mobile and navigation rows.
-- Every data view implements explicit Loading, Empty (naming cause + next action), Error, and `DATA DEMO` states.
-- Status badges always pair hue with text and distinct geometric markers (never color alone).
+- Every data view implements explicit Loading, Empty (naming cause + next action), Error, and provenance states without fake DEMO fallbacks in production.
+- Status badges always pair hue with text and inline SVG geometric markers (never color alone).
 - Zero fabricated numbers, zero fake coordinates, zero unverified claims (`live`, `real-time`, `AI prediction`), and zero em dashes (U+2014).
 
 ---
 
 ## 7. Design Decision Log (R-31 One-Line Reasons)
 
-- **Palette**: Warm paper `#F4F2EC` and ember `#B84A35` evoke civic cartographic maps and emergency fire mapping without generic dark/neon AI gradients.
-- **Typography**: `Plus Jakarta Sans` handles Indonesian municipal prose cleanly while `IBM Plex Mono` aligns tabular numbers and CRS coordinates.
+- **Palette**: Warm ivory `#FAF6F0`, terracotta `#B83B28`, ochre gold `#8A5212`, and river teal `#2C555C` evoke archival maps and fire engineering briefs without generic dark/neon AI gradients.
+- **Typography**: `Playfair Display` anchors editorial `h1`/`h2` titles, `Plus Jakarta Sans` handles Indonesian prose cleanly, and `IBM Plex Mono` aligns tabular numbers and CRS coordinates.
 - **Layout**: Navigation rail separates shell overview from the 4 ownership modules while prioritizing map and table visibility over uniform stat cards.
 - **Spacing**: Progressive `16px` / `24px` / `32px` gaps isolate dense filter controls from cartographic layers and tables.
 - **Border Radius**: `4px` controls vs `8px` panels visually separate interactive inputs from structural containers without pill uniformity.

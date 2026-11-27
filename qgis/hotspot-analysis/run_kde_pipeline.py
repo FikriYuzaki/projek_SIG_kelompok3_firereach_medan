@@ -77,6 +77,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Opsional: path public/data/manifest.json untuk menandai verified output tersedia.",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("strict", "exploratory"),
+        default="strict",
+        help="Mode validasi input: 'strict' (titik resmi terverifikasi) atau 'exploratory' (insiden publik berkoordinat jalan OSM).",
+    )
+    parser.add_argument(
+        "--bandwidth",
+        type=float,
+        default=None,
+        help="Opsional: override bandwidth radius KDE dalam meter (EPSG:32647).",
+    )
+    parser.add_argument(
+        "--excluded-count",
+        type=int,
+        default=0,
+        help="Jumlah laporan kecamatan-saja (tanpa titik layak KDE) yang dikecualikan di luar berkas titik input.",
+    )
     return parser.parse_args(argv)
 
 
@@ -216,7 +234,7 @@ def _execute_pipeline_with_qgis(
 
     # 1. Baca dan validasi seluruh fitur input secara eksplisit (termasuk CRS)
     raw_features, detected_input_crs = _read_raw_input_features(input_path, raw_points, wgs84_crs)
-    validation_result = validate_kde_input_features(raw_features, boundary_geojson)
+    validation_result = validate_kde_input_features(raw_features, boundary_geojson, mode=args.mode)
     validation_summary = validation_result["summary"]
     validation_summary["input_crs_detected"] = detected_input_crs
     accepted_features = validation_result["accepted"]
@@ -273,7 +291,9 @@ def _execute_pipeline_with_qgis(
         {"INPUT": boundary_layer, "TARGET_CRS": working_crs, "OUTPUT": "memory:"},
     )["OUTPUT"]
 
-    kde_params = config["kde_parameters"]
+    kde_params = dict(config["kde_parameters"])
+    if args.bandwidth is not None and args.bandwidth > 0:
+        kde_params["bandwidth_meters"] = float(args.bandwidth)
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
         boundary_utm_gpkg = tmp / "boundary_utm.gpkg"
@@ -408,6 +428,10 @@ def _execute_pipeline_with_qgis(
             {"INPUT": with_area, "TARGET_CRS": output_crs, "OUTPUT": "memory:"},
         )["OUTPUT"]
 
+    is_exploratory = args.mode == "exploratory"
+    data_label = "EKSPLORATIF_PUBLIK" if is_exploratory else "TERVERIFIKASI"
+    total_excluded = int(args.excluded_count or 0) + int(validation_summary.get("rejected_count") or 0)
+
     # 8. Bungkus menjadi GeoJSON FeatureCollection resmi sesuai kontrak web
     features = []
     zone_counter = 0
@@ -432,7 +456,7 @@ def _execute_pipeline_with_qgis(
                 "type": "Feature",
                 "properties": {
                     "isDemo": False,
-                    "dataLabel": "TERVERIFIKASI",
+                    "dataLabel": data_label,
                     "zone_id": f"hotspot-zone-{zone_counter}",
                     "density_class": tier_info["label"],
                     "density_rank": rank,
@@ -443,21 +467,30 @@ def _execute_pipeline_with_qgis(
         )
 
     boundary_cfg = config.get("boundary", {})
+    notice_text = (
+        f"ANALISIS EKSPLORATIF BERBASIS {validation_summary['points_used_for_kde']} INSIDEN TERDOKUMENTASI PUBLIK: "
+        f"titik di-geocode pada ruas jalan OSM ({total_excluded} laporan kecamatan-saja dikecualikan). "
+        "Menunjukkan pola konsentrasi spasial laporan publik terdokumentasi di Kota Medan, bukan prediksi ataupun sensus kebakaran lengkap resmi."
+        if is_exploratory
+        else "Hasil analisis Kernel Density Estimation (KDE) historis berbasis titik kebakaran terverifikasi Kota Medan. Bukan prediksi kejadian masa depan."
+    )
     output_payload = {
         "type": "FeatureCollection",
-        "name": "medan_fire_hotspot_kde_verified",
+        "name": "medan_fire_hotspot_kde_exploratory" if is_exploratory else "medan_fire_hotspot_kde_verified",
         "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
         "isDemo": False,
-        "dataLabel": "TERVERIFIKASI",
+        "dataLabel": data_label,
         "module": "hotspot-analyzer",
         "owner": "Adeptri",
         "generated_at": date.today().isoformat(),
-        "notice": (
-            "Hasil analisis Kernel Density Estimation (KDE) historis berbasis titik kebakaran "
-            "terverifikasi Kota Medan. Bukan prediksi kejadian masa depan."
-        ),
+        "notice": notice_text,
         "analysis": {
-            "title": "KDE Kebakaran Kota Medan (Terverifikasi)",
+            "title": (
+                "KDE Eksploratif Insiden Terdokumentasi Publik Kota Medan"
+                if is_exploratory
+                else "KDE Kebakaran Kota Medan (Terverifikasi)"
+            ),
+            "analysis_mode": args.mode,
             "source": args.source,
             "boundary_source": boundary_cfg.get(
                 "source", "OpenStreetMap Nominatim (Fallback Geoportal Medan)"
@@ -475,6 +508,7 @@ def _execute_pipeline_with_qgis(
             "classification_method": "Quantile (4 kelas)",
             "classification_details": classification,
             "incident_count_used": validation_summary["points_used_for_kde"],
+            "excluded_count": total_excluded,
             "validation_summary": validation_summary,
         },
         "features": features,

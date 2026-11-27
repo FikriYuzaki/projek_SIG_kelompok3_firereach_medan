@@ -530,7 +530,7 @@ def validate_and_emit_independent_candidates(district_features: list[dict]) -> t
 
     incidents = raw_ind.get("incident_candidates") or []
     stations = raw_ind.get("station_candidates") or []
-    assert len(incidents) == 27, f"Expected 27 independent incident candidates, got {len(incidents)}"
+    assert len(incidents) == 34, f"Expected 34 independent incident candidates, got {len(incidents)}"
     assert len(stations) == 6, f"Expected 6 UPT station candidates, got {len(stations)}"
 
     seen_ids = set()
@@ -588,6 +588,21 @@ def validate_and_emit_independent_candidates(district_features: list[dict]) -> t
                 f"district_only record {rid} must keep null geom/lat/lon"
             )
 
+        # Canonical schema fields alongside legacy compatibility fields
+        rec.setdefault("incident_id", rid)
+        rec.setdefault("title", rec.get("object_summary") or f"Kebakaran di {rec.get('address_text') or dname}")
+        rec.setdefault("incident_date", rec.get("occurred_on"))
+        rec.setdefault("incident_time", rec.get("occurred_time_wib"))
+        rec.setdefault("address", rec.get("address_text"))
+        rec.setdefault("kelurahan", rec.get("subdistrict_name"))
+        rec.setdefault("kecamatan", dname)
+        rec.setdefault("incident_description", rec.get("object_summary"))
+        rec.setdefault("response_information", rec.get("dispatched_units_note") or rec.get("extinguish_window_wib"))
+        rec.setdefault("latitude", rec.get("lat"))
+        rec.setdefault("longitude", rec.get("lon"))
+        rec.setdefault("source_type", "official_agency_news" if "p2k.medan.go.id" in url else "media_news")
+        rec.setdefault("last_verified_at", raw_ind["metadata"].get("access_date") or "2026-11-27")
+
     seen_st = set()
     st_approx = 0
     st_dist_only = 0
@@ -608,6 +623,17 @@ def validate_and_emit_independent_candidates(district_features: list[dict]) -> t
         else:
             st_dist_only += 1
             assert acc == "district_only" and st.get("geom") is None
+
+        st.setdefault("station_id", sc)
+        st.setdefault("station_name", st.get("name"))
+        st.setdefault("official_address", st.get("address"))
+        st.setdefault("kecamatan", dname)
+        st.setdefault("kelurahan", None)
+        st.setdefault("latitude", st.get("lat"))
+        st.setdefault("longitude", st.get("lon"))
+        st.setdefault("coordinate_source", st.get("osm_ref") or "Belum tersedia (perlu verifikasi lapangan)")
+        st.setdefault("address_source", st.get("source_name"))
+        st.setdefault("last_verified_at", st.get("retrieved_at") or "2026-11-27")
 
     inc_payload = {
         "isDemo": False,
@@ -999,7 +1025,6 @@ def build_supabase_staging_bundle(
 def main():
     PROCESSED.mkdir(parents=True, exist_ok=True)
     PUBLIC_DATA.mkdir(parents=True, exist_ok=True)
-    PUBLIC_DEMO.mkdir(parents=True, exist_ok=True)
 
     # 1. Parse population 2022-2024 (has BPS area codes 12.71.01..12.71.21) & population 2025
     pop24_rows = read_xlsx_rows(RAW_SATU / "JUMLAH_PENDUDUK_KOTA_MEDAN_BERDASARKAN_KECAMATAN_2022-2024.xlsx")
@@ -1338,12 +1363,21 @@ def main():
     verified_stations = [
         {
             "station_code": "MAKO-00",
+            "station_id": "MAKO-00",
             "name": "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
+            "station_name": "Mako 0.0 Dinas Pemadam Kebakaran dan Penyelamatan Kota Medan",
             "station_type": "mako",
             "address": "Jl. Candi Borobudur No. 2, Kota Medan",
+            "official_address": "Jl. Candi Borobudur No. 2, Kel. Petisah Tengah, Kec. Medan Petisah, Kota Medan",
+            "kelurahan": "Petisah Tengah",
+            "kecamatan": "Medan Petisah",
             "district_name": "Medan Petisah",
             "lat": lat,
             "lon": lon,
+            "latitude": lat,
+            "longitude": lon,
+            "coordinate_source": "Satu Data Medan (Knowledge Informasi Damkarmat)",
+            "address_source": "Satu Data Medan (Knowledge Informasi Damkarmat)",
             "location_accuracy": "exact_verified",
             "verification_status": "verified",
             "operational_status": "operational_verified",
@@ -1352,7 +1386,8 @@ def main():
             "evidence_urls": [
                 "https://medanterkini.medan.go.id/api/resources/download/01m36k3bxe062dr4dw7raan3qe"
             ],
-            "retrieved_at": "2026-11-19",
+            "retrieved_at": "2026-11-27",
+            "last_verified_at": "2026-11-27",
             "limitation_note": "Satu-satunya pos Damkarmat dengan koordinat resmi terverifikasi dalam dataset terbuka Satu Data Medan.",
         }
     ]
@@ -1609,9 +1644,38 @@ def main():
     summary_out.write_text(json.dumps(summary_payload, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     shutil.copy2(summary_out, PUBLIC_DATA / "fire_incidents_summary.json")
 
-    shutil.copy2(
-        ROOT / "data" / "fixtures" / "demo" / "incident-explorer-sample.demo.json",
-        PUBLIC_DEMO / "incident-explorer-sample.demo.json",
+    # Emit GeoJSON point layer of geocoded public incidents for exploratory GIS KDE
+    pub_points_fc = {
+        "type": "FeatureCollection",
+        "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {
+                    "incident_id": r["source_record_id"],
+                    "source_record_id": r["source_record_id"],
+                    "incident_date": r["occurred_on"],
+                    "incident_time": r["occurred_time_wib"],
+                    "published_at": r["published_at"],
+                    "address": r["address_text"],
+                    "kecamatan": r["district_name"],
+                    "object_type": r["object_type"],
+                    "location_accuracy": r["location_accuracy"],
+                    "verification_status": r["verification_status"],
+                    "source_name": r["source_name"],
+                    "source_url": r["source_url"],
+                    "isDemo": False,
+                },
+                "geometry": r["geom"],
+            }
+            for r in inc_payload["records"]
+            if r.get("geom") is not None
+        ],
+    }
+    (PROCESSED / "public_incidents_points.geojson").write_text(
+        json.dumps(pub_points_fc, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+        newline="\n",
     )
 
     manifest_path = PUBLIC_DATA / "manifest.json"
@@ -1640,13 +1704,26 @@ def main():
         f"{st_payload['summary']['approximate_point_count']} approximate ({', '.join(st_approx_codes)}) + "
         f"{st_payload['summary']['district_only_count']} district_only ({', '.join(st_dist_codes)}, geom=null)"
     )
+    inc_acc_summary = (
+        f"{inc_payload['summary']['approximate_point_count']} approximate (ruas/landmark OSM) + "
+        f"{inc_payload['summary']['district_only_count']} district_only (geom=null)"
+    )
+
+    verified_outputs_out = dict(existing_verified_outputs) if isinstance(existing_verified_outputs, dict) else {}
+    verified_outputs_out["hotspot-analyzer"] = {
+        "available": True,
+        "status": "exploratory_public",
+        "path": "/data/hotspot-analyzer.exploratory.geojson",
+        "note": f"KDE eksploratif dari {inc_payload['summary']['approximate_point_count']} insiden terdokumentasi publik berkoordinat jalan OSM ({inc_payload['summary']['district_only_count']} insiden kecamatan-saja dikecualikan).",
+    }
 
     manifest = {
+        "release_version": "2026-11-27-prod",
         "generated_at": "2026-11-27",
         "city": "Kota Medan",
         "crs_web": "EPSG:4326",
         "crs_metric": "EPSG:32647",
-        **({"verified_outputs": existing_verified_outputs} if existing_verified_outputs is not None else {}),
+        "verified_outputs": verified_outputs_out,
         "datasets": [
             {
                 "id": "medan-fire-2016-2021-bulanan",
@@ -1858,11 +1935,11 @@ def main():
             "datasets": [
                 {
                     "id": "medan-fire-incident-candidates",
-                    "title": "Kandidat Kejadian Kebakaran Kota Medan (Media Independen 2024 - 2026)",
-                    "publisher": "ANTARA News Sumut & Detik Sumut (+ OSM Nominatim)",
-                    "period": "Januari 2024 - Juli 2026",
+                    "title": "Insiden Kebakaran Terdokumentasi Publik (Kota Medan 2024 - 2026)",
+                    "publisher": "Portal Resmi Damkarmat Medan (p2k.medan.go.id), ANTARA Sumut, & Detik Sumut (+ OSM)",
+                    "period": "Januari 2024 - November 2026",
                     "record_count": inc_payload["summary"]["total_candidates"],
-                    "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
+                    "accuracy_summary": inc_acc_summary,
                     "status": "needs_review",
                     "path": "/data/public_incident_candidates.json",
                     "sha256": sha256_text_asset(PUBLIC_DATA / "public_incident_candidates.json")[0],

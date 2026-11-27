@@ -452,9 +452,93 @@ def _compute_coverage_for_points(
         "net_layer_utm": net_layer_utm,
         "district_cov_layer": district_cov_layer,
         "net_lines_5km_layer": net_lines_5km_layer,
+        "net_geom_by_thresh": net_geom_by_thresh,
         "summary_by_threshold": summary_by_threshold,
         "district_rows": district_rows,
     }
+
+
+def _compute_station_overlap_partition(
+    *,
+    station_5km_geoms: list[tuple[str, Any]],
+    city_geom: Any,
+    city_total_km2: float,
+    wgs84_crs: Any,
+) -> tuple[dict[str, Any], Any]:
+    from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
+    from qgis.PyQt.QtCore import QMetaType
+
+    part_layer_utm = QgsVectorLayer("MultiPolygon?crs=EPSG:32647", "coverage_partition_5km_utm", "memory")
+    prov = part_layer_utm.dataProvider()
+    prov.addAttributes(
+        [
+            QgsField("zone_type", QMetaType.Type.QString),
+            QgsField("label", QMetaType.Type.QString),
+            QgsField("station_count_rule", QMetaType.Type.QString),
+            QgsField("area_km2", QMetaType.Type.Double),
+            QgsField("city_share_pct", QMetaType.Type.Double),
+        ]
+    )
+    part_layer_utm.updateFields()
+
+    all_geoms = [g for _, g in station_5km_geoms if g is not None and not g.isEmpty()]
+    all_union = _extract_polygons_only(QgsGeometry.unaryUnion(all_geoms).intersection(city_geom)) if all_geoms else None
+
+    overlap_parts = []
+    for i in range(len(station_5km_geoms)):
+        for j in range(i + 1, len(station_5km_geoms)):
+            inter = station_5km_geoms[i][1].intersection(station_5km_geoms[j][1])
+            poly = _extract_polygons_only(inter.intersection(city_geom))
+            if poly is not None and not poly.isEmpty():
+                overlap_parts.append(poly)
+
+    overlap_geom = (
+        _extract_polygons_only(overlap_parts[0] if len(overlap_parts) == 1 else QgsGeometry.unaryUnion(overlap_parts))
+        if overlap_parts
+        else None
+    )
+    single_geom = (
+        _extract_polygons_only(all_union.difference(overlap_geom))
+        if (all_union is not None and overlap_geom is not None)
+        else all_union
+    )
+    uncovered_geom = _extract_polygons_only(city_geom.difference(all_union)) if all_union is not None else _extract_polygons_only(city_geom)
+
+    specs = [
+        ("overlap_ge2", "Terjangkau >= 2 Pos (Overlap 5 km)", ">= 2 pos", overlap_geom),
+        ("single_station", "Terjangkau 1 Pos (Cakupan Tunggal 5 km)", "= 1 pos", single_geom),
+        ("uncovered", "Belum Terjangkau Layanan 5 km", "0 pos", uncovered_geom),
+    ]
+
+    summary: dict[str, Any] = {}
+    feats = []
+    for ztype, lbl, rule, geom in specs:
+        area_km2 = round(geom.area() / 1_000_000.0, 4) if geom is not None and not geom.isEmpty() else 0.0
+        pct = round((area_km2 / city_total_km2) * 100.0, 2) if city_total_km2 > 0 else 0.0
+        summary[ztype] = {"label": lbl, "area_km2": area_km2, "city_share_pct": pct}
+        if geom is not None and not geom.isEmpty() and area_km2 > 0:
+            qf = QgsFeature(part_layer_utm.fields())
+            qf.setGeometry(geom)
+            qf.setAttributes([ztype, lbl, rule, area_km2, pct])
+            feats.append(qf)
+
+    if feats:
+        prov.addFeatures(feats)
+    part_layer_utm.updateExtents()
+
+    partition_fc = _to_web_feature_collection(
+        part_layer_utm,
+        wgs84_crs,
+        CANDIDATE_SCENARIO_LABEL,
+        simplify_deg=0.00018,
+    )
+    return {
+        "threshold_meters": 5000,
+        "routable_station_codes": [sc for sc, _ in station_5km_geoms],
+        "city_area_km2": city_total_km2,
+        "summary": summary,
+        "features_geojson": partition_fc,
+    }, part_layer_utm
 
 
 def _execute_coverage(
@@ -628,6 +712,124 @@ def _execute_coverage(
             ]
         )
 
+    # 3. Analisis individual per pos untuk seluruh 7 pos Damkarmat (5 berkoordinat + 2 belum berkoordinat)
+    from qgis.core import QgsFeature, QgsField, QgsVectorLayer
+    from qgis.PyQt.QtCore import QMetaType
+
+    per_station_5km_layer = QgsVectorLayer("MultiPolygon?crs=EPSG:32647", "per_station_network_5km_utm", "memory")
+    ps_prov = per_station_5km_layer.dataProvider()
+    ps_prov.addAttributes(
+        [
+            QgsField("station_code", QMetaType.Type.QString),
+            QgsField("station_name", QMetaType.Type.QString),
+            QgsField("verification_status", QMetaType.Type.QString),
+            QgsField("area_km2", QMetaType.Type.Double),
+        ]
+    )
+    per_station_5km_layer.updateFields()
+
+    per_station_coverage: list[dict[str, Any]] = []
+    station_5km_geoms: list[tuple[str, Any]] = []
+
+    all_stations_ordered = accepted_stations + accepted_candidates
+    for st in all_stations_ordered:
+        sc = st["station_code"]
+        acc = st.get("location_accuracy") or (
+            "address_geocoded_verified" if st.get("verification_status") == "verified" else "unknown"
+        )
+        has_coords = acc in ("exact_verified", "address_geocoded_verified", "approximate") and st.get("lat") is not None and st.get("lon") is not None
+        if not has_coords:
+            per_station_coverage.append(
+                {
+                    "station_code": sc,
+                    "station_name": st["name"],
+                    "station_type": st.get("station_type") or "upt",
+                    "address": st.get("address"),
+                    "district_name": st.get("district_name"),
+                    "lat": None,
+                    "lon": None,
+                    "location_accuracy": acc,
+                    "verification_status": st.get("verification_status") or "needs_review",
+                    "source_name": st.get("source_name"),
+                    "routable": False,
+                    "reason": "Koordinat persil bangunan pos belum tersedia (district_only / geom = null); service area jaringan jalan tidak dibuat agar tidak mengarang lokasi.",
+                    "network_5km_area_km2": 0.0,
+                    "network_5km_city_coverage_pct": 0.0,
+                    "threshold_comparison": [],
+                    "district_coverage": [],
+                    "network_service_areas": None,
+                    "euclidean_buffers": None,
+                }
+            )
+            continue
+
+        if sc == "MAKO-00":
+            st_res = baseline_res
+            st_label = "PROVISIONAL"
+        else:
+            st_pts = _build_points_layer_utm([st], f"station_{sc}", utm_crs)
+            st_res = _compute_coverage_for_points(
+                station_list=[st],
+                pts_utm=st_pts,
+                roads_layer=roads_layer,
+                districts_utm=districts_utm,
+                city_geom=city_geom,
+                thresholds_m=thresholds_m,
+                assumed_speed_kmh=assumed_speed_kmh,
+                dissolve_network_lines=False,
+                capture_lines_5km=False,
+            )
+            st_label = CANDIDATE_SCENARIO_LABEL
+
+        g5 = st_res["net_geom_by_thresh"][5000]
+        station_5km_geoms.append((sc, g5))
+        comp_5km = next((r for r in st_res["summary_by_threshold"] if r["threshold_meters"] == 5000), {})
+        net5_area = float(comp_5km.get("network_area_km2") or 0.0)
+        net5_pct = round((net5_area / city_total_km2) * 100.0, 2) if city_total_km2 > 0 else 0.0
+
+        psf = QgsFeature(per_station_5km_layer.fields())
+        psf.setGeometry(g5)
+        psf.setAttributes([sc, st["name"], st.get("verification_status") or "needs_review", net5_area])
+        ps_prov.addFeatures([psf])
+
+        per_station_coverage.append(
+            {
+                "station_code": sc,
+                "station_name": st["name"],
+                "station_type": st.get("station_type") or "upt",
+                "address": st.get("address"),
+                "district_name": st.get("district_name"),
+                "lat": st["lat"],
+                "lon": st["lon"],
+                "location_accuracy": acc,
+                "verification_status": st.get("verification_status") or "needs_review",
+                "source_name": st.get("source_name"),
+                "source_url": st.get("source_url"),
+                "routable": True,
+                "city_area_km2": city_total_km2,
+                "network_5km_area_km2": net5_area,
+                "network_5km_city_coverage_pct": net5_pct,
+                "threshold_comparison": st_res["summary_by_threshold"],
+                "district_coverage": st_res["district_rows"],
+                "network_service_areas": _to_web_feature_collection(st_res["net_layer_utm"], wgs84_crs, st_label, simplify_deg=0.00018),
+                "euclidean_buffers": _to_web_feature_collection(st_res["euc_layer_utm"], wgs84_crs, st_label, simplify_deg=0.0),
+            }
+        )
+
+    per_station_5km_layer.updateExtents()
+    coverage_partition_5km, partition_layer_utm = _compute_station_overlap_partition(
+        station_5km_geoms=station_5km_geoms,
+        city_geom=city_geom,
+        city_total_km2=city_total_km2,
+        wgs84_crs=wgs84_crs,
+    )
+    layers_to_save.extend(
+        [
+            ("per_station_network_5km_utm", per_station_5km_layer),
+            ("coverage_partition_5km_utm", partition_layer_utm),
+        ]
+    )
+
     out_gpkg_path.parent.mkdir(parents=True, exist_ok=True)
     if out_gpkg_path.exists():
         out_gpkg_path.unlink()
@@ -709,6 +911,8 @@ def _execute_coverage(
         "network_service_areas": net_web_fc,
         "district_coverage": baseline_res["district_rows"],
         "candidate_coverage_scenario": candidate_scenario_payload,
+        "per_station_coverage": per_station_coverage,
+        "coverage_partition_5km": coverage_partition_5km,
     }
 
     contract_check = validate_station_coverage_output(output_payload)

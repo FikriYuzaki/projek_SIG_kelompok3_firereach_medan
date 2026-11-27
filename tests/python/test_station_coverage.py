@@ -165,6 +165,15 @@ class TestStationCoverageCore(unittest.TestCase):
         base_5km = next(r for r in payload["threshold_comparison"] if r["threshold_meters"] == 5000)
         cand_5km = next(r for r in scen["threshold_comparison"] if r["threshold_meters"] == 5000)
         self.assertGreater(cand_5km["network_area_km2"], base_5km["network_area_km2"])
+        self.assertEqual(len(payload.get("per_station_coverage") or []), 7)
+        routable_codes = [s["station_code"] for s in payload["per_station_coverage"] if s["routable"]]
+        unloc_codes = [s["station_code"] for s in payload["per_station_coverage"] if not s["routable"]]
+        self.assertEqual(routable_codes, ["MAKO-00", "UPT-01", "UPT-02", "UPT-05", "UPT-06"])
+        self.assertEqual(unloc_codes, ["UPT-03", "UPT-04"])
+        part = payload.get("coverage_partition_5km") or {}
+        self.assertIn("overlap_ge2", part.get("summary") or {})
+        self.assertIn("single_station", part.get("summary") or {})
+        self.assertIn("uncovered", part.get("summary") or {})
 
 
 if __name__ == "__main__":
