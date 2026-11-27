@@ -11,4 +11,4 @@
 3. Filter aktif untuk periode/granularitas (`2023-kecamatan`, `2023-dampak`, `2024-bulanan`, `2025-bulanan`, `2016-2025-tahunan`), kecamatan, kategori objek kebakaran, pengurutan hasil (`default`, `desc`, `asc`, `name`), serta pencarian teks.
 4. Peta choropleth adaptif 21 kecamatan 2023, marker Mako 0.0 terverifikasi (`3.589536, 98.671447`), serta pemisahan tegas `geom = null` untuk data agregat/unlocated.
 5. Tab khusus `Belum Terlokasi & Perlu Review` dengan filter status batch (`unlocated` vs `needs_review`), tabel selisih +/-1 delapan kecamatan 2023, serta Log Anomali Kualitas Data Resmi (`data_quality_anomalies`).
-6. Mode opt-in pratinjau kontrak record individual berlabel `DATA DEMO` beserta pratinjau skematis Three.js (dan fallback SVG 2D).
+6. Mode opt-in pratinjau kontrak record individual berlabel `DATA DEMO` serta tab ketiga **Simulasi Respons Damkarmat** (routing Dijkstra jaringan jalan OSM `EPSG:32647`, animasi armada & pemadaman Canvas 2D dengan fallback SVG 2D, dan kontrol audio Web Audio default mute).

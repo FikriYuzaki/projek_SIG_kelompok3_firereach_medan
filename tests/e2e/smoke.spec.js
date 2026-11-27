@@ -242,8 +242,11 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.locator("aside nav a[href='/about']").click();
     await expect(page.getByRole("heading", { name: /Tentang Proyek/i })).toBeVisible();
     await expect(page.getByText(/Register Sumber Data Terverifikasi/i)).toBeVisible();
+    await expect(page.locator("a[href*='opendatacommons.org/licenses/odbl']")).toHaveAttribute("target", "_blank");
+    await expect(page.locator("a[href*='openstreetmap.org/copyright']")).toHaveAttribute("target", "_blank");
+    await expect(page.locator("a[href*='public_incident_candidates.json']")).toHaveAttribute("target", "_blank");
 
-    // 5. Fire Incident Explorer interactions + filter checks + Three.js toggle + DEMO opt-in separation
+    // 5. Fire Incident Explorer interactions + filter checks + Damkarmat simulation + DEMO opt-in separation
     await page.locator("#module-nav-list a[href='/incident-explorer']").click();
     await expect(page.getByRole("heading", { name: "Fire Incident Explorer" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__firereachDebug?.activeMaps ?? 0)).toBe(1);
@@ -263,7 +266,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await amplasRow.focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("#detail-kv")).toContainText("Medan Amplas");
-    await expect(page.locator("[data-preview-title]")).toBeVisible();
+    await expect(page.locator("#open-simulation-tab-btn")).toBeVisible();
 
     // Switch to 2024 monthly aggregate -> district filter disables honestly
     await page.selectOption("#filter-period", "2024-bulanan");
@@ -327,15 +330,52 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.click("#toggle-demo-mode");
     await expect(page.locator("#explorer-granularity-banner")).not.toContainText("DATA DEMO AKTIF");
 
-    // Verify Three.js schematic Play/Pause toggle works when WebGL is available (or fallback 2D is shown)
-    const previewToggle = page.locator("[data-preview-toggle]");
-    await expect(previewToggle).toBeVisible();
-    const renderMode = await page.locator("[data-preview-stage]").getAttribute("data-render-mode");
-    if (renderMode === "webgl") {
-      const beforeText = await previewToggle.textContent();
-      await previewToggle.click();
-      await expect(previewToggle).not.toHaveText(beforeText);
-    }
+    // Verify Simulasi Respons Damkarmat tab: disclaimer, mute default, outside rejection, OSM routing, playback
+    await page.click("#tab-simulation");
+    await expect(page.locator("#explorer-tab-simulation")).toBeVisible();
+    await expect(page.locator(".sim-disclaimer")).toContainText("SIMULASI: bukan layanan panggilan darurat");
+    await expect(page.locator("#sim-audio-btn")).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("#sim-audio-btn")).toContainText("Nonaktif (Mute)");
+    await page.click("#sim-audio-btn");
+    await expect(page.locator("#sim-audio-btn")).toHaveAttribute("aria-pressed", "true");
+    await page.click("#sim-audio-btn");
+    await expect(page.locator("#sim-audio-btn")).toHaveAttribute("aria-pressed", "false");
+
+    await page.selectOption("#sim-preset-select", "outside");
+    await page.click("#sim-apply-preset");
+    await expect(page.locator("#sim-status-message")).toContainText("di luar batas administratif");
+    await expect(page.locator("#sim-start-btn")).toBeDisabled();
+
+    await page.selectOption("#sim-preset-select", "helvetia");
+    await page.click("#sim-apply-preset");
+    await expect(page.locator("#sim-station-kv")).toContainText("Kandidat Pos UPT Wilayah V");
+    await expect(page.locator("#sim-station-kv")).toContainText("35 km/jam");
+    await expect(page.locator("#sim-excluded-note")).toContainText("UPT-03, UPT-04");
+    await expect(page.locator("#sim-map .leaflet-overlay-pane svg path").first()).toBeAttached();
+    await expect(page.locator("#sim-start-btn")).toBeEnabled();
+
+    await page.selectOption("#sim-station-scope", "verified-only");
+    await expect(page.locator("#sim-station-kv")).toContainText("Mako 0.0");
+    await page.selectOption("#sim-station-scope", "with-candidates");
+    await expect(page.locator("#sim-station-kv")).toContainText("Kandidat Pos UPT Wilayah V");
+
+    await page.click("#sim-start-btn");
+    await expect(page.locator("#sim-phase-badge")).toContainText("Armada Simulasi Menuju Lokasi");
+    await page.click("#sim-pause-btn");
+    await expect(page.locator("#sim-phase-badge")).toContainText("Simulasi Dijeda");
+    await page.click("#sim-pause-btn");
+    await expect(page.locator("#sim-phase-badge")).toContainText("Armada Simulasi Menuju Lokasi");
+    await page.click("#sim-reset-btn");
+    await expect(page.locator("#sim-phase-badge")).toContainText("Belum Memilih Lokasi");
+
+    // Check simulation tab responsive layout at 375px and clean tab switching
+    await page.setViewportSize({ width: 375, height: 812 });
+    const simMobileOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(simMobileOverflow).toBe(false);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.click("#tab-verified");
 
     // 6. Keyboard navigation on sidebar link & verify zero leaked maps AND charts
     await page.locator("aside nav a[href='/']").focus();
@@ -399,19 +439,21 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("#app-sidebar")).not.toHaveClass(/is-open/);
 
-    // 8. Three.js WebGL unavailable fallback verification
+    // 8. Canvas 2D unavailable fallback + reduced-motion verification on Simulation tab
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.addInitScript(() => {
       const origGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (type, ...args) {
-        if (type === "webgl" || type === "webgl2" || type === "experimental-webgl") {
+        if (type === "2d" && this.id === "sim-stage-canvas") {
           return null;
         }
         return origGetContext.call(this, type, ...args);
       };
     });
     await page.goto("/incident-explorer");
-    await expect(page.locator("[data-preview-stage]")).toHaveAttribute("data-render-mode", "fallback-2d");
-    await expect(page.locator("[data-preview-toggle]")).toHaveText("Mode Statis 2D");
+    await page.click("#tab-simulation");
+    await expect(page.locator("#sim-stage-box")).toHaveAttribute("data-render-mode", "fallback-2d");
+    await expect(page.locator("#sim-stage-box svg")).toContainText("Fallback 2D:");
 
     // Verify clean console, page errors, and static asset responses before simulated network failure
     expect(consoleErrors).toEqual([]);
@@ -586,6 +628,7 @@ test.describe("FireReach Medan E2E Smoke & Quality Gate", () => {
     await page.goto("/about");
     await expect(page.getByText(/Pengayaan Kandidat Independen \(Belum Terverifikasi\)/i)).toBeVisible();
     await expect(page.getByText(/BPBD Rekapitulasi Bencana Tahun 2021/i)).toBeVisible();
+    await expect(page.getByText(/ODbL 1\.0/i).first()).toBeVisible();
     await expect(page.locator("#about-data-source-badge")).toContainText("Sumber Data: JSON Lokal");
     await expect(page.locator("#about-active-source-note")).toContainText("Sumber Data: JSON Lokal");
     await expect(page.locator("table a[href*='p2k.medan.go.id']")).toHaveAttribute("target", "_blank");

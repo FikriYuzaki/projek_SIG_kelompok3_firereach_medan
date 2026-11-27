@@ -2,7 +2,32 @@
   "metadata": {
     "isDemo": false,
     "dataLabel": "KANDIDAT_PUBLIK_BELUM_TERVERIFIKASI",
-    "retrieved_at": "2026-11-23",
+    "retrieved_at": "2026-11-27",
+    "legal_basis_audit": {
+      "audited_at": "2026-11-27",
+      "perwali_25_2018": {
+        "title": "Peraturan Wali Kota Medan No. 25 Tahun 2018 tentang Pembentukan UPT Kebakaran pada Dinas Pencegah dan Pemadam Kebakaran Kota Medan",
+        "official_gazette": "BD.2018/ No. 25",
+        "enacted_on": "2018-02-14",
+        "jdih_bpk_url": "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018",
+        "jdih_bpk_status": "Berlaku (nomenklatur lama pra-Dinas Damkarmat)",
+        "audit_note": "Digunakan semata sebagai konteks historis pembentukan UPT Wilayah I-IV, bukan bukti lokasi fisik bangunan pos saat ini. Portal jdih.medan.go.id mengembalikan HTTP 403 Cloudflare pada 2026-11-27 sehingga naskah perubahan/pencabutan lokal belum dapat diverifikasi langsung."
+      },
+      "perwali_12_2023_check": "Pada JDIH BPK RI, Perwali Medan No. 12 Tahun 2023 tercatat mengatur Percepatan Penurunan Stunting Terintegrasi (bukan regulasi UPT Damkarmat).",
+      "recent_policy_context": [
+        {
+          "regulation": "Peraturan Wali Kota Medan No. 39 Tahun 2024",
+          "subject": "Amplifikasi Pelayanan Pemadam Kebakaran dan Penyelamatan Kota Medan (pemenuhan SPM melalui integrasi MERCY)",
+          "role": "Konteks kebijakan pelayanan operasional; tidak memuat tabel koordinat pos."
+        },
+        {
+          "regulation": "Peraturan Daerah Kota Medan No. 6 Tahun 2025",
+          "subject": "Pencegahan dan Penanggulangan Kebakaran (LD Tahun 2025 No. 6, ditetapkan 2025-10-31)",
+          "url": "https://p2k.medan.go.id/menu/Regulasi/peraturan-daerah-kota-medan-nomor-6-tahun-2025-tentang-pencegahan-dan-penanggulangan-kebakaran.html",
+          "role": "Payung regulasi daerah terbaru; tidak memuat koordinat bangunan pos UPT."
+        }
+      ]
+    },
     "osm_overpass_audit": {
       "query_bbox": [
         3.45,
@@ -26,7 +51,13 @@
         "source": "Portal Resmi Dinas Damkarmat Kota Medan (Infografis Pos)",
         "url": "https://p2k.medan.go.id/berita/Infografis-Letak-Pos-Damkarmat-Kota-Medan.html",
         "status": "blocked_http_403_cloudflare",
-        "note": "Portal p2k.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403; tidak dilakukan bypass."
+        "note": "Portal p2k.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403 (diverifikasi ulang 2026-11-27); tidak dilakukan bypass."
+      },
+      {
+        "source": "JDIH Pemerintah Kota Medan",
+        "url": "https://jdih.medan.go.id/",
+        "status": "blocked_http_403_cloudflare",
+        "note": "Portal jdih.medan.go.id mengembalikan tantangan anti-bot Cloudflare HTTP 403 pada 2026-11-27; tidak dilakukan bypass."
       },
       {
         "source": "Aplikasi Layanan Pak Damkar Medan",
@@ -41,7 +72,7 @@
         "note": "Server GeoServer mengembalikan HTTP 502 Bad Gateway pada kueri kotak batas Kota Medan."
       }
     ],
-    "disclaimer": "Kandidat pos UPT berasal dari berita resmi Pemerintah Kota Medan, dokumen perencanaan (Renstra DP2K 2021-2026), JDIH BPK (Perwali Medan No. 25 Tahun 2018), media kredibel, serta referensi landmark/ruas jalan OpenStreetMap (ODbL 1.0). Seluruh kandidat berstatus needs_review, bukan koordinat bangunan pos hasil survei lapangan resmi, dan tidak menggantikan verifikasi Dinas Damkarmat Kota Medan."
+    "disclaimer": "Kandidat pos UPT berasal dari berita resmi Pemerintah Kota Medan, dokumen perencanaan (Renstra DP2K 2021-2026), konteks historis Perwali Medan No. 25 Tahun 2018 (JDIH BPK), media kredibel (ANTARA Sumut, Metro Rakyat), serta referensi landmark/ruas jalan OpenStreetMap (ODbL 1.0). Tidak ada data atau koordinat yang diambil dari Google Maps. Seluruh kandidat berstatus needs_review, bukan koordinat bangunan pos hasil survei lapangan resmi, dan tidak menggantikan verifikasi Dinas Damkarmat Kota Medan."
   },
   "candidates": [
     {
@@ -63,6 +94,8 @@
       "location_accuracy": "approximate",
       "validity_category": "kandidat_publik_landmark_osm",
       "verification_status": "needs_review",
+      "operational_status": "operational_public_news_approximate_landmark",
+      "legal_basis_note": "Konteks historis pembentukan UPT Wilayah I pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); dokumen regulasi tidak membuktikan koordinat bangunan aktual.",
       "osm_ref": "node/4246973518",
       "source_name": "Portal Resmi Pemko Medan (Diklat Damkarmat), Metro Rakyat (Kadis DPKP Wandro Malau, Mei 2026), & OSM (Pasar Induk Medan)",
       "source_url": "https://portal.medan.go.id/berita/tingkatkan-keterampilan-dan-profesionalitas-aparatur-damkarmat-ikuti-diklat-dasar-kualifikasi-pemadam__read4706.html",
@@ -72,8 +105,9 @@
         "https://portal.medan.go.id/storage/files/6/UNDUH/DAFTAR_OPD_KECAMATAN_KELURAHAN_DAN_ALAMAT/Daftar_OPD_dan_Kecamatan.pdf",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Bunga Melati No. 1 (Kemenangan Tani) adalah Kantor Camat Medan Tuntungan. Titik memakai landmark publik Pasar Induk Medan (node/4246973518) di Lau Cih sebagai perkiraan kawasan dan belum terverifikasi koordinat persil bangunan pos.",
+      "conflict_notes": "Konflik alamat antar sumber sekunder (Kemenangan Tani vs kawasan Pasar Induk Lau Cih); koordinat masih perkiraan landmark OSM node/4246973518 sehingga berstatus needs_review.",
       "isDemo": false
     },
     {
@@ -95,6 +129,8 @@
       "location_accuracy": "approximate",
       "validity_category": "kandidat_publik_landmark_osm",
       "verification_status": "needs_review",
+      "operational_status": "operational_dispatched_approximate_landmark",
+      "legal_basis_note": "Konteks historis pembentukan UPT Wilayah II pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); bukti pengerahan armada tercatat pada ANTARA 574077 & 574749.",
       "osm_ref": "node/2170570714",
       "source_name": "Portal Resmi Pemko Medan (HUT Damkar ke-102), ANTARA Sumut, Metro Rakyat, & OSM (Terminal Terpadu Amplas)",
       "source_url": "https://portal.medan.go.id/berita/peringati-hut-damkar-dan-penyelamatan-ke102-wali-kota-medan-akan-menambah-kantor-upt-dinas-p2k__read61.html",
@@ -106,8 +142,9 @@
         "https://portal.medan.go.id/storage/files/6/UNDUH/DAFTAR_OPD_KECAMATAN_KELURAHAN_DAN_ALAMAT/Daftar_OPD_dan_Kecamatan.pdf",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Daftar_OPD_dan_Kecamatan.pdf membuktikan Jl. Garu III No. 111 A (Harjosari I) adalah Kantor Camat Medan Amplas. Titik memakai landmark Terminal Terpadu Amplas OSM (node/2170570714) sesuai keterangan Kadis DPKP dan belum merupakan koordinat bangunan pos resmi.",
+      "conflict_notes": "Daftar_OPD_dan_Kecamatan.pdf membedakan Kantor Camat (Jl. Garu III No. 111 A) dari kawasan Terminal Terpadu Amplas; titik OSM node/2170570714 bersifat perkiraan kawasan dan berstatus needs_review.",
       "isDemo": false
     },
     {
@@ -123,6 +160,8 @@
       "location_accuracy": "district_only",
       "validity_category": "kandidat_publik_kecamatan_saja",
       "verification_status": "needs_review",
+      "operational_status": "operational_dispatched_unlocated",
+      "legal_basis_note": "Konteks historis pembentukan UPT Wilayah III pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); Renstra DP2K 2021-2026 dan ANTARA 574077 membuktikan operasional pengerahan.",
       "osm_ref": null,
       "source_name": "Portal Resmi Pemko Medan, Renstra DP2K 2021-2026, ANTARA Sumut, & Metro Rakyat",
       "source_url": "https://portal.medan.go.id/berita/peringati-hut-damkar-dan-penyelamatan-ke102-wali-kota-medan-akan-menambah-kantor-upt-dinas-p2k__read61.html",
@@ -133,8 +172,9 @@
         "https://metrorakyat.com/2026/05/medan-butuh-mobil-damkar-tangga-100-meter-wanro-malau-gedung-tinggi-kian-menjamur/",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Jl. Pulau Natuna tidak ditemukan di OSM/jaringan jalan lokal dan fitur OSM PT. Kawasan Industri Medan (way/970764126) berada di luar poligon batas Kota Medan (Kab. Deli Serdang), sehingga geom dibiarkan null dan dikeluarkan dari simulasi titik.",
+      "conflict_notes": "Dikonfirmasi aktif pada pengerahan ANTARA 574077 dan Renstra DP2K, namun ruas Jl. Pulau Natuna tidak ditemukan di OSM Kota Medan dan way/970764126 berada di Deli Serdang; geom dipertahankan null.",
       "isDemo": false
     },
     {
@@ -150,6 +190,8 @@
       "location_accuracy": "district_only",
       "validity_category": "kandidat_publik_kecamatan_saja",
       "verification_status": "needs_review",
+      "operational_status": "operational_dispatched_unlocated",
+      "legal_basis_note": "Konteks historis pembentukan UPT Wilayah IV pada Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25); Renstra DP2K 2021-2026 dan ANTARA 574077 membuktikan operasional pengerahan.",
       "osm_ref": null,
       "source_name": "Situs Resmi Kec. Medan Belawan, Daftar OPD & Kecamatan Pemko Medan, Renstra DP2K 2021-2026, & ANTARA Sumut",
       "source_url": "https://medanbelawan.medan.go.id/menu-single/Kontak.html",
@@ -160,8 +202,9 @@
         "https://sumut.antaranews.com/berita/574077/perusahaan-kelapa-sawit-terbakar-tujuh-armada-pemadam-dikerahkan",
         "https://peraturan.bpk.go.id/Details/71774/perwali-kota-medan-no-25-tahun-2018"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Alamat Jl. Cimanuk No. 03 Belawan II terkonfirmasi dokumen resmi Pemko Medan, namun ruas Jl. Cimanuk dan Kantor Camat Medan Belawan belum terpetakan di OSM/Nominatim, sehingga geom dibiarkan null tanpa tebakan koordinat.",
+      "conflict_notes": "Alamat Kantor Camat Belawan terkonfirmasi di dokumen Pemko Medan, namun belum ada geometri OSM yang terverifikasi; geom dipertahankan null.",
       "isDemo": false
     },
     {
@@ -183,6 +226,8 @@
       "location_accuracy": "approximate",
       "validity_category": "kandidat_publik_ruas_osm",
       "verification_status": "needs_review",
+      "operational_status": "operational_commissioned_2024_01_26",
+      "legal_basis_note": "Diresmikan resmi oleh Wali Kota Medan pada 26 Januari 2024 (rilis Portal Pemko Medan __read4146 & ANTARA 560100); bukan bagian dari Perwali 25/2018.",
       "osm_ref": "way/94829701",
       "source_name": "Portal Resmi Pemko Medan (Peresmian UPT V & VI 26 Jan 2024), ANTARA Sumut, & OSM Nominatim",
       "source_url": "https://portal.medan.go.id/berita/tingkatkan-pelayanan-bobby-nasution-resmikan-2-upt-pemadam-kebakaran-dan-penyelamatan__read4146.html",
@@ -192,8 +237,9 @@
         "https://sumut.antaranews.com/berita/560100/pemkot-medan-tingkatkan-pelayanan-pemadam-kebakaran-penyelamatan-pkp",
         "https://sumut.antaranews.com/berita/574077/perusahaan-kelapa-sawit-terbakar-tujuh-armada-pemadam-dikerahkan"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Gaperta, Kec. Medan Helvetia. Koordinat masih berupa perkiraan titik tengah ruas Jl. Gaperta pada OSM (way/94829701), bukan koordinat bangunan pos hasil survei resmi.",
+      "conflict_notes": "Peresmian dan pengerahan aktif terkonfirmasi, namun koordinat masih perkiraan ruas Jl. Gaperta OSM (way/94829701), bukan koordinat bangunan pos.",
       "isDemo": false
     },
     {
@@ -215,6 +261,8 @@
       "location_accuracy": "approximate",
       "validity_category": "kandidat_publik_ruas_osm",
       "verification_status": "needs_review",
+      "operational_status": "operational_commissioned_2024_01_26",
+      "legal_basis_note": "Diresmikan resmi oleh Wali Kota Medan pada 26 Januari 2024 (rilis Portal Pemko Medan __read4146 & ANTARA 560100); bukan bagian dari Perwali 25/2018.",
       "osm_ref": "way/439190277",
       "source_name": "Portal Resmi Pemko Medan (Peresmian UPT V & VI 26 Jan 2024), ANTARA Sumut, & OSM Nominatim",
       "source_url": "https://portal.medan.go.id/berita/tingkatkan-pelayanan-bobby-nasution-resmikan-2-upt-pemadam-kebakaran-dan-penyelamatan__read4146.html",
@@ -224,8 +272,9 @@
         "https://sumut.antaranews.com/berita/574749/kantor-camat-medan-area-terbakar-begini-kronologisnya",
         "https://sumut.antaranews.com/berita/606278/toko-florist-di-pusat-pasar-kota-medan-terbakar-damkarmat-kerahkan-enam-unit-armada"
       ],
-      "retrieved_at": "2026-11-23",
+      "retrieved_at": "2026-11-27",
       "limitation_note": "Diresmikan Wali Kota Medan pada 26 Januari 2024 di Jl. Letda Sujono, Kec. Medan Tembung. Koordinat masih berupa perkiraan titik tengah ruas Jl. Letda Sujono pada OSM (way/439190277), bukan koordinat bangunan pos hasil survei resmi.",
+      "conflict_notes": "Peresmian dan pengerahan aktif terkonfirmasi, namun koordinat masih perkiraan ruas Jl. Letda Sujono OSM (way/439190277), bukan koordinat bangunan pos.",
       "isDemo": false
     }
   ]

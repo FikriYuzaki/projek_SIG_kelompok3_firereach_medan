@@ -3,17 +3,27 @@
   "dataLabel": "UNVERIFIED_CANDIDATES",
   "generated_from": "data/processed/independent_enrichment_input.json",
   "metadata": {
-    "access_date": "2026-11-23",
+    "access_date": "2026-11-27",
     "isDemo": false,
     "dataLabel": "UNVERIFIED_CANDIDATES",
     "p2k_medan_blocked": true,
-    "p2k_medan_blocker_note": "Portal p2k.medan.go.id mengembalikan HTTP 403 tantangan anti-bot Cloudflare (challenges.cloudflare.com); tidak diakses ulang dengan bypass.",
+    "p2k_medan_blocker_note": "Portal p2k.medan.go.id dan jdih.medan.go.id mengembalikan HTTP 403 tantangan anti-bot Cloudflare (challenges.cloudflare.com) saat dicek ulang 2026-11-27; tidak dilakukan bypass.",
     "articles_inspected_total": 35,
     "primary_incident_articles": 27,
     "deduplicated_followup_articles": 6,
     "excluded_non_medan_articles": 1,
     "non_incident_station_articles": 1,
-    "disclaimer": "Kandidat kejadian kebakaran individual dan pos UPT berasal dari liputan media berita terbuka (ANTARA Sumut, Detik Sumut), JDIH BPK (Perwali Medan No. 25 Tahun 2018), serta geocoding perkiraan ruas jalan/landmark publik OSM Nominatim. Dataset ini bukan sensus resmi lengkap, seluruhnya berstatus needs_review, tidak memenuhi syarat KDE default, dan disimpan terpisah dari statistik resmi Dinas Damkarmat serta BPBD Kota Medan."
+    "legal_basis_audit": {
+      "audited_at": "2026-11-27",
+      "perwali_25_2018_note": "Perwali Medan No. 25 Tahun 2018 (BD.2018/ No. 25) masih tercatat Berlaku di JDIH BPK RI dengan nomenklatur lama Dinas Pencegah dan Pemadam Kebakaran; dipakai sebagai konteks historis pembentukan UPT Wilayah I-IV, bukan bukti lokasi fisik bangunan pos.",
+      "perwali_12_2023_check": "Perwali Medan No. 12 Tahun 2023 pada JDIH BPK RI mengatur Percepatan Penurunan Stunting Terintegrasi, bukan pembubaran/revisi UPT Damkarmat.",
+      "jdih_medan_status": "https://jdih.medan.go.id/ terblokir HTTP 403 Cloudflare pada 2026-11-27 sehingga status perubahan peraturan internal Pemko Medan belum dapat diverifikasi langsung.",
+      "recent_policy_context": [
+        "Perwali Medan No. 39 Tahun 2024 (Amplifikasi Pelayanan Damkarmat / MERCY)",
+        "Perda Kota Medan No. 6 Tahun 2025 (Pencegahan dan Penanggulangan Kebakaran)"
+      ]
+    },
+    "disclaimer": "Kandidat kejadian kebakaran individual dan pos UPT berasal dari liputan media berita terbuka (ANTARA Sumut, Detik Sumut, Metro Rakyat), portal resmi Pemko Medan, konteks historis JDIH BPK (Perwali Medan No. 25 Tahun 2018), serta geocoding perkiraan ruas jalan/landmark publik OSM Nominatim. Tidak ada data atau koordinat yang diambil dari Google Maps. Dataset ini bukan sensus resmi lengkap, seluruhnya berstatus needs_review, tidak memenuhi syarat KDE default, dan disimpan terpisah dari statistik resmi Dinas Damkarmat serta BPBD Kota Medan."
   },
   "summary": {
     "total_candidates": 27,

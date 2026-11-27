@@ -12,7 +12,6 @@ export default defineConfig({
         manualChunks: {
           leaflet: ["leaflet"],
           charts: ["chart.js"],
-          three: ["three"],
           supabase: ["@supabase/supabase-js"]
         }
       }

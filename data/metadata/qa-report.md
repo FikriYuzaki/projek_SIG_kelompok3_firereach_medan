@@ -1,8 +1,8 @@
-# Laporan Quality Assurance (QA) Data — FireReach Medan
+# Laporan Quality Assurance (QA) Data - FireReach Medan
 
-**Diperbarui:** 2026-11-23
+**Diperbarui:** 2026-11-27
 
-**Pipeline build:** `scripts/build_processed_data.py` & validasi staging `scripts/import_supabase_staging.mjs --dry-run`
+**Pipeline build:** `scripts/build_processed_data.py`, `scripts/build_road_routing_graph.py`, & validasi staging `scripts/import_supabase_staging.mjs --dry-run`
 
 ---
 
@@ -30,9 +30,10 @@
    - `17/17` titik `approximate` (perkiraan ruas jalan / landmark OSM Nominatim) lolos uji PIP `build_processed_data.py` berada di dalam poligon `district_name` masing-masing.
    - `10/10` record `district_only` tetap bernilai `geom = null` (nol titik centroid kecamatan yang dibuat-buat).
    - Seluruh `27` record memiliki `kde_eligible = false` dan `verification_status = "needs_review"`.
-4. **Kandidat Pos UPT Wilayah I - VI (`6` pos):**
-   - `2/2` titik `approximate` (`UPT-05` Jl. Gaperta, `UPT-06` Jl. Letda Sujono) lolos uji PIP berada di dalam poligon `Medan Helvetia` dan `Medan Tembung`.
-   - `4/4` pos dengan konflik alamat atau `NO_MATCH` Nominatim (`UPT-01` Medan Tuntungan, `UPT-02` Medan Amplas, `UPT-03` KIM Mabar / Medan Deli, `UPT-04` Medan Belawan) tetap bernilai `geom = null` (`district_only`, tidak digambar sebagai marker peta).
+4. **Kandidat Pos UPT Wilayah I - VI (`6` pos) & Audit Regulasi 2026-11-27:**
+   - `4/4` titik `approximate` (`UPT-01` Jl. Jamin Ginting / Simpang Selayang di `Medan Tuntungan`, `UPT-02` Jl. Tritura / Amplas di `Medan Amplas`, `UPT-05` Jl. Gaperta di `Medan Helvetia`, `UPT-06` Jl. Letda Sujono di `Medan Tembung`) lolos uji PIP berada di dalam poligon kecamatannya dan diharmonisasikan 1:1 antara `public_station_candidates.json`, `independent_enrichment_input.json`, dan `damkarmat_station_candidates.json`.
+   - `2/2` pos tanpa titik ruas terverifikasi (`UPT-03` KIM Mabar / Medan Deli, `UPT-04` Medan Belawan) tetap bernilai `geom = null` (`district_only`, tidak digambar sebagai marker peta).
+   - **Audit dasar hukum (`legal_basis_audit`):** `Perwali Medan No. 25 Tahun 2018` (`BD.2018/ No. 25`) pada JDIH BPK RI tercatat `Berlaku` sebagai konteks historis nomenklatur lama (*Dinas P2K*), sementara `jdih.medan.go.id` HTTP 403 Cloudflare; `Perwali Medan No. 12 Tahun 2023` pada JDIH BPK RI ternyata tentang *Percepatan Penurunan Stunting* (bukan UPT Damkarmat); `Perwali No. 39 Tahun 2024` & `Perda No. 6 Tahun 2025` dicatat sebagai rujukan regulasi terkini; dan `p2k.medan.go.id` tetap HTTP 403 Cloudflare pada pemeriksaan ulang `2026-11-27`.
 
 ---
 
@@ -50,7 +51,9 @@
 
 ---
 
-## 4. Pemeriksaan Lanjutan & Status Staging
+## 4. Pemeriksaan Lanjutan, Graf Rute Jalan & Status Staging
 
-- `scripts/build_processed_data.py` menghasilkan keluaran deterministik untuk GeoJSON (`53.157` byte), ringkasan JSON, manifest `17+2`, katalog kandidat, dan `supabase_staging_bundle.json`.
+- `scripts/build_processed_data.py` menghasilkan keluaran deterministik untuk GeoJSON (`53.157` byte), `fire_incidents_summary.json` (`241.675` byte), manifest `17+2`, katalog kandidat (`45.639` + `16.124` byte), dan `supabase_staging_bundle.json` (`238.339` byte).
+- `scripts/build_road_routing_graph.py` menghasilkan `public/data/medan_road_graph.json` (`587.909` byte): `8.581` simpul, `9.720` ruas berarah (`1.579,7 km`) dari `medan_roads_utm.gpkg` dalam `EPSG:32647` dengan jarak snap ke 5 pos berkoordinat `14,9 m` - `142,6 m` (`MAKO-00`, `UPT-01`, `UPT-02`, `UPT-05`, `UPT-06`) yang semuanya terjangkau oleh Dijkstra berarah.
 - `scripts/import_supabase_staging.mjs --dry-run` memvalidasi `38` `data_sources`, `193` `fire_incident_aggregates`, `7` `fire_stations`, `27` `fire_incidents`, dan `5` `app_data_snapshots` dalam mode dry-run (`remote_db_modified: false`).
+- Audit kesesuaian `source-register.csv` (`38` baris) terhadap `data/raw/` memverifikasi seluruh ukuran byte dan SHA-256 cocok tanpa perbedaan.

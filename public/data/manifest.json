@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-23",
+  "generated_at": "2026-11-27",
   "city": "Kota Medan",
   "crs_web": "EPSG:4326",
   "crs_metric": "EPSG:32647",
@@ -242,7 +242,7 @@
     }
   ],
   "independent_enrichment": {
-    "scope_note": "Kandidat dari media berita kredibel (ANTARA Sumut, Detik Sumut), JDIH BPK (Perwali 25/2018), dan geocoding ruas OSM Nominatim disimpan terpisah dari dataset resmi dan belum masuk perhitungan KDE maupun coverage terverifikasi.",
+    "scope_note": "Kandidat dari media berita kredibel (ANTARA Sumut, Detik Sumut, Metro Rakyat), portal resmi Pemko Medan, konteks historis JDIH BPK (Perwali 25/2018), dan geocoding landmark/ruas OSM Nominatim disimpan terpisah dari dataset resmi dan belum masuk perhitungan KDE maupun coverage terverifikasi.",
     "datasets": [
       {
         "id": "medan-fire-incident-candidates",
@@ -253,18 +253,18 @@
         "accuracy_summary": "17 approximate (ruas/landmark) + 10 district_only (geom=null), Non-KDE",
         "status": "needs_review",
         "path": "/data/public_incident_candidates.json",
-        "sha256": "8b925a4c60564a296009139d17db76aed4e6b53f68c17d098164cab9725ae291"
+        "sha256": "e1a8b43addf3cea1ec3463d1361d113423ffc302b96246e69f4e75a5651befa8"
       },
       {
         "id": "medan-damkarmat-upt-candidates",
         "title": "Kandidat Pos UPT Wilayah I - VI Dinas Damkarmat Kota Medan",
-        "publisher": "JDIH BPK (Perwali 25/2018), ANTARA Sumut, & OSM Nominatim",
+        "publisher": "Portal Pemko Medan, Renstra DP2K, JDIH BPK (Perwali 25/2018 historis), ANTARA Sumut, & OSM",
         "period": "2018 - 2026",
         "record_count": 6,
-        "accuracy_summary": "2 approximate (UPT-05 & UPT-06) + 4 district_only (UPT-01..04, geom=null)",
+        "accuracy_summary": "4 approximate (UPT-01, UPT-02, UPT-05, UPT-06) + 2 district_only (UPT-03, UPT-04, geom=null)",
         "status": "needs_review",
         "path": "/data/damkarmat_station_candidates.json",
-        "sha256": "87d424479f6c1c7c2bf6f441e4b40d8ed4c4b84c5149a96eb3beaf00c2df6e80"
+        "sha256": "2519d989c8ebfd5b0e96e3f07e124246f14b35c6b0e9e216770df3cd1f0b89c7"
       }
     ]
   },

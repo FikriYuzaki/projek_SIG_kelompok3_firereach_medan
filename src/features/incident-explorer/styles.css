@@ -176,3 +176,143 @@
   font-size: var(--text-sm);
   margin: 0;
 }
+
+/* Simulasi Respons Damkarmat */
+.sim-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sim-disclaimer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.sim-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.sim-btn-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.sim-btn-row .btn,
+.sim-controls-grid .btn,
+.sim-controls-grid select {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.sim-controls-grid .btn:focus-visible,
+.sim-controls-grid select:focus-visible,
+.sim-btn-row .btn:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.sim-hint {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.sim-map-canvas {
+  min-height: 420px;
+}
+
+.sim-stage-box {
+  width: 100%;
+  aspect-ratio: 360 / 190;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-paper);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#sim-stage-canvas,
+.sim-stage-box svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sim-progress-track {
+  width: 100%;
+  height: 8px;
+  margin-top: var(--space-2);
+  border-radius: 999px;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.sim-progress-fill {
+  height: 100%;
+  background-color: var(--color-river-text);
+  transition: width 160ms linear;
+}
+
+.sim-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.sim-timeline li {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-ink-muted);
+}
+
+.sim-timeline li.is-active {
+  border-color: var(--color-ember);
+  background-color: #fbf2e6;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.sim-timeline li.is-done {
+  border-color: var(--color-river-text);
+  background-color: #eaf2f3;
+  color: var(--color-ink);
+}
+
+@media (max-width: 768px) {
+  .sim-controls-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sim-map-canvas {
+    min-height: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-progress-fill {
+    transition: none;
+  }
+}

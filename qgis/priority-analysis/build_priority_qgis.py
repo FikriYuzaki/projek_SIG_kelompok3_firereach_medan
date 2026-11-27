@@ -161,7 +161,7 @@ def build_project() -> None:
         project.setTitle("FireReach Medan - Priority Planner 21 Kecamatan (Provisional)")
 
         mako_lyr = QgsVectorLayer("./layers/priority_analysis.gpkg|layername=mako_verified", "Mako 0.0 Damkarmat Medan (Terverifikasi)", "ogr")
-        bound_lyr = QgsVectorLayer("../../public/data/medan_districts_osm.geojson", "Batas 21 Kecamatan Medan (Fallback OSM)", "ogr")
+        bound_lyr = QgsVectorLayer("./layers/medan_districts_osm.geojson", "Batas 21 Kecamatan Medan (Fallback OSM)", "ogr")
         prio_lyr = QgsVectorLayer("./layers/priority_analysis.gpkg|layername=priority_districts_21_utm", "Skor Prioritas Layanan 21 Kecamatan (PROVISIONAL)", "ogr")
 
         for lyr, name in ((mako_lyr, "mako"), (bound_lyr, "boundary"), (prio_lyr, "priority")):
