@@ -8,7 +8,7 @@ Status per 2026-11-27. Dokumen ini mencatat apa yang sudah selesai pada pekerjaa
 |---|---|---|---|---|
 | Baseline audit | `main` | - | `e8cd4d1e81699020138236283b7464f17d008ffd` | Selesai |
 | Pembersihan artefak, `.gitignore`, README, dokumentasi utama | `chore/repository-housekeeping` | [#12](https://github.com/FikriYuzaki/projek_SIG_kelompok3_firereach_medan/pull/12) | `d4d028ee3bd2bd09a6b2a272813edb7025e1c1dd` | Merged, CI dan Vercel lulus |
-| Tindak lanjut: `docs/AGENT_SETUP.md`, `qgis/QA_REPORT.md`, dokumen handoff ini | `chore/repository-housekeeping-followup` | lihat PR terbaru ke `main` | - | Dalam review |
+| Tindak lanjut: `docs/AGENT_SETUP.md`, `qgis/QA_REPORT.md`, dokumen handoff ini | `chore/repository-housekeeping-followup` | [#13](https://github.com/FikriYuzaki/projek_SIG_kelompok3_firereach_medan/pull/13) | - | Menunggu CI dan merge ke `main` |
 
 ## 2. Yang Sudah Dikerjakan (PR #12)
 
@@ -26,7 +26,7 @@ Status per 2026-11-27. Dokumen ini mencatat apa yang sudah selesai pada pekerjaa
 - `docs/laporan/`: draft laporan akademik, tidak diedit.
 - `src/components/coming-soon.js`: masih diimpor oleh `src/router/index.js` sebagai guarded fallback, jadi bukan file mati.
 - Remote branch lama (`develop`, `feature/*`, `fix/*`, `backup/*`, `chore/repository-housekeeping`): tidak dihapus karena belum diaudit apakah masih menyimpan commit unik.
-- File lokal pengguna yang untracked (`# MASTER TASK ...md`, `PRODUCTION_SMOKE_TEST_2026-11-24.md`, `PROMPT_SINKRONISASI_BRANCH_FIREREACH.md`, `docs/research/`, `firereach-supabase-online-integration.patch`, `laporan sig/`) dan folder gitignored `deliverables/`, `data/raw/`, `data/interim/`.
+- File lokal pengguna yang belum di-track serta direktori kerja lokal yang diabaikan `.gitignore` tidak diubah, tidak dihapus, dan tidak dipublikasikan ke GitHub.
 
 ## 4. Validasi Terakhir
 
